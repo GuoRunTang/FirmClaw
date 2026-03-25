@@ -3,9 +3,7 @@
  *
  * 程序入口文件。
  *
- * v1.1 改进：
- * - AgentConfig 传入 workDir
- * - 注册 bash 工具（已适配 ToolContext）
+ * v1.2: 注册 read_file + bash 工具
  */
 
 import 'dotenv/config';
@@ -13,22 +11,27 @@ import * as readline from 'node:readline';
 import { LLMClient } from './llm/client.js';
 import { ToolRegistry } from './tools/registry.js';
 import { bashTool } from './tools/bash.js';
+import { readTool } from './tools/read.js';
 import { AgentLoop } from './agent/agent-loop.js';
 
 // ═══════════════════════════════════════════════════════════════
 // 系统提示词
 // ═══════════════════════════════════════════════════════════════
-const SYSTEM_PROMPT = `你是一个本地 AI 智能体助手，可以执行终端命令来帮助用户完成任务。
+const SYSTEM_PROMPT = `你是一个本地 AI 智能体助手，可以读取文件和执行终端命令来帮助用户完成任务。
+
+## 可用工具
+- **bash**: 执行终端命令（如 ls、cat、npm run 等）
+- **read_file**: 读取文件内容，支持 offset/limit 分段读取，返回带行号的内容
 
 ## 工作方式
 1. 理解用户的需求
-2. 使用 bash 工具执行必要的命令来获取信息或完成任务
-3. 根据命令输出分析结果
-4. 给出清晰、有用的最终答案
+2. 优先使用 read_file 读取文件内容（比 bash cat 更精确）
+3. 使用 bash 执行命令来获取动态信息或完成任务
+4. 根据结果分析并给出清晰的最终答案
 
 ## 注意事项
-- 在执行命令前，先说明你打算做什么
-- 如果命令执行失败，分析错误原因并尝试其他方法
+- 在执行操作前，先说明你打算做什么
+- 如果操作失败，分析错误原因并尝试其他方法
 - 使用中文回复
 - 回答要简洁直接，不要多余的客套话`;
 
@@ -57,6 +60,7 @@ async function main(): Promise<void> {
 
   const tools = new ToolRegistry();
   tools.register(bashTool);
+  tools.register(readTool);
 
   const agent = new AgentLoop(llm, tools, {
     systemPrompt: SYSTEM_PROMPT,
