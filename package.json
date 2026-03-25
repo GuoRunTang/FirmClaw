@@ -1,0 +1,24 @@
+{
+  "name": "firmclaw",
+  "version": "1.0.0",
+  "description": "A local-first AI agent framework based on ReAct architecture",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "test:bash": "tsx src/tests/test-bash.ts",
+    "test:llm": "tsx src/tests/test-llm.ts",
+    "test:agent": "tsx src/tests/test-agent.ts"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@types/node": "^25.5.0",
+    "dotenv": "^17.3.1",
+    "openai": "^6.32.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  }
+}
