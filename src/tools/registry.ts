@@ -1,30 +1,36 @@
 /**
  * src/tools/registry.ts
  *
- * 【讲解】
- * ToolRegistry 是工具的"注册中心"。它的职责是：
- * 1. 管理所有可用工具的注册和查询
- * 2. 将工具列表转换为 OpenAI function calling 需要的格式
+ * 工具注册中心。
  *
- * 为什么需要 Registry？
- * - Agent Loop 不需要知道有哪些工具，只需要从 Registry 获取
- * - LLM 需要一个标准格式（OpenAI tools format）的工具列表
- * - 未来添加新工具只需 registry.register(newTool) 即可
+ * v1.0: 基础注册/查询/格式转换
+ * v1.1: 新增 ajv 参数校验 + execute() 方法（校验→调用→返回）
  *
- * toOpenAITools() 方法是关键：
- * 它把我们的 Tool 接口转换为 OpenAI API 要求的格式：
- *   { type: 'function', function: { name, description, parameters } }
- * 这样 LLM 就能理解有哪些工具可用、每个工具需要什么参数。
+ * 核心改进：
+ * - 注册工具时自动编译 JSON Schema（ajv）
+ * - execute() 先校验参数，通过后才调用工具
+ * - 校验失败不抛异常，返回 ToolResult { isError: true }，让 LLM 自我纠正
  */
 
-import type { Tool } from './types.js';
+import Ajv from 'ajv';
+import type { Tool, ToolDefinition, ToolResult } from './types.js';
+import type { ToolContext } from './context.js';
 
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
+  private validators: Map<string, Ajv.ValidateFunction> = new Map();
+  private ajv: Ajv;
 
-  /** 注册一个工具 */
+  constructor() {
+    this.ajv = new Ajv({ allErrors: true });
+  }
+
+  /** 注册一个工具（同时编译参数校验 schema） */
   register(tool: Tool): void {
     this.tools.set(tool.name, tool);
+    // 编译 JSON Schema 校验器
+    const validate = this.ajv.compile(tool.parameters);
+    this.validators.set(tool.name, validate);
   }
 
   /** 按名称查找工具 */
@@ -43,8 +49,55 @@ export class ToolRegistry {
   }
 
   /**
+   * 校验工具参数
+   *
+   * @returns 校验错误信息，null 表示通过
+   */
+  validate(name: string, params: Record<string, unknown>): string | null {
+    const validate = this.validators.get(name);
+    if (!validate) {
+      return `Unknown tool: "${name}"`;
+    }
+    const valid = validate(params);
+    if (!valid) {
+      const errors = validate.errors?.map(e =>
+        `${e.instancePath || '(root)'} ${e.message}`
+      ).join('; ');
+      return `Parameter validation failed: ${errors}`;
+    }
+    return null;
+  }
+
+  /**
+   * 执行工具（先校验参数，再调用）
+   *
+   * 这是 v1.1 的核心方法，AgentLoop 调用工具时走这个路径：
+   *   validate → [失败则返回错误] → execute
+   *
+   * @param name    - 工具名称
+   * @param params  - 工具参数（LLM 传过来的）
+   * @param context - 工具执行上下文（workDir 等）
+   * @returns 工具执行结果
+   */
+  async execute(name: string, params: Record<string, unknown>, context: ToolContext): Promise<ToolResult> {
+    // 1. 参数校验
+    const error = this.validate(name, params);
+    if (error) {
+      return { content: error, isError: true };
+    }
+
+    // 2. 查找工具
+    const tool = this.tools.get(name);
+    if (!tool) {
+      return { content: `Unknown tool: "${name}"`, isError: true };
+    }
+
+    // 3. 执行
+    return tool.execute(params, context);
+  }
+
+  /**
    * 将所有工具转换为 OpenAI function calling 格式
-   * 这是 LLM API 需要的格式
    */
   toOpenAITools(): OpenAITool[] {
     return this.getAll().map(tool => ({
@@ -64,6 +117,6 @@ interface OpenAITool {
   function: {
     name: string;
     description: string;
-    parameters: Record<string, unknown>;
+    parameters: ToolDefinition;
   };
 }

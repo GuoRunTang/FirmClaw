@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirmClaw v1.0.0 — Windows 部署指南</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d2e;
+    --border: #2a2d3e;
+    --text: #e0e0e0;
+    --text-dim: #8b8fa3;
+    --accent: #60a5fa;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 0 0 60px;
+  }
+  .hero {
+    background: linear-gradient(135deg, #1a1d2e 0%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 40px 40px;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 2.4em;
+    color: var(--accent);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .hero .subtitle {
+    color: var(--text-dim);
+    font-size: 1.1em;
+  }
+  .hero .tag {
+    display: inline-block;
+    background: rgba(96,165,250,0.15);
+    color: var(--accent);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    margin-top: 12px;
+    border: 1px solid rgba(96,165,250,0.3);
+  }
+  .container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Step Card */
+  .step {
+    margin-top: 32px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .step-header:hover { background: rgba(96,165,250,0.04); }
+  .step-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1em;
+    flex-shrink: 0;
+  }
+  .step-num.done { background: rgba(52,211,153,0.2); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+  .step-num.active { background: rgba(96,165,250,0.2); color: var(--accent); border: 1px solid rgba(96,165,250,0.3); }
+  .step-num.pending { background: rgba(139,143,163,0.15); color: var(--text-dim); border: 1px solid rgba(139,143,163,0.2); }
+  .step-title { font-size: 1.1em; font-weight: 600; flex: 1; }
+  .step-time { color: var(--text-dim); font-size: 0.85em; }
+  .step-body { padding: 20px 24px 24px; }
+  .step-body p { margin-bottom: 12px; }
+  .step-body h3 {
+    color: var(--accent);
+    margin: 18px 0 10px;
+    font-size: 1em;
+  }
+  .step-body ul { padding-left: 20px; margin-bottom: 12px; }
+  .step-body li { margin-bottom: 6px; }
+  .step-body li::marker { color: var(--accent); }
+
+  /* Code blocks */
+  pre {
+    background: #12141f;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    overflow-x: auto;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.88em;
+    line-height: 1.6;
+    margin: 10px 0 14px;
+    position: relative;
+  }
+  pre .lang {
+    position: absolute;
+    top: 6px; right: 10px;
+    font-size: 0.75em;
+    color: var(--text-dim);
+    opacity: 0.6;
+  }
+  code {
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    background: rgba(96,165,250,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.88em;
+    color: var(--accent);
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: var(--text);
+  }
+  .comment { color: #6b7280; }
+  .string { color: #34d399; }
+  .keyword { color: #c084fc; }
+  .cmd { color: #fbbf24; }
+  .path { color: #60a5fa; }
+
+  /* Info / Warning boxes */
+  .box {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 0.95em;
+    border-left: 3px solid;
+  }
+  .box-info { background: rgba(96,165,250,0.08); border-color: var(--accent); }
+  .box-warn { background: rgba(251,191,36,0.08); border-color: var(--yellow); }
+  .box-ok { background: rgba(52,211,153,0.08); border-color: var(--green); }
+  .box-red { background: rgba(248,113,113,0.08); border-color: var(--red); }
+
+  /* Checklist */
+  .checklist { list-style: none; padding: 0; }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(42,45,62,0.5);
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .check { color: var(--green); font-size: 1.1em; flex-shrink: 0; margin-top: 2px; }
+
+  /* Requirements table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 0.93em;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+  }
+  th { background: rgba(96,165,250,0.1); color: var(--accent); font-weight: 600; }
+  td { background: var(--card); }
+
+  /* Env file visual */
+  .env-visual {
+    background: #12141f;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.88em;
+    line-height: 2;
+  }
+  .env-key { color: #60a5fa; }
+  .env-eq { color: #6b7280; }
+  .env-val { color: #34d399; }
+  .env-comment { color: #6b7280; font-style: italic; }
+
+  /* Nav */
+  .nav {
+    position: sticky;
+    top: 0;
+    background: rgba(15,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    z-index: 100;
+  }
+  .nav-inner {
+    max-width: 880px;
+    margin: 0 auto;
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+  }
+  .nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.9em;
+    white-space: nowrap;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .nav a:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* Flow SVG */
+  .flow-section { margin: 20px 0; }
+  .flow-section svg { width: 100%; height: auto; display: block; }
+
+  .section-label {
+    display: inline-block;
+    background: rgba(96,165,250,0.1);
+    color: var(--accent);
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 600;
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>FirmClaw v1.0.0 部署指南</h1>
+  <p class="subtitle">Windows 环境从零搭建到运行的全部流程</p>
+  <span class="tag">Windows 10/11 &bull; Node.js &ge; 18 &bull; MiniMax API</span>
+</div>
+
+<div class="nav">
+  <div class="nav-inner">
+    <a href="#prerequisites">前置要求</a>
+    <a href="#step1">Step 1: Node.js</a>
+    <a href="#step2">Step 2: 复制项目</a>
+    <a href="#step3">Step 3: 安装依赖</a>
+    <a href="#step4">Step 4: 配置 .env</a>
+    <a href="#step5">Step 5: 验证运行</a>
+    <a href="#step6">Step 6: 日常使用</a>
+    <a href="#flow">安装流程图</a>
+    <a href="#troubleshoot">常见问题</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Prerequisites -->
+  <div id="prerequisites" style="margin-top:32px;">
+    <span class="section-label">概述</span>
+    <h2 style="margin:10px 0 16px;">你需要准备什么</h2>
+    <table>
+      <tr><th>项目</th><th>要求</th><th>获取方式</th></tr>
+      <tr><td>操作系统</td><td>Windows 10 或 Windows 11</td><td>—</td></tr>
+      <tr><td>Node.js</td><td>&ge; 18.0.0 (推荐 LTS 20.x)</td><td><a href="https://nodejs.org" style="color:var(--accent)">nodejs.org</a></td></tr>
+      <tr><td>npm</td><td>随 Node.js 自动安装</td><td>—</td></tr>
+      <tr><td>MiniMax API Key</td><td>有效密钥 (sk-cp-...)</td><td><a href="https://platform.minimax.chat" style="color:var(--accent)">platform.minimax.chat</a></td></tr>
+      <tr><td>网络</td><td>能访问 api.minimax.chat</td><td>—</td></tr>
+      <tr><td>磁盘空间</td><td>~200 MB (含 node_modules)</td><td>—</td></tr>
+    </table>
+
+    <div class="box box-info">
+      <strong>不需要安装</strong>：Python、Git（除非你要管理源码版本）、任何其他运行时。项目是纯 Node.js + TypeScript。
+    </div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="step" id="step1">
+    <div class="step-header">
+      <div class="step-num done">1</div>
+      <div class="step-title">安装 Node.js</div>
+      <div class="step-time">~5 分钟</div>
+    </div>
+    <div class="step-body">
+      <h3>下载安装包</h3>
+      <p>访问 <code style="color:var(--accent)">https://nodejs.org</code>，下载 <strong>LTS (长期支持版)</strong>：</p>
+      <ul>
+        <li>推荐版本：20.x LTS 或 22.x LTS</li>
+        <li>文件名形如 <code>node-v20.x.x-x64.msi</code></li>
+        <li>选择 <strong>.msi</strong> 安装包（Windows 原生安装器）</li>
+      </ul>
+
+      <h3>安装步骤</h3>
+      <ul>
+        <li>双击 .msi 文件，一路 <strong>Next</strong></li>
+        <li>勾选 <strong>"Automatically install the necessary tools"</strong>（会自动安装 chocolatey 和构建工具）</li>
+        <li>默认安装路径即可：<code>C:\Program Files\nodejs</code></li>
+        <li>安装完成后，<strong>新开一个 PowerShell 窗口</strong>（旧窗口的环境变量不会刷新）</li>
+      </ul>
+
+      <h3>验证安装</h3>
+      <pre><span class="lang">powershell</span><span class="cmd">node</span> --version      <span class="comment"># 应显示 v20.x.x 或 v22.x.x</span>
+<span class="cmd">npm</span> --version       <span class="comment"># 应显示 10.x.x</span></pre>
+
+      <div class="box box-ok">
+        <strong>✓ Node.js 和 npm 会自动加入 PATH</strong>，你无需手动配置环境变量。
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step" id="step2">
+    <div class="step-header">
+      <div class="step-num done">2</div>
+      <div class="step-title">复制项目到目标电脑</div>
+      <div class="step-time">~2 分钟</div>
+    </div>
+    <div class="step-body">
+      <p>有 3 种方式把项目文件搬到新电脑：</p>
+
+      <h3>方式 A：U 盘 / 移动硬盘（推荐）</h3>
+      <p>在源电脑上，复制 <strong>整个项目文件夹</strong>（但排除以下内容）：</p>
+      <pre><span class="comment"># 需要复制的文件/文件夹：</span>
+<span class="path">FirmClaw/</span>
+├── <span class="path">src/</span>           <span class="comment"># 源码（11 个 .ts 文件）</span>
+├── <span class="path">docs/</span>          <span class="comment"># 文档</span>
+├── <span class="path">.git/</span>          <span class="comment"># Git 历史（可选）</span>
+├── package.json    <span class="comment"># 项目配置</span>
+├── package-lock.json  <span class="comment"># 锁定依赖版本</span>
+├── tsconfig.json   <span class="comment"># TypeScript 配置</span>
+├── .gitignore      <span class="comment"># Git 忽略规则</span>
+└── <span class="string">.env</span>           <span class="comment"># ⚠ 包含 API Key，注意安全！</span>
+
+<span class="comment"># 不需要复制（在新电脑上重新生成）：</span>
+├── node_modules/   <span class="comment"># npm install 会重建</span>
+└── dist/           <span class="comment"># tsc 会重建</span></pre>
+
+      <h3>方式 B：Git（推荐给有 Git 经验的用户）</h3>
+      <pre><span class="comment"># 新电脑上</span>
+<span class="cmd">git clone</span> &lt;你的仓库地址&gt; <span class="path">FirmClaw</span>
+<span class="cmd">cd</span> <span class="path">FirmClaw</span></pre>
+
+      <h3>方式 C：压缩包</h3>
+      <pre><span class="comment"># 源电脑上，排除 node_modules 后压缩</span>
+<span class="comment"># 然后通过网络传输到新电脑</span></pre>
+
+      <div class="box box-warn">
+        <strong>注意</strong>：<code>.env</code> 文件包含你的 API Key，不要上传到公开的 GitHub 仓库。如果通过压缩包传输，建议用加密压缩或传输后手动创建 .env。
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step" id="step3">
+    <div class="step-header">
+      <div class="step-num active">3</div>
+      <div class="step-title">安装项目依赖</div>
+      <div class="step-time">~1-3 分钟</div>
+    </div>
+    <div class="step-body">
+      <p>打开 PowerShell，进入项目目录：</p>
+      <pre><span class="cmd">cd</span> <span class="path">D:\FirmClaw</span>    <span class="comment"># 替换为你实际的路径</span>
+
+<span class="comment"># 安装所有依赖</span>
+<span class="cmd">npm install</span></pre>
+
+      <p><code>npm install</code> 会读取 <code>package-lock.json</code>，安装以下 5 个依赖包：</p>
+      <table>
+        <tr><th>包名</th><th>版本</th><th>作用</th></tr>
+        <tr><td><code>openai</code></td><td>^6.32.0</td><td>OpenAI SDK（MiniMax 兼容格式）</td></tr>
+        <tr><td><code>dotenv</code></td><td>^17.3.1</td><td>加载 .env 环境变量</td></tr>
+        <tr><td><code>tsx</code></td><td>^4.21.0</td><td>TypeScript 直接运行器（无需编译）</td></tr>
+        <tr><td><code>typescript</code></td><td>^6.0.2</td><td>TypeScript 编译器</td></tr>
+        <tr><td><code>@types/node</code></td><td>^25.5.0</td><td>Node.js 类型定义</td></tr>
+      </table>
+
+      <div class="box box-ok">
+        <strong>✓ 安装完成后</strong>，项目目录会多出一个 <code>node_modules/</code> 文件夹（~150MB）。
+      </div>
+
+      <h3>如果 npm install 报错</h3>
+      <pre><span class="comment"># 清除 npm 缓存后重试</span>
+<span class="cmd">npm cache clean --force</span>
+<span class="cmd">npm install</span></pre>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step" id="step4">
+    <div class="step-header">
+      <div class="step-num active">4</div>
+      <div class="step-title">配置环境变量 (.env)</div>
+      <div class="step-time">~1 分钟</div>
+    </div>
+    <div class="step-body">
+      <p>在项目根目录创建 <code>.env</code> 文件。如果已经从源电脑复制过来，检查并更新 API Key 即可。</p>
+
+      <p>如果没有，新建文件：</p>
+      <pre><span class="comment"># 方法 1：用记事本创建</span>
+<span class="cmd">notepad</span> <span class="path">D:\FirmClaw\.env</span>
+
+<span class="comment"># 方法 2：PowerShell 创建</span>
+<span class="cmd">New-Item</span> -Path <span class="path">D:\FirmClaw\.env</span> -ItemType File</pre>
+
+      <p>写入以下内容（替换为你自己的 Key）：</p>
+      <div class="env-visual">
+        <span class="env-comment"># ═══ FirmClaw 环境变量配置 ═══</span><br>
+        <br>
+        <span class="env-comment"># LLM 提供商配置（MiniMax）</span><br>
+        <span class="env-key">LLM_API_KEY</span><span class="env-eq">=</span><span class="env-val">sk-cp-你的MiniMax密钥</span><br>
+        <span class="env-key">LLM_BASE_URL</span><span class="env-eq">=</span><span class="env-val">https://api.minimax.chat/v1</span><br>
+        <span class="env-key">LLM_MODEL</span><span class="env-eq">=</span><span class="env-val">MiniMax-M2.7</span>
+      </div>
+
+      <div class="box box-info">
+        <strong>关于 .env 与系统环境变量</strong><br>
+        <code>dotenv</code> 加载规则：<strong>.env 不会覆盖已存在的系统环境变量</strong>。<br>
+        优先级：<code>系统环境变量</code> &gt; <code>.env 文件</code> &gt; <code>代码默认值</code>。<br>
+        所以如果新电脑的系统环境变量中设了同名变量，.env 的值会被忽略。
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="step" id="step5">
+    <div class="step-header">
+      <div class="step-num active">5</div>
+      <div class="step-title">验证安装</div>
+      <div class="step-time">~2 分钟</div>
+    </div>
+    <div class="step-body">
+      <p>依次运行 3 个测试，确认每个模块工作正常：</p>
+
+      <h3>测试 1：Bash 工具（无需网络）</h3>
+      <pre><span class="cmd">npm run</span> test:bash</pre>
+      <p>预期输出：3 项测试全部 PASS（文件操作、命令执行、超时控制）。</p>
+
+      <h3>测试 2：LLM 连通性（需要网络 + API Key）</h3>
+      <pre><span class="cmd">npm run</span> test:llm</pre>
+      <p>预期输出：MiniMax API 返回普通文本回复 + 工具调用响应。</p>
+
+      <h3>测试 3：完整 Agent 循环</h3>
+      <pre><span class="cmd">npm run</span> test:agent</pre>
+      <p>预期输出：LLM 调用 bash 工具 → 获取结果 → 给出最终答案，完整 ReAct 循环。</p>
+
+      <div class="box box-ok">
+        <strong>✓ 3 个测试全部通过</strong> = 部署成功！
+      </div>
+
+      <div class="box box-red">
+        <strong>测试 2/3 失败的常见原因</strong>：<br>
+        &bull; .env 文件位置不对（必须在项目根目录）<br>
+        &bull; API Key 无效或过期<br>
+        &bull; 网络无法访问 api.minimax.chat
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 6 -->
+  <div class="step" id="step6">
+    <div class="step-header">
+      <div class="step-num active">6</div>
+      <div class="step-title">日常使用</div>
+      <div class="step-time">—</div>
+    </div>
+    <div class="step-body">
+      <h3>启动交互式 CLI</h3>
+      <pre><span class="cmd">npm run</span> dev</pre>
+      <p>进入交互模式后，在 <code>&gt;</code> 提示符输入问题，Agent 会自动思考和调用工具。输入 <code>exit</code> 退出。</p>
+
+      <h3>常用命令速查</h3>
+      <table>
+        <tr><th>命令</th><th>作用</th></tr>
+        <tr><td><code>npm run dev</code></td><td>启动交互式 Agent CLI</td></tr>
+        <tr><td><code>npm run test:bash</code></td><td>测试 bash 工具</td></tr>
+        <tr><td><code>npm run test:llm</code></td><td>测试 LLM 连通性</td></tr>
+        <tr><td><code>npm run test:agent</code></td><td>测试完整 Agent 循环</td></tr>
+        <tr><td><code>npm run build</code></td><td>编译 TypeScript → dist/</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Flow Diagram -->
+  <div class="step" id="flow" style="margin-top:40px;">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(167,139,250,0.2);color:var(--purple);border:1px solid rgba(167,139,250,0.3);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      </div>
+      <div class="step-title">安装流程总览</div>
+    </div>
+    <div class="step-body">
+      <div class="flow-section">
+        <svg viewBox="0 0 800 520" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background -->
+          <defs>
+            <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#1a1d2e;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#12141f;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="nodeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#4ade80;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#22c55e;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="codeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="envGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="runGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#a78bfa;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+            </linearGradient>
+            <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+              <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000" flood-opacity="0.3"/>
+            </filter>
+          </defs>
+
+          <!-- Row 1: Steps -->
+          <!-- Step 1 -->
+          <rect x="30" y="30" width="160" height="80" rx="12" fill="url(#nodeGrad)" filter="url(#shadow)" opacity="0.95"/>
+          <text x="110" y="60" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">① Node.js</text>
+          <text x="110" y="82" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11">nodejs.org → 下载 .msi</text>
+          <text x="110" y="98" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11">≥ 18.0.0</text>
+
+          <!-- Arrow 1→2 -->
+          <line x1="190" y1="70" x2="225" y2="70" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow)"/>
+          <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#4b5563"/></marker></defs>
+
+          <!-- Step 2 -->
+          <rect x="230" y="30" width="160" height="80" rx="12" fill="url(#codeGrad)" filter="url(#shadow)" opacity="0.95"/>
+          <text x="310" y="60" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">② 复制项目</text>
+          <text x="310" y="82" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11">U盘/压缩包/Git</text>
+          <text x="310" y="98" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11">排除 node_modules</text>
+
+          <!-- Arrow 2→3 -->
+          <line x1="390" y1="70" x2="425" y2="70" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Step 3 -->
+          <rect x="430" y="30" width="160" height="80" rx="12" fill="url(#codeGrad)" filter="url(#shadow)" opacity="0.95"/>
+          <text x="510" y="60" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">③ npm install</text>
+          <text x="510" y="82" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11">安装 5 个依赖包</text>
+          <text x="510" y="98" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11">~150MB</text>
+
+          <!-- Arrow 3→4 -->
+          <line x1="590" y1="70" x2="625" y2="70" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Step 4 -->
+          <rect x="630" y="30" width="140" height="80" rx="12" fill="url(#envGrad)" filter="url(#shadow)" opacity="0.95"/>
+          <text x="700" y="60" text-anchor="middle" fill="#000" font-size="14" font-weight="700">④ 配置 .env</text>
+          <text x="700" y="82" text-anchor="middle" fill="rgba(0,0,0,0.6)" font-size="11">LLM_API_KEY</text>
+          <text x="700" y="98" text-anchor="middle" fill="rgba(0,0,0,0.6)" font-size="11">LLM_MODEL</text>
+
+          <!-- Down arrow 4→5 -->
+          <line x1="700" y1="110" x2="700" y2="155" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Step 5 -->
+          <rect x="610" y="160" width="160" height="80" rx="12" fill="url(#codeGrad)" filter="url(#shadow)" opacity="0.95"/>
+          <text x="690" y="190" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">⑤ 运行测试</text>
+          <text x="690" y="212" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11">npm run test:bash</text>
+          <text x="690" y="228" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11">npm run test:llm</text>
+
+          <!-- Down arrow 5→6 -->
+          <line x1="690" y1="240" x2="690" y2="285" stroke="#4b5563" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Step 6 -->
+          <rect x="590" y="290" width="160" height="80" rx="12" fill="url(#runGrad)" filter="url(#shadow)" opacity="0.95"/>
+          <text x="670" y="320" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">⑥ npm run dev</text>
+          <text x="670" y="342" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11">交互式 Agent CLI</text>
+          <text x="670" y="358" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11">ReAct 循环运行</text>
+
+          <!-- Success banner -->
+          <rect x="560" y="390" width="220" height="40" rx="20" fill="rgba(52,211,153,0.15)" stroke="rgba(52,211,153,0.4)" stroke-width="1.5"/>
+          <text x="670" y="415" text-anchor="middle" fill="#34d399" font-size="14" font-weight="700">✓ 部署完成！</text>
+
+          <!-- Info panel (left side) -->
+          <rect x="30" y="145" width="340" height="280" rx="12" fill="rgba(26,29,46,0.8)" stroke="#2a2d3e" stroke-width="1"/>
+          <text x="50" y="175" fill="#60a5fa" font-size="13" font-weight="700">📦 项目文件结构</text>
+          <text x="50" y="200" fill="#e0e0e0" font-size="12" font-family="Consolas, monospace">FirmClaw/</text>
+          <text x="70" y="220" fill="#8b8fa3" font-size="12" font-family="Consolas, monospace">├── src/              <tspan fill="#6b7280">源码 (11 .ts)</tspan></text>
+          <text x="70" y="240" fill="#8b8fa3" font-size="12" font-family="Consolas, monospace">├── docs/             <tspan fill="#6b7280">文档</tspan></text>
+          <text x="70" y="260" fill="#8b8fa3" font-size="12" font-family="Consolas, monospace">├── package.json</text>
+          <text x="70" y="280" fill="#8b8fa3" font-size="12" font-family="Consolas, monospace">├── package-lock.json</text>
+          <text x="70" y="300" fill="#8b8fa3" font-size="12" font-family="Consolas, monospace">├── tsconfig.json</text>
+          <text x="70" y="320" fill="#8b8fa3" font-size="12" font-family="Consolas, monospace">├── .gitignore</text>
+          <text x="70" y="340" fill="#34d399" font-size="12" font-family="Consolas, monospace">└── .env              <tspan fill="#6b7280">API Key 配置</tspan></text>
+          <text x="50" y="375" fill="#6b7280" font-size="11">node_modules/ 和 dist/ 无需复制</text>
+          <text x="50" y="395" fill="#6b7280" font-size="11">会在 npm install / npm run build 时自动生成</text>
+
+          <!-- Dependency detail (mid) -->
+          <rect x="30" y="455" width="520" height="55" rx="10" fill="rgba(26,29,46,0.8)" stroke="#2a2d3e" stroke-width="1"/>
+          <text x="50" y="478" fill="#a78bfa" font-size="12" font-weight="600">核心依赖</text>
+          <text x="50" y="498" fill="#8b8fa3" font-size="11" font-family="Consolas, monospace">
+            openai (MiniMax SDK) · dotenv (.env加载) · tsx (TS运行器) · typescript (编译器)
+          </text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Troubleshooting -->
+  <div class="step" id="troubleshoot" style="margin-top:40px;">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(248,113,113,0.2);color:var(--red);border:1px solid rgba(248,113,113,0.3);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="step-title">常见问题排查</div>
+    </div>
+    <div class="step-body">
+
+      <h3>Q1: <code>node</code> 或 <code>npm</code> 不是内部命令</h3>
+      <p>Node.js 安装后 PATH 未生效。解决：</p>
+      <ul>
+        <li>关闭所有 PowerShell 窗口，重新打开</li>
+        <li>或检查环境变量：<code>echo $env:PATH</code> 是否包含 Node.js 路径</li>
+        <li>如果还不行，手动添加：<code>C:\Program Files\nodejs</code> 到系统 PATH</li>
+      </ul>
+
+      <h3>Q2: <code>npm install</code> 报权限错误</h3>
+      <pre><span class="comment"># 方法 1：以管理员身份运行 PowerShell</span>
+<span class="comment"># 方法 2：清除 npm 缓存</span>
+<span class="cmd">npm cache clean --force</span>
+<span class="cmd">npm install</span>
+
+<span class="comment"># 方法 3：如果有 .npmrc 权限问题</span>
+<span class="cmd">npm config set userconfig</span> <span class="path">$env:USERPROFILE\.npmrc</span></pre>
+
+      <h3>Q3: <code>LLM_API_KEY is not set</code></h3>
+      <div class="box box-red">
+        <strong>原因</strong>：<code>.env</code> 文件不存在、位置不对、或变量名拼写错误。
+      </div>
+      <pre><span class="comment"># 确认 .env 在项目根目录</span>
+<span class="cmd">Test-Path</span> <span class="path">D:\FirmClaw\.env</span>   <span class="comment"># 应返回 True</span>
+
+<span class="comment"># 检查内容</span>
+<span class="cmd">Get-Content</span> <span class="path">D:\FirmClaw\.env</span></pre>
+
+      <h3>Q4: 测试 LLM 超时或 401 错误</h3>
+      <ul>
+        <li><strong>401 Unauthorized</strong>：API Key 无效或过期，去 MiniMax 平台重新生成</li>
+        <li><strong>超时</strong>：检查网络是否能访问 <code>api.minimax.chat</code></li>
+        <li><strong>429 Too Many Requests</strong>：请求频率过高，等几秒重试</li>
+      </ul>
+
+      <h3>Q5: 如何换用其他 LLM 提供商？</h3>
+      <p>项目使用 OpenAI 兼容格式，只需修改 <code>.env</code>：</p>
+      <div class="env-visual">
+        <span class="env-comment"># 示例：切换到 Kimi</span><br>
+        <span class="env-key">LLM_API_KEY</span><span class="env-eq">=</span><span class="env-val">你的Kimi密钥</span><br>
+        <span class="env-key">LLM_BASE_URL</span><span class="env-eq">=</span><span class="env-val">https://api.moonshot.ai/v1</span><br>
+        <span class="env-key">LLM_MODEL</span><span class="env-eq">=</span><span class="env-val">kimi-k2.5</span><br><br>
+        <span class="env-comment"># 示例：切换到 DeepSeek</span><br>
+        <span class="env-key">LLM_API_KEY</span><span class="env-eq">=</span><span class="env-val">你的DeepSeek密钥</span><br>
+        <span class="env-key">LLM_BASE_URL</span><span class="env-eq">=</span><span class="env-val">https://api.deepseek.com/v1</span><br>
+        <span class="env-key">LLM_MODEL</span><span class="env-eq">=</span><span class="env-val">deepseek-chat</span>
+      </div>
+
+      <h3>Q6: TypeScript 编译错误</h3>
+      <pre><span class="comment"># 如果直接运行报 TS 错误，清理并重新安装</span>
+<span class="cmd">Remove-Item</span> -Recurse -Force <span class="path">node_modules</span>
+<span class="cmd">npm install</span>
+
+<span class="comment"># 项目使用 tsx 直接运行 TS，一般不需要手动编译</span>
+<span class="comment"># 如果需要编译为 JS：</span>
+<span class="cmd">npm run</span> build    <span class="comment"># 输出到 dist/</span></pre>
+    </div>
+  </div>
+
+  <!-- Quick Reference -->
+  <div class="step" id="quickref" style="margin-top:40px;">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(52,211,153,0.2);color:var(--green);border:1px solid rgba(52,211,153,0.3);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      </div>
+      <div class="step-title">部署检查清单</div>
+    </div>
+    <div class="step-body">
+      <ul class="checklist">
+        <li><span class="check">☐</span> 已安装 Node.js ≥ 18.0.0（<code>node --version</code> 验证）</li>
+        <li><span class="check">☐</span> 已复制项目文件到目标电脑（排除 node_modules/）</li>
+        <li><span class="check">☐</span> 已运行 <code>npm install</code> 安装依赖（node_modules/ 已生成）</li>
+        <li><span class="check">☐</span> 已创建 <code>.env</code> 文件并配置 LLM_API_KEY</li>
+        <li><span class="check">☐</span> 测试 1 通过：<code>npm run test:bash</code></li>
+        <li><span class="check">☐</span> 测试 2 通过：<code>npm run test:llm</code></li>
+        <li><span class="check">☐</span> 测试 3 通过：<code>npm run test:agent</code></li>
+        <li><span class="check">☐</span> 可以正常使用：<code>npm run dev</code></li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

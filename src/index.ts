@@ -1,18 +1,11 @@
 /**
  * src/index.ts
  *
- * 【讲解】
- * 这是程序的入口文件，负责：
- * 1. 加载环境变量（API Key 等）
- * 2. 初始化所有组件（LLM Client、Tool Registry、Agent Loop）
- * 3. 订阅事件流，将智能体的内部活动展示给用户
- * 4. 启动命令行交互循环（readline）
+ * 程序入口文件。
  *
- * 程序启动流程：
- *   加载 .env → 创建 LLM Client → 注册工具 → 创建 Agent → 订阅事件 → 等待用户输入
- *
- * 交互流程：
- *   用户输入 → agent.run(input) → 事件流实时展示 → 输出统计 → 等待下一次输入
+ * v1.1 改进：
+ * - AgentConfig 传入 workDir
+ * - 注册 bash 工具（已适配 ToolContext）
  */
 
 import 'dotenv/config';
@@ -23,7 +16,7 @@ import { bashTool } from './tools/bash.js';
 import { AgentLoop } from './agent/agent-loop.js';
 
 // ═══════════════════════════════════════════════════════════════
-// 系统提示词 —— 定义智能体的身份和行为规则
+// 系统提示词
 // ═══════════════════════════════════════════════════════════════
 const SYSTEM_PROMPT = `你是一个本地 AI 智能体助手，可以执行终端命令来帮助用户完成任务。
 
@@ -53,9 +46,10 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  console.log(`FirmClaw v1.0.0`);
+  console.log(`FirmClaw v1.1.0`);
   console.log(`Model: ${model}`);
   console.log(`API: ${baseURL}`);
+  console.log(`WorkDir: ${process.cwd()}`);
   console.log('Type "exit" to quit.\n');
 
   // ──── 2. 初始化组件 ────
@@ -66,24 +60,22 @@ async function main(): Promise<void> {
 
   const agent = new AgentLoop(llm, tools, {
     systemPrompt: SYSTEM_PROMPT,
-    maxTurns: 10, // 最多 10 轮循环
+    maxTurns: 10,
+    workDir: process.cwd(),
   });
 
   // ──── 3. 订阅事件流 ────
   const events = agent.getEvents();
 
-  // LLM 生成文本时 → 实时输出
   events.on('thinking_delta', (e) => {
     process.stdout.write(e.data as string);
   });
 
-  // 工具开始执行 → 显示工具名和参数
   events.on('tool_start', (e) => {
     const data = e.data as { toolName: string; args: Record<string, unknown> };
     console.log(`\n>>> [${data.toolName}] ${JSON.stringify(data.args)}`);
   });
 
-  // 工具执行完成 → 显示结果（截断到 300 字符）
   events.on('tool_end', (e) => {
     const data = e.data as { toolName: string; result: string };
     const preview = data.result.length > 300
@@ -92,7 +84,6 @@ async function main(): Promise<void> {
     console.log(`<<< [${data.toolName}] ${preview}`);
   });
 
-  // 出错 → 显示错误
   events.on('error', (e) => {
     console.error(`\n[Error] ${e.data}`);
   });
@@ -107,20 +98,18 @@ async function main(): Promise<void> {
     rl.question('> ', async (input: string) => {
       const trimmed = input.trim();
 
-      // 退出
       if (trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit') {
         console.log('\nBye!');
         rl.close();
         return;
       }
 
-      // 空输入跳过
       if (!trimmed) {
         prompt();
         return;
       }
 
-      console.log(''); // 空行分隔
+      console.log('');
 
       try {
         const result = await agent.run(trimmed);
@@ -129,7 +118,7 @@ async function main(): Promise<void> {
         console.error(`\n[Fatal Error] ${error instanceof Error ? error.message : String(error)}\n`);
       }
 
-      prompt(); // 继续下一轮
+      prompt();
     });
   };
 

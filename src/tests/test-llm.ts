@@ -2,8 +2,7 @@
  * src/tests/test-llm.ts
  *
  * 测试目标：验证 LLM Client 与 MiniMax API 的通信
- * - 需要网络 + API Key
- * - 验证：普通文本回复、工具调用
+ * v1.1: 适配新 registry（ajv 校验不影响 chat 调用，但 register 需要有效 schema）
  */
 
 import 'dotenv/config';

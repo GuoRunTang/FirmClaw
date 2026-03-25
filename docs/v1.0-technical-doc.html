@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirmClaw v1.0 技术文档</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-card: #1a1a26;
+    --bg-code: #0d0d15;
+    --border: #2a2a3a;
+    --text-primary: #e4e4ef;
+    --text-secondary: #8888a4;
+    --text-muted: #5a5a74;
+    --accent: #6c63ff;
+    --accent-glow: rgba(108, 99, 255, 0.3);
+    --green: #4ade80;
+    --green-bg: rgba(74, 222, 128, 0.1);
+    --orange: #fb923c;
+    --orange-bg: rgba(251, 146, 60, 0.1);
+    --blue: #60a5fa;
+    --blue-bg: rgba(96, 165, 250, 0.1);
+    --red: #f87171;
+    --red-bg: rgba(248, 113, 113, 0.1);
+    --purple: #c084fc;
+    --purple-bg: rgba(192, 132, 252, 0.1);
+    --cyan: #22d3ee;
+    --cyan-bg: rgba(34, 211, 238, 0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+  /* ── Hero ── */
+  .hero {
+    position: relative;
+    padding: 100px 40px 80px;
+    text-align: center;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+  .hero-badge .dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:.4 } }
+  .hero h1 {
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero .subtitle {
+    font-size: 18px;
+    color: var(--text-secondary);
+    max-width: 600px;
+    margin: 0 auto 32px;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .hero-meta span { display: flex; align-items: center; gap: 6px; }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ── TOC ── */
+  .toc {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .toc-inner {
+    display: flex;
+    gap: 4px;
+    padding: 0 24px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .toc a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    transition: all .2s;
+    font-weight: 500;
+  }
+  .toc a:hover { color: var(--accent); background: var(--accent-glow); }
+
+  /* ── Sections ── */
+  .section {
+    padding: 80px 0;
+  }
+  .section + .section {
+    border-top: 1px solid var(--border);
+  }
+  .section-label {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 16px;
+    color: #fff;
+  }
+  h3 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #fff;
+    margin-top: 48px;
+  }
+  h4 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    margin-top: 32px;
+  }
+  p { color: var(--text-secondary); margin-bottom: 16px; }
+  .lead { font-size: 17px; color: var(--text-secondary); max-width: 720px; }
+  strong { color: var(--text-primary); font-weight: 600; }
+
+  /* ── Diagrams ── */
+  .diagram-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 24px;
+    margin: 32px 0;
+    overflow-x: auto;
+  }
+  .diagram-container svg {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+  }
+  .diagram-title {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ── Cards ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color .2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+  .card h4 { margin-top: 0; margin-bottom: 8px; font-size: 16px; }
+  .card p { font-size: 14px; margin-bottom: 0; }
+
+  /* ── Tables ── */
+  .table-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 24px 0;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: rgba(108,99,255,0.08); }
+  th {
+    text-align: left;
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  td {
+    padding: 12px 20px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border);
+  }
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    background: var(--bg-code);
+    padding: 2px 7px;
+    border-radius: 4px;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  /* ── Code blocks ── */
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin: 20px 0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+  .code-label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  /* ── Tags ── */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+  }
+  .tag-green { background: var(--green-bg); color: var(--green); }
+  .tag-orange { background: var(--orange-bg); color: var(--orange); }
+  .tag-blue { background: var(--blue-bg); color: var(--blue); }
+  .tag-red { background: var(--red-bg); color: var(--red); }
+  .tag-purple { background: var(--purple-bg); color: var(--purple); }
+  .tag-cyan { background: var(--cyan-bg); color: var(--cyan); }
+
+  /* ── Steps ── */
+  .steps { margin: 24px 0; }
+  .step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .step-content { flex: 1; padding-top: 4px; }
+  .step-content h4 { margin-top: 0; }
+  .step-content p { margin-bottom: 0; font-size: 14px; }
+
+  /* ── Feature list ── */
+  .feature-list { list-style: none; margin: 16px 0; }
+  .feature-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+    font-size: 14px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .feature-list li:last-child { border-bottom: none; }
+  .feature-list .icon { flex-shrink: 0; font-size: 16px; }
+
+  /* ── Msg flow ── */
+  .msg-flow { margin: 24px 0; }
+  .msg-turn {
+    margin-left: 20px;
+    border-left: 3px solid var(--border);
+    padding-left: 24px;
+    padding-bottom: 28px;
+    position: relative;
+  }
+  .msg-turn:last-child { border-left-color: var(--green); padding-bottom: 0; }
+  .msg-turn::before {
+    content: '';
+    position: absolute;
+    left: -7px; top: 0;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--bg-primary);
+    border: 3px solid var(--accent);
+  }
+  .msg-turn:last-child::before { border-color: var(--green); }
+  .msg-turn-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .msg-turn:last-child .msg-turn-label { color: var(--green); }
+  .msg-bubble {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  .msg-system { background: var(--purple-bg); border: 1px solid rgba(192,132,252,0.2); color: var(--purple); }
+  .msg-user { background: var(--blue-bg); border: 1px solid rgba(96,165,250,0.2); color: var(--blue); }
+  .msg-assistant { background: var(--orange-bg); border: 1px solid rgba(251,146,60,0.2); color: var(--orange); }
+  .msg-tool { background: var(--green-bg); border: 1px solid rgba(74,222,128,0.2); color: var(--green); }
+  .msg-index {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── Terminal ── */
+  .terminal {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 24px 0;
+  }
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(42,42,58,0.3);
+    border-bottom: 1px solid var(--border);
+  }
+  .terminal-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .terminal-body {
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    overflow-x: auto;
+  }
+  .terminal-body .prompt { color: var(--green); }
+  .terminal-body .output { color: var(--text-secondary); }
+  .terminal-body .tool-exec { color: var(--orange); }
+  .terminal-body .result { color: var(--cyan); }
+
+  /* ── Priority diagram ── */
+  .priority-bar {
+    display: flex;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 20px 0;
+    border: 1px solid var(--border);
+  }
+  .priority-item {
+    flex: 1;
+    padding: 20px 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .priority-item p { font-size: 12px; color: var(--text-muted); margin: 4px 0 0; font-weight: 400; }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 48px 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .hero { padding: 60px 20px 48px; }
+    .hero h1 { font-size: 36px; }
+    h2 { font-size: 28px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .priority-bar { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════ HERO ════════════ -->
+<section class="hero">
+  <div class="hero-badge"><span class="dot"></span> v1.0.0 Released</div>
+  <h1>FirmClaw</h1>
+  <p class="subtitle">基于 ReAct 架构的本地优先 AI 智能体框架 —— 让 LLM 通过调用工具与操作系统交互，自主完成复杂任务</p>
+  <div class="hero-meta">
+    <span>📅 2026-03-25</span>
+    <span>⚛️ TypeScript</span>
+    <span>🤖 MiniMax M2.7</span>
+    <span>📦 5 Dependencies</span>
+  </div>
+</section>
+
+<!-- ════════════ TOC ════════════ -->
+<nav class="toc">
+  <div class="toc-inner">
+    <a href="#overview">概览</a>
+    <a href="#architecture">架构设计</a>
+    <a href="#react">ReAct 核心</a>
+    <a href="#tools">工具系统</a>
+    <a href="#llm">LLM Client</a>
+    <a href="#events">事件流</a>
+    <a href="#env">环境变量</a>
+    <a href="#testing">测试指南</a>
+    <a href="#roadmap">下一步</a>
+  </div>
+</nav>
+
+<!-- ════════════ Section 1: OVERVIEW ════════════ -->
+<section id="overview" class="section">
+  <div class="container">
+    <span class="section-label">Chapter 01</span>
+    <h2>项目概览</h2>
+    <p class="lead">FirmClaw 的核心是一个 <strong>while 循环</strong>：LLM 思考 → 调工具 → 看结果 → 再思考。就这么简单，却足以构建出能自主完成复杂任务的 AI 智能体。</p>
+
+    <div class="card-grid" style="margin-top: 40px;">
+      <div class="card">
+        <div class="card-icon" style="background:var(--blue-bg);color:var(--blue);">⟨/⟩</div>
+        <h4>TypeScript</h4>
+        <p>类型安全，生态丰富，适合构建复杂系统</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:var(--accent-glow);color:var(--accent);">🧠</div>
+        <h4>MiniMax M2.7</h4>
+        <p>1M 上下文窗口，支持 function calling，OpenAI 兼容</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:var(--green-bg);color:var(--green);">⚡</div>
+        <h4>极简依赖</h4>
+        <p>仅 5 个依赖包，核心逻辑全手工实现</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:var(--orange-bg);color:var(--orange);">🔄</div>
+        <h4>OpenAI 兼容</h4>
+        <p>一套代码切换 DeepSeek、Kimi、OpenAI 等任意提供商</p>
+      </div>
+    </div>
+
+    <!-- Project Structure -->
+    <h3>项目结构</h3>
+    <div class="diagram-container">
+      <svg width="700" height="440" viewBox="0 0 700 440">
+        <defs>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <!-- Root -->
+        <rect x="10" y="10" width="680" height="420" rx="12" fill="none" stroke="var(--border)" stroke-width="1.5"/>
+        <text x="30" y="38" fill="#fff" font-size="15" font-weight="700" font-family="Inter">firmclaw/</text>
+
+        <!-- Config files -->
+        <g transform="translate(30, 55)">
+          <rect width="120" height="30" rx="6" fill="var(--purple-bg)" stroke="rgba(192,132,252,0.3)"/>
+          <text x="12" y="20" fill="var(--purple)" font-size="12" font-family="JetBrains Mono">package.json</text>
+        </g>
+        <g transform="translate(160, 55)">
+          <rect width="120" height="30" rx="6" fill="var(--purple-bg)" stroke="rgba(192,132,252,0.3)"/>
+          <text x="12" y="20" fill="var(--purple)" font-size="12" font-family="JetBrains Mono">tsconfig.json</text>
+        </g>
+        <g transform="translate(290, 55)">
+          <rect width="70" height="30" rx="6" fill="var(--red-bg)" stroke="rgba(248,113,113,0.3)"/>
+          <text x="12" y="20" fill="var(--red)" font-size="12" font-family="JetBrains Mono">.env</text>
+        </g>
+
+        <!-- src/ box -->
+        <rect x="30" y="105" width="400" height="310" rx="10" fill="rgba(108,99,255,0.05)" stroke="rgba(108,99,255,0.2)" stroke-width="1.5"/>
+        <text x="50" y="130" fill="var(--accent)" font-size="13" font-weight="600" font-family="Inter">src/</text>
+
+        <!-- index.ts - highlighted -->
+        <g transform="translate(50, 145)" filter="url(#glow)">
+          <rect width="140" height="30" rx="6" fill="rgba(108,99,255,0.15)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="12" y="20" fill="#fff" font-size="12" font-weight="600" font-family="JetBrains Mono">index.ts</text>
+          <text x="92" y="20" fill="var(--text-muted)" font-size="10" font-family="Inter">CLI 入口</text>
+        </g>
+
+        <!-- agent/ -->
+        <rect x="55" y="190" width="160" height="105" rx="8" fill="rgba(251,146,60,0.05)" stroke="rgba(251,146,60,0.2)"/>
+        <text x="70" y="212" fill="var(--orange)" font-size="12" font-weight="600">agent/</text>
+        <g transform="translate(70, 222)">
+          <rect width="130" height="24" rx="4" fill="var(--orange-bg)"/>
+          <text x="10" y="17" fill="var(--orange)" font-size="11" font-family="JetBrains Mono">agent-loop.ts ★</text>
+        </g>
+        <g transform="translate(70, 252)">
+          <rect width="100" height="24" rx="4" fill="var(--bg-code)" stroke="var(--border)"/>
+          <text x="10" y="17" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">types.ts</text>
+        </g>
+
+        <!-- llm/ -->
+        <rect x="230" y="190" width="185" height="105" rx="8" fill="rgba(96,165,250,0.05)" stroke="rgba(96,165,250,0.2)"/>
+        <text x="245" y="212" fill="var(--blue)" font-size="12" font-weight="600">llm/</text>
+        <g transform="translate(245, 222)">
+          <rect width="130" height="24" rx="4" fill="var(--blue-bg)"/>
+          <text x="10" y="17" fill="var(--blue)" font-size="11" font-family="JetBrains Mono">client.ts</text>
+        </g>
+        <text x="245" y="270" fill="var(--text-muted)" font-size="11" font-family="Inter">封装 API 调用</text>
+
+        <!-- tools/ -->
+        <rect x="55" y="310" width="160" height="90" rx="8" fill="rgba(74,222,128,0.05)" stroke="rgba(74,222,128,0.2)"/>
+        <text x="70" y="332" fill="var(--green)" font-size="12" font-weight="600">tools/</text>
+        <g transform="translate(70, 342)">
+          <rect width="85" height="22" rx="4" fill="var(--green-bg)"/>
+          <text x="8" y="16" fill="var(--green)" font-size="10" font-family="JetBrains Mono">bash.ts</text>
+        </g>
+        <g transform="translate(70, 368)">
+          <rect width="85" height="22" rx="4" fill="var(--bg-code)" stroke="var(--border)"/>
+          <text x="8" y="16" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">registry.ts</text>
+        </g>
+
+        <!-- utils/ -->
+        <rect x="230" y="310" width="185" height="90" rx="8" fill="rgba(34,211,238,0.05)" stroke="rgba(34,211,238,0.2)"/>
+        <text x="245" y="332" fill="var(--cyan)" font-size="12" font-weight="600">utils/</text>
+        <g transform="translate(245, 342)">
+          <rect width="145" height="22" rx="4" fill="var(--cyan-bg)"/>
+          <text x="8" y="16" fill="var(--cyan)" font-size="10" font-family="JetBrains Mono">event-stream.ts</text>
+        </g>
+
+        <!-- tests/ -->
+        <rect x="440" y="190" width="165" height="210" rx="8" fill="rgba(248,113,113,0.05)" stroke="rgba(248,113,113,0.15)"/>
+        <text x="455" y="212" fill="var(--red)" font-size="12" font-weight="600">tests/</text>
+        <g transform="translate(455, 222)">
+          <rect width="120" height="22" rx="4" fill="var(--green-bg)"/>
+          <text x="8" y="16" fill="var(--green)" font-size="10" font-family="JetBrains Mono">test-bash.ts ✓</text>
+        </g>
+        <g transform="translate(455, 250)">
+          <rect width="120" height="22" rx="4" fill="var(--green-bg)"/>
+          <text x="8" y="16" fill="var(--green)" font-size="10" font-family="JetBrains Mono">test-llm.ts ✓</text>
+        </g>
+        <g transform="translate(455, 278)">
+          <rect width="120" height="22" rx="4" fill="var(--green-bg)"/>
+          <text x="8" y="16" fill="var(--green)" font-size="10" font-family="JetBrains Mono">test-agent.ts ✓</text>
+        </g>
+        <text x="455" y="320" fill="var(--text-muted)" font-size="11" font-family="Inter">全部通过</text>
+      </svg>
+      <div class="diagram-title">Figure 1 — Project File Structure</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ Section 2: ARCHITECTURE ════════════ -->
+<section id="architecture" class="section">
+  <div class="container">
+    <span class="section-label">Chapter 02</span>
+    <h2>架构设计</h2>
+    <p class="lead">整个系统只有 6 个源文件，但它们组成了一个完整的 ReAct 智能体。理解它们之间的关系是掌握 FirmClaw 的关键。</p>
+
+    <!-- Data Flow Diagram -->
+    <h3>整体数据流</h3>
+    <div class="diagram-container">
+      <svg width="760" height="520" viewBox="0 0 760 520">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-muted)"/>
+          </marker>
+          <marker id="arrow-accent" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="var(--accent)"/>
+          </marker>
+          <marker id="arrow-green" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="10" markerHeight="7" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="var(--green)"/>
+          </marker>
+        </defs>
+
+        <!-- User -->
+        <rect x="280" y="10" width="200" height="50" rx="10" fill="var(--blue-bg)" stroke="var(--blue)" stroke-width="1.5"/>
+        <text x="380" y="40" fill="var(--blue)" font-size="14" font-weight="600" text-anchor="middle" font-family="Inter">👤 用户输入</text>
+
+        <!-- Arrow down -->
+        <line x1="380" y1="60" x2="380" y2="90" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <text x="395" y="82" fill="var(--text-muted)" font-size="10" font-family="Inter">agent.run()</text>
+
+        <!-- CLI Box -->
+        <rect x="230" y="95" width="300" height="45" rx="8" fill="var(--purple-bg)" stroke="var(--purple)" stroke-width="1"/>
+        <text x="380" y="122" fill="var(--purple)" font-size="13" font-weight="600" text-anchor="middle" font-family="Inter">CLI (index.ts) — 订阅事件流</text>
+
+        <!-- Arrow down -->
+        <line x1="380" y1="140" x2="380" y2="175" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow-accent)"/>
+
+        <!-- Main Agent Loop Box -->
+        <rect x="60" y="180" width="640" height="310" rx="14" fill="rgba(108,99,255,0.04)" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 3"/>
+        <text x="380" y="207" fill="var(--accent)" font-size="15" font-weight="700" text-anchor="middle" font-family="Inter">Agent Loop — ReAct 循环</text>
+
+        <!-- Messages box -->
+        <rect x="100" y="225" width="130" height="55" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1.5"/>
+        <text x="165" y="250" fill="#fff" font-size="13" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">messages[]</text>
+        <text x="165" y="268" fill="var(--text-muted)" font-size="10" text-anchor="middle" font-family="Inter">对话历史</text>
+
+        <!-- Arrow right -->
+        <line x1="230" y1="252" x2="285" y2="252" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- LLM Call -->
+        <rect x="290" y="225" width="170" height="55" rx="8" fill="var(--blue-bg)" stroke="var(--blue)" stroke-width="1.5"/>
+        <text x="375" y="250" fill="var(--blue)" font-size="13" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">LLM.chat()</text>
+        <text x="375" y="268" fill="var(--text-muted)" font-size="10" text-anchor="middle" font-family="Inter">调用大模型</text>
+
+        <!-- Arrow right -->
+        <line x1="460" y1="252" x2="515" y2="252" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Decision diamond -->
+        <polygon points="600,232 670,252 600,272 530,252" fill="var(--orange-bg)" stroke="var(--orange)" stroke-width="1.5"/>
+        <text x="600" y="256" fill="var(--orange)" font-size="11" font-weight="600" text-anchor="middle" font-family="Inter">tool_calls?</text>
+
+        <!-- No branch - down -->
+        <line x1="600" y1="272" x2="600" y2="320" stroke="var(--green)" stroke-width="2" marker-end="url(#arrow-green)"/>
+        <text x="612" y="295" fill="var(--green)" font-size="11" font-weight="600" font-family="Inter">No</text>
+        <rect x="520" y="325" width="160" height="40" rx="8" fill="var(--green-bg)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="600" y="350" fill="var(--green)" font-size="13" font-weight="600" text-anchor="middle" font-family="Inter">返回最终答案 ✓</text>
+
+        <!-- Yes branch - down then left -->
+        <line x1="530" y1="252" x2="500" y2="252" stroke="var(--orange)" stroke-width="1.5"/>
+        <line x1="500" y1="252" x2="500" y2="340" stroke="var(--orange)" stroke-width="1.5"/>
+        <text x="485" y="295" fill="var(--orange)" font-size="11" font-weight="600" font-family="Inter">Yes</text>
+
+        <!-- Tool Execute -->
+        <rect x="410" y="340" width="180" height="55" rx="8" fill="var(--green-bg)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="500" y="365" fill="var(--green)" font-size="13" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">tool.execute()</text>
+        <text x="500" y="383" fill="var(--text-muted)" font-size="10" text-anchor="middle" font-family="Inter">执行工具 (bash/read/write)</text>
+
+        <!-- Arrow from tool result back to messages -->
+        <line x1="410" y1="367" x2="200" y2="367" stroke="var(--green)" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <line x1="165" y1="280" x2="165" y2="367" stroke="var(--green)" stroke-width="1.5" marker-end="url(#arrow-green)" stroke-dasharray="5 3"/>
+        <text x="290" y="360" fill="var(--green)" font-size="10" font-family="Inter">tool result → 加入 messages</text>
+
+        <!-- Loop back arrow -->
+        <path d="M 100 252 L 80 252 L 80 420 L 375 420 L 375 285" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="8 4" marker-end="url(#arrow-accent)"/>
+        <text x="200" y="436" fill="var(--accent)" font-size="11" font-weight="600" font-family="Inter">🔄 回到 LLM.chat() 继续循环</text>
+
+        <!-- EventStream -->
+        <rect x="440" y="420" width="220" height="45" rx="8" fill="var(--cyan-bg)" stroke="var(--cyan)" stroke-width="1"/>
+        <text x="550" y="445" fill="var(--cyan)" font-size="12" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">📡 EventStream 事件广播</text>
+      </svg>
+      <div class="diagram-title">Figure 2 — ReAct Cycle Data Flow</div>
+    </div>
+
+    <!-- Component Dependency -->
+    <h3>组件依赖关系</h3>
+    <div class="diagram-container">
+      <svg width="700" height="300" viewBox="0 0 700 300">
+        <!-- index.ts -->
+        <rect x="250" y="10" width="200" height="45" rx="10" fill="var(--purple-bg)" stroke="var(--purple)" stroke-width="1.5"/>
+        <text x="350" y="38" fill="var(--purple)" font-size="14" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">index.ts</text>
+
+        <!-- Lines from index -->
+        <line x1="300" y1="55" x2="150" y2="100" stroke="var(--text-muted)" stroke-width="1.2"/>
+        <line x1="350" y1="55" x2="350" y2="100" stroke="var(--text-muted)" stroke-width="1.2"/>
+        <line x1="400" y1="55" x2="550" y2="100" stroke="var(--text-muted)" stroke-width="1.2"/>
+
+        <!-- LLMClient -->
+        <rect x="50" y="100" width="200" height="45" rx="10" fill="var(--blue-bg)" stroke="var(--blue)" stroke-width="1.5"/>
+        <text x="150" y="128" fill="var(--blue)" font-size="14" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">LLMClient</text>
+
+        <!-- ToolRegistry -->
+        <rect x="250" y="100" width="200" height="45" rx="10" fill="var(--green-bg)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="350" y="128" fill="var(--green)" font-size="14" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">ToolRegistry</text>
+
+        <!-- AgentLoop -->
+        <rect x="450" y="100" width="200" height="45" rx="10" fill="var(--accent-glow)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="550" y="128" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="JetBrains Mono">AgentLoop ★</text>
+
+        <!-- AgentLoop deps -->
+        <line x1="500" y1="145" x2="200" y2="195" stroke="var(--text-muted)" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <line x1="550" y1="145" x2="400" y2="195" stroke="var(--text-muted)" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <line x1="600" y1="145" x2="600" y2="195" stroke="var(--text-muted)" stroke-width="1.2" stroke-dasharray="4 3"/>
+
+        <!-- Tool types -->
+        <rect x="50" y="195" width="160" height="40" rx="8" fill="var(--bg-card)" stroke="var(--border)"/>
+        <text x="130" y="220" fill="var(--text-secondary)" font-size="12" text-anchor="middle" font-family="JetBrains Mono">Tool (types.ts)</text>
+
+        <!-- bashTool -->
+        <rect x="230" y="195" width="160" height="40" rx="8" fill="var(--bg-card)" stroke="var(--border)"/>
+        <text x="310" y="220" fill="var(--text-secondary)" font-size="12" text-anchor="middle" font-family="JetBrains Mono">bashTool</text>
+
+        <!-- EventStream -->
+        <rect x="420" y="195" width="180" height="40" rx="8" fill="var(--cyan-bg)" stroke="var(--cyan)" stroke-width="1"/>
+        <text x="510" y="220" fill="var(--cyan)" font-size="12" text-anchor="middle" font-family="JetBrains Mono">EventStream</text>
+
+        <!-- Agent types -->
+        <rect x="620" y="195" width="70" height="40" rx="8" fill="var(--bg-card)" stroke="var(--border)"/>
+        <text x="655" y="220" fill="var(--text-secondary)" font-size="11" text-anchor="middle" font-family="JetBrains Mono">types</text>
+
+        <!-- Legend -->
+        <text x="50" y="275" fill="var(--text-muted)" font-size="11" font-family="Inter">── 依赖   ╌╌ 使用   ★ 核心模块</text>
+      </svg>
+      <div class="diagram-title">Figure 3 — Component Dependencies</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ Section 3: REACT CORE ════════════ -->
+<section id="react" class="section">
+  <div class="container">
+    <span class="section-label">Chapter 03 — Core</span>
+    <h2>ReAct 循环详解</h2>
+    <p class="lead"><strong>Re</strong>asoning + <strong>Act</strong>ing = ReAct。这是整个系统的心脏，一个 while 循环让 LLM 交替进行"思考"和"行动"。</p>
+
+    <!-- ReAct Concept -->
+    <div class="diagram-container">
+      <svg width="700" height="110" viewBox="0 0 700 110">
+        <!-- Reasoning -->
+        <rect x="30" y="30" width="140" height="50" rx="25" fill="var(--blue-bg)" stroke="var(--blue)" stroke-width="1.5"/>
+        <text x="100" y="60" fill="var(--blue)" font-size="14" font-weight="600" text-anchor="middle">🧠 Reasoning</text>
+
+        <!-- Arrow -->
+        <line x1="170" y1="55" x2="250" y2="55" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)"/>
+        <text x="210" y="45" fill="var(--text-muted)" font-size="10" text-anchor="middle">LLM 思考</text>
+
+        <!-- Acting -->
+        <rect x="255" y="30" width="140" height="50" rx="25" fill="var(--green-bg)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="325" y="60" fill="var(--green)" font-size="14" font-weight="600" text-anchor="middle">⚡ Acting</text>
+
+        <!-- Arrow -->
+        <line x1="395" y1="55" x2="475" y2="55" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#arrow)"/>
+        <text x="435" y="45" fill="var(--text-muted)" font-size="10" text-anchor="middle">观察结果</text>
+
+        <!-- Observe -->
+        <rect x="480" y="30" width="140" height="50" rx="25" fill="var(--orange-bg)" stroke="var(--orange)" stroke-width="1.5"/>
+        <text x="550" y="60" fill="var(--orange)" font-size="14" font-weight="600" text-anchor="middle">👁 Observation</text>
+
+        <!-- Loop back -->
+        <path d="M 550 80 L 550 100 L 100 100 L 100 80" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow-accent)" stroke-dasharray="6 3"/>
+        <text x="325" y="98" fill="var(--accent)" font-size="10" font-weight="600" text-anchor="middle">重复直到任务完成</text>
+      </svg>
+      <div class="diagram-title">Figure 4 — ReAct: Reasoning → Acting → Observation Loop</div>
+    </div>
+
+    <!-- Algorithm Pseudocode -->
+    <h3>算法流程</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>初始化消息列表</h4>
+          <p>构建 <code>messages = [system_prompt, user_message]</code>，system_prompt 定义智能体身份，user_message 是用户的问题。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>调用 LLM（Reasoning）</h4>
+          <p>将完整的 <code>messages</code> 数组和可用工具列表发送给 LLM。LLM 会根据上下文决定：直接回答，或者调用工具。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>判断响应类型</h4>
+          <p>检查 LLM 返回中是否包含 <code>tool_calls</code>。如果没有 → 直接返回文本，任务完成。如果有 → 进入步骤 4。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>执行工具（Acting）</h4>
+          <p>遍历每个 <code>tool_call</code>，解析参数 → 查找工具 → 执行 → 将结果以 <code>role: 'tool'</code> 加入 messages。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <h4>回到步骤 2</h4>
+          <p>LLM 现在看到了工具执行结果，继续推理。直到 LLM 给出纯文本回复或达到 <code>maxTurns</code> 限制。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message Flow Example -->
+    <h3>一次完整循环的消息流</h3>
+    <p>用户问：<strong>"当前目录有哪些文件？"</strong></p>
+
+    <div class="msg-flow">
+      <div class="msg-turn">
+        <div class="msg-turn-label">初始状态</div>
+        <div class="msg-index">[0]</div>
+        <div class="msg-bubble msg-system">system: "你是一个本地 AI 智能体助手，可以执行终端命令来帮助用户完成任务..."</div>
+        <div class="msg-index" style="margin-top:8px">[1]</div>
+        <div class="msg-bubble msg-user">user: "当前目录有哪些文件？"</div>
+      </div>
+
+      <div class="msg-turn">
+        <div class="msg-turn-label">第 1 轮循环 — LLM 决定调用 bash</div>
+        <div class="msg-index">[2]</div>
+        <div class="msg-bubble msg-assistant">assistant: {<br>&nbsp;&nbsp;content: "我来查看当前目录的文件",<br>&nbsp;&nbsp;tool_calls: [{<br>&nbsp;&nbsp;&nbsp;&nbsp;name: "bash",<br>&nbsp;&nbsp;&nbsp;&nbsp;arguments: '{"command":"ls"}'<br>&nbsp;&nbsp;}]<br>}</div>
+        <div class="msg-index" style="margin-top:8px">[3] ← Agent Loop 执行 bash("ls")</div>
+        <div class="msg-bubble msg-tool">tool: { tool_call_id: "call_xxx", content: "docs/  src/  package.json  tsconfig.json" }</div>
+      </div>
+
+      <div class="msg-turn">
+        <div class="msg-turn-label">第 2 轮循环 — LLM 看到结果，直接回答</div>
+        <div class="msg-index">[4]</div>
+        <div class="msg-bubble msg-assistant">assistant: "当前目录包含以下文件：docs/、src/、package.json、tsconfig.json"<br><br><span style="color:var(--green);font-weight:600">没有 tool_calls → 循环结束 → 返回文本给用户 ✓</span></div>
+      </div>
+    </div>
+
+    <div class="diagram-container" style="padding: 24px;">
+      <svg width="660" height="340" viewBox="0 0 660 340">
+        <!-- Timeline -->
+        <line x1="40" y1="30" x2="40" y2="320" stroke="var(--border)" stroke-width="2"/>
+        <circle cx="40" cy="30" r="6" fill="var(--accent)"/>
+        <circle cx="40" cy="100" r="6" fill="var(--blue)"/>
+        <circle cx="40" cy="170" r="6" fill="var(--orange)"/>
+        <circle cx="40" cy="240" r="6" fill="var(--green)"/>
+        <circle cx="40" cy="310" r="6" fill="var(--green)" stroke="var(--green)" stroke-width="3"/>
+
+        <!-- Init -->
+        <text x="40" y="16" fill="var(--text-muted)" font-size="10" text-anchor="middle">t=0</text>
+        <rect x="65" y="12" width="180" height="36" rx="6" fill="var(--purple-bg)"/>
+        <text x="155" y="35" fill="var(--purple)" font-size="11" text-anchor="middle" font-family="JetBrains Mono">messages = [sys, user]</text>
+
+        <!-- Turn 1: LLM -->
+        <text x="40" y="86" fill="var(--text-muted)" font-size="10" text-anchor="middle">t=1</text>
+        <rect x="65" y="82" width="220" height="36" rx="6" fill="var(--blue-bg)"/>
+        <text x="175" y="105" fill="var(--blue)" font-size="11" text-anchor="middle" font-family="JetBrains Mono">LLM → tool_call: bash("ls")</text>
+
+        <!-- Turn 1: Execute -->
+        <text x="40" y="156" fill="var(--text-muted)" font-size="10" text-anchor="middle">t=2</text>
+        <rect x="65" y="152" width="260" height="36" rx="6" fill="var(--green-bg)"/>
+        <text x="195" y="175" fill="var(--green)" font-size="11" text-anchor="middle" font-family="JetBrains Mono">bash("ls") → "docs/ src/ pkg.json"</text>
+
+        <!-- Turn 2: LLM -->
+        <text x="40" y="226" fill="var(--text-muted)" font-size="10" text-anchor="middle">t=3</text>
+        <rect x="65" y="222" width="280" height="36" rx="6" fill="var(--blue-bg)"/>
+        <text x="205" y="245" fill="var(--blue)" font-size="11" text-anchor="middle" font-family="JetBrains Mono">LLM → text: "当前目录包含..."</text>
+
+        <!-- End -->
+        <text x="40" y="296" fill="var(--text-muted)" font-size="10" text-anchor="middle">t=4</text>
+        <rect x="65" y="292" width="200" height="36" rx="6" fill="rgba(74,222,128,0.2)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="165" y="315" fill="var(--green)" font-size="12" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">✓ 返回结果 (2 turns)</text>
+      </svg>
+      <div class="diagram-title">Figure 5 — Message Timeline: "列出当前目录文件"</div>
+    </div>
+
+    <!-- Design Decisions -->
+    <h3>关键设计决策</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>决策</th><th>理由</th></tr></thead>
+        <tbody>
+          <tr><td><strong>maxTurns 限制</strong></td><td>防止 LLM 陷入无限循环（如反复执行同一命令）</td></tr>
+          <tr><td><strong>错误不中断</strong></td><td>工具失败时把错误文本反馈给 LLM，让它自行调整策略</td></tr>
+          <tr><td><strong>tool_call_id 关联</strong></td><td>LLM 可能一次返回多个 tool_calls，通过 id 精确匹配结果</td></tr>
+          <tr><td><strong>事件广播</strong></td><td>Agent Loop 不直接 console.log，通过 EventStream 实现解耦</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ Section 4: TOOLS ════════════ -->
+<section id="tools" class="section">
+  <div class="container">
+    <span class="section-label">Chapter 04</span>
+    <h2>工具系统</h2>
+    <p class="lead">工具是智能体的"手和脚"。任何工具只要实现 <code>Tool</code> 接口，就能被 Agent Loop 调用——零耦合，零改动。</p>
+
+    <h3>工具接口</h3>
+    <pre><code><span style="color:var(--purple)">interface</span> <span style="color:var(--blue)">Tool</span> {
+  <span style="color:var(--green)">name</span>: <span style="color:var(--cyan)">string</span>         <span style="color:var(--text-muted)">// LLM 通过这个名字调用</span>
+  <span style="color:var(--green)">description</span>: <span style="color:var(--cyan)">string</span>  <span style="color:var(--text-muted)">// 告诉 LLM 工具能做什么</span>
+  <span style="color:var(--green)">parameters</span>: ToolDef   <span style="color:var(--text-muted)">// JSON Schema 参数定义</span>
+  <span style="color:var(--green)">execute</span>: (params) => Promise&lt;ToolResult&gt;  <span style="color:var(--text-muted)">// 执行逻辑</span>
+}</code></pre>
+
+    <h3>工具生命周期</h3>
+    <div class="diagram-container">
+      <svg width="700" height="160" viewBox="0 0 700 160">
+        <!-- Registry -->
+        <rect x="20" y="55" width="130" height="50" rx="10" fill="var(--green-bg)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="85" y="78" fill="var(--green)" font-size="12" font-weight="600" text-anchor="middle">ToolRegistry</text>
+        <text x="85" y="94" fill="var(--text-muted)" font-size="10" text-anchor="middle">注册 &amp; 管理</text>
+
+        <!-- Arrow -->
+        <line x1="150" y1="80" x2="195" y2="80" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <text x="172" y="70" fill="var(--text-muted)" font-size="9" text-anchor="middle">toOpenAI()</text>
+
+        <!-- LLM API -->
+        <rect x="200" y="55" width="130" height="50" rx="10" fill="var(--blue-bg)" stroke="var(--blue)" stroke-width="1.5"/>
+        <text x="265" y="78" fill="var(--blue)" font-size="12" font-weight="600" text-anchor="middle">LLM API</text>
+        <text x="265" y="94" fill="var(--text-muted)" font-size="10" text-anchor="middle">看到工具列表</text>
+
+        <!-- Arrow -->
+        <line x1="330" y1="80" x2="375" y2="80" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <text x="352" y="70" fill="var(--text-muted)" font-size="9" text-anchor="middle">tool_calls</text>
+
+        <!-- Agent Loop -->
+        <rect x="380" y="55" width="130" height="50" rx="10" fill="var(--orange-bg)" stroke="var(--orange)" stroke-width="1.5"/>
+        <text x="445" y="78" fill="var(--orange)" font-size="12" font-weight="600" text-anchor="middle">Agent Loop</text>
+        <text x="445" y="94" fill="var(--text-muted)" font-size="10" text-anchor="middle">解析 &amp; 调度</text>
+
+        <!-- Arrow -->
+        <line x1="510" y1="80" x2="555" y2="80" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <text x="532" y="70" fill="var(--text-muted)" font-size="9" text-anchor="middle">execute()</text>
+
+        <!-- Tool Execute -->
+        <rect x="560" y="55" width="120" height="50" rx="10" fill="rgba(108,99,255,0.15)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="620" y="78" fill="#fff" font-size="12" font-weight="600" text-anchor="middle">Tool</text>
+        <text x="620" y="94" fill="var(--text-muted)" font-size="10" text-anchor="middle">执行 &amp; 返回</text>
+
+        <!-- Result back -->
+        <path d="M 620 105 L 620 140 L 85 140 L 85 105" fill="none" stroke="var(--green)" stroke-width="1.5" marker-end="url(#arrow-green)" stroke-dasharray="5 3"/>
+        <text x="350" y="155" fill="var(--green)" font-size="10" text-anchor="middle">ToolResult → role:'tool' message → LLM</text>
+      </svg>
+      <div class="diagram-title">Figure 6 — Tool Lifecycle: Register → Discover → Call → Result</div>
+    </div>
+
+    <h3>Bash 工具的安全设计</h3>
+    <ul class="feature-list">
+      <li><span class="icon" style="color:var(--orange);">⏱</span> <strong>30 秒超时</strong> — 防止命令卡死导致智能体挂起</li>
+      <li><span class="icon" style="color:var(--orange);">📦</span> <strong>1MB 输出缓冲</strong> — 防止命令输出过大撑爆内存</li>
+      <li><span class="icon" style="color:var(--orange);">🛡</span> <strong>错误不中断</strong> — try/catch 捕获异常，返回错误文本给 LLM 自行调整</li>
+      <li><span class="icon" style="color:var(--orange);">✅</span> <strong>参数校验</strong> — 确认 command 参数存在且为字符串</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ════════════ Section 5: LLM CLIENT ════════════ -->
+<section id="llm" class="section">
+  <div class="container">
+    <span class="section-label">Chapter 05</span>
+    <h2>LLM Client</h2>
+    <p class="lead">与 MiniMax M2.7 通信的封装层。使用 OpenAI 兼容格式，一套代码切换任意提供商。</p>
+
+    <h3>四种消息角色</h3>
+    <div class="card-grid">
+      <div class="card" style="border-left:3px solid var(--purple)">
+        <h4><span class="tag tag-purple">system</span></h4>
+        <p>系统提示词，定义智能体身份和行为规则。由代码注入，用户不可见。</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--blue)">
+        <h4><span class="tag tag-blue">user</span></h4>
+        <p>用户的输入消息。每次循环中 LLM 都能看到完整的用户消息。</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--orange)">
+        <h4><span class="tag tag-orange">assistant</span></h4>
+        <p>LLM 的回复。可能包含纯文本，也可能包含 <code>tool_calls</code>（工具调用请求）。</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--green)">
+        <h4><span class="tag tag-green">tool</span></h4>
+        <p>工具执行结果。通过 <code>tool_call_id</code> 关联到对应的 assistant 工具调用。</p>
+      </div>
+    </div>
+
+    <h3>流式工具调用的累积过程</h3>
+    <p>OpenAI 的流式工具调用会分多次发送，代码中逐步拼接：</p>
+    <div class="diagram-container">
+      <svg width="660" height="200" viewBox="0 0 660 200">
+        <!-- Chunk 1 -->
+        <rect x="20" y="15" width="200" height="60" rx="8" fill="var(--bg-card)" stroke="var(--border)"/>
+        <text x="30" y="35" fill="var(--accent)" font-size="10" font-weight="600">chunk 1</text>
+        <text x="30" y="52" fill="var(--text-secondary)" font-size="10" font-family="JetBrains Mono">{id: "call_123", name: "bash",</text>
+        <text x="30" y="67" fill="var(--text-secondary)" font-size="10" font-family="JetBrains Mono"> arguments: <span style="color:var(--green)">""</span>}</text>
+
+        <!-- Plus -->
+        <text x="230" y="50" fill="var(--accent)" font-size="18" font-weight="700">+</text>
+
+        <!-- Chunk 2 -->
+        <rect x="250" y="15" width="200" height="60" rx="8" fill="var(--bg-card)" stroke="var(--border)"/>
+        <text x="260" y="35" fill="var(--accent)" font-size="10" font-weight="600">chunk 2</text>
+        <text x="260" y="52" fill="var(--text-secondary)" font-size="10" font-family="JetBrains Mono">{arguments: <span style="color:var(--green)">'{"co'</span>}</text>
+        <text x="260" y="67" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">(只追加 arguments)</text>
+
+        <!-- Plus -->
+        <text x="460" y="50" fill="var(--accent)" font-size="18" font-weight="700">+</text>
+
+        <!-- Chunk 3 -->
+        <rect x="480" y="15" width="160" height="60" rx="8" fill="var(--bg-card)" stroke="var(--border)"/>
+        <text x="490" y="35" fill="var(--accent)" font-size="10" font-weight="600">chunk 3</text>
+        <text x="490" y="52" fill="var(--text-secondary)" font-size="10" font-family="JetBrains Mono">{arguments: <span style="color:var(--green)">'mmand</span></text>
+        <text x="490" y="67" fill="var(--text-secondary)" font-size="10" font-family="JetBrains Mono">: <span style="color:var(--green)">"ls"}'</span>}</text>
+
+        <!-- Arrow down -->
+        <line x1="330" y1="80" x2="330" y2="110" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <text x="345" y="100" fill="var(--text-muted)" font-size="10">逐步拼接</text>
+
+        <!-- Result -->
+        <rect x="130" y="115" width="400" height="60" rx="10" fill="var(--green-bg)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="330" y="142" fill="var(--green)" font-size="12" font-weight="600" text-anchor="middle">完整 ToolCall</text>
+        <text x="330" y="163" fill="var(--green)" font-size="11" text-anchor="middle" font-family="JetBrains Mono">{id:"call_123", name:"bash", arguments:'{"command":"ls"}'}</text>
+      </svg>
+      <div class="diagram-title">Figure 7 — Streaming Tool Call Accumulation</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ Section 6: EVENTS ════════════ -->
+<section id="events" class="section">
+  <div class="container">
+    <span class="section-label">Chapter 06</span>
+    <h2>事件流</h2>
+    <p class="lead">基于发布/订阅模式的广播系统，Agent Loop 与展示层完全解耦。</p>
+
+    <div class="diagram-container">
+      <svg width="660" height="200" viewBox="0 0 660 200">
+        <!-- Agent Loop -->
+        <rect x="30" y="60" width="170" height="80" rx="10" fill="var(--orange-bg)" stroke="var(--orange)" stroke-width="1.5"/>
+        <text x="115" y="95" fill="var(--orange)" font-size="13" font-weight="600" text-anchor="middle">Agent Loop</text>
+        <text x="115" y="115" fill="var(--text-muted)" font-size="10" text-anchor="middle">emit(event, data)</text>
+
+        <!-- EventStream -->
+        <rect x="260" y="55" width="140" height="90" rx="10" fill="var(--cyan-bg)" stroke="var(--cyan)" stroke-width="1.5"/>
+        <text x="330" y="85" fill="var(--cyan)" font-size="12" font-weight="600" text-anchor="middle">EventStream</text>
+        <text x="330" y="105" fill="var(--text-muted)" font-size="9" text-anchor="middle">EventEmitter</text>
+        <text x="330" y="120" fill="var(--text-muted)" font-size="9" text-anchor="middle">broadcast</text>
+
+        <!-- Subscribers -->
+        <line x1="200" y1="85" x2="255" y2="85" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="400" y1="75" x2="455" y2="55" stroke="var(--text-muted)" stroke-width="1.2"/>
+        <line x1="400" y1="90" x2="455" y2="90" stroke="var(--text-muted)" stroke-width="1.2"/>
+        <line x1="400" y1="110" x2="455" y2="130" stroke="var(--text-muted)" stroke-width="1.2"/>
+        <line x1="400" y1="125" x2="455" y2="170" stroke="var(--text-muted)" stroke-width="1.2"/>
+
+        <!-- CLI -->
+        <rect x="460" y="35" width="170" height="35" rx="8" fill="var(--purple-bg)" stroke="var(--purple)" stroke-width="1"/>
+        <text x="545" y="57" fill="var(--purple)" font-size="11" font-weight="600" text-anchor="middle">CLI (console.log)</text>
+
+        <!-- Web UI -->
+        <rect x="460" y="75" width="170" height="35" rx="8" fill="var(--blue-bg)" stroke="var(--blue)" stroke-width="1"/>
+        <text x="545" y="97" fill="var(--blue)" font-size="11" font-weight="600" text-anchor="middle">Web UI (WebSocket)</text>
+
+        <!-- Test -->
+        <rect x="460" y="115" width="170" height="35" rx="8" fill="var(--green-bg)" stroke="var(--green)" stroke-width="1"/>
+        <text x="545" y="137" fill="var(--green)" font-size="11" font-weight="600" text-anchor="middle">Test Framework</text>
+
+        <!-- Logger -->
+        <rect x="460" y="155" width="170" height="35" rx="8" fill="var(--bg-card)" stroke="var(--border)"/>
+        <text x="545" y="177" fill="var(--text-secondary)" font-size="11" font-weight="600" text-anchor="middle">Audit Logger</text>
+      </svg>
+      <div class="diagram-title">Figure 8 — EventStream: Pub/Sub Decoupling</div>
+    </div>
+
+    <h3>事件类型</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>事件</th><th>触发时机</th><th>数据</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag tag-orange">thinking_delta</span></td><td>LLM 生成文本时（逐字）</td><td>文本片段 string</td></tr>
+          <tr><td><span class="tag tag-blue">tool_start</span></td><td>工具开始执行</td><td>工具名 + 参数</td></tr>
+          <tr><td><span class="tag tag-green">tool_end</span></td><td>工具执行完成</td><td>工具名 + 结果 + 是否错误</td></tr>
+          <tr><td><span class="tag tag-purple">message_end</span></td><td>最终回复完成</td><td>完整文本</td></tr>
+          <tr><td><span class="tag tag-red">error</span></td><td>出错时</td><td>错误信息 string</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ Section 7: ENV ════════════ -->
+<section id="env" class="section">
+  <div class="container">
+    <span class="section-label">Chapter 07</span>
+    <h2>环境变量</h2>
+    <p class="lead"><code>dotenv</code> 的加载规则：<strong>.env 不会覆盖已存在的系统环境变量</strong>。</p>
+
+    <div class="priority-bar">
+      <div class="priority-item" style="background:var(--red-bg);color:var(--red);">系统环境变量<p>最高优先级</p></div>
+      <div class="priority-item" style="background:var(--orange-bg);color:var(--orange);">.env 文件<p>中等优先级</p></div>
+      <div class="priority-item" style="background:var(--blue-bg);color:var(--blue);">代码默认值<p>最低优先级</p></div>
+    </div>
+
+    <div class="table-wrap" style="margin-top:24px;">
+      <table>
+        <thead><tr><th>变量名</th><th>用途</th><th>默认值</th></tr></thead>
+        <tbody>
+          <tr><td><code>LLM_API_KEY</code></td><td>API 密钥</td><td style="color:var(--red);">无（必须配置）</td></tr>
+          <tr><td><code>LLM_BASE_URL</code></td><td>API 基础 URL</td><td><code>https://api.minimax.chat/v1</code></td></tr>
+          <tr><td><code>LLM_MODEL</code></td><td>模型名称</td><td><code>MiniMax-M2.7</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ Section 8: TESTING ════════════ -->
+<section id="testing" class="section">
+  <div class="container">
+    <span class="section-label">Chapter 08</span>
+    <h2>测试指南</h2>
+
+    <h3>快速开始</h3>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot" style="background:var(--red);"></div>
+        <div class="terminal-dot" style="background:var(--orange);"></div>
+        <div class="terminal-dot" style="background:var(--green);"></div>
+        <span style="margin-left:12px;color:var(--text-muted);font-size:12px;font-family:JetBrains Mono">PowerShell</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="prompt">PS&gt;</span> <span style="color:#fff">cd d:\code\FirmClaw</span></div>
+        <div><span class="prompt">PS&gt;</span> <span style="color:#fff">npm install</span></div>
+        <div style="margin-top:8px"><span class="prompt">PS&gt;</span> <span style="color:var(--green)">npm run test:bash</span>    <span style="color:var(--text-muted)"># bash 工具测试（离线）</span></div>
+        <div><span class="prompt">PS&gt;</span> <span style="color:var(--green)">npm run test:llm</span>     <span style="color:var(--text-muted)"># LLM 连通性（需网络）</span></div>
+        <div><span class="prompt">PS&gt;</span> <span style="color:var(--green)">npm run test:agent</span>   <span style="color:var(--text-muted)"># 完整 ReAct 循环</span></div>
+        <div style="margin-top:8px"><span class="prompt">PS&gt;</span> <span style="color:var(--accent)">npm run dev</span>          <span style="color:var(--text-muted)"># 启动交互式 CLI</span></div>
+      </div>
+    </div>
+
+    <h3>交互式 CLI 示例</h3>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot" style="background:var(--red);"></div>
+        <div class="terminal-dot" style="background:var(--orange);"></div>
+        <div class="terminal-dot" style="background:var(--green);"></div>
+        <span style="margin-left:12px;color:var(--text-muted);font-size:12px;font-family:JetBrains Mono">FirmClaw v1.0.0</span>
+      </div>
+      <div class="terminal-body">
+        <div class="output">FirmClaw v1.0.0</div>
+        <div class="output">Model: MiniMax-M2.7</div>
+        <div class="output">API: https://api.minimax.chat/v1</div>
+        <div class="output">Type "exit" to quit.</div>
+        <div style="margin-top:8px"><span class="prompt">&gt;</span> 当前时间是什么？</div>
+        <div class="output" style="margin-top:4px">我来查看当前时间...</div>
+        <div class="tool-exec">>>> [bash] {"command":"python3 -c \"from datetime...\""}</div>
+        <div class="result"><<< 2026-03-25 11:20:49.998265</div>
+        <div class="output" style="margin-top:4px">当前时间是 2026年3月25日 11:20:49</div>
+        <div style="color:var(--text-muted)">--- [3 turns, 2 tool calls] ---</div>
+        <div style="margin-top:8px"><span class="prompt">&gt;</span> <span style="color:var(--red)">exit</span></div>
+        <div class="output">Bye!</div>
+      </div>
+    </div>
+
+    <h3>已验证功能</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>功能</th><th>状态</th><th>验证方式</th></tr></thead>
+        <tbody>
+          <tr><td>bash 工具：命令执行</td><td><span class="tag tag-green">PASS</span></td><td>test-bash.ts</td></tr>
+          <tr><td>bash 工具：超时控制</td><td><span class="tag tag-green">PASS</span></td><td>test-bash.ts</td></tr>
+          <tr><td>bash 工具：错误处理</td><td><span class="tag tag-green">PASS</span></td><td>test-bash.ts</td></tr>
+          <tr><td>LLM Client：普通文本对话</td><td><span class="tag tag-green">PASS</span></td><td>test-llm.ts</td></tr>
+          <tr><td>LLM Client：工具调用</td><td><span class="tag tag-green">PASS</span></td><td>test-llm.ts</td></tr>
+          <tr><td>LLM Client：流式输出</td><td><span class="tag tag-green">PASS</span></td><td>test-agent.ts</td></tr>
+          <tr><td>Agent Loop：单轮直接回答</td><td><span class="tag tag-green">PASS</span></td><td>test-agent.ts</td></tr>
+          <tr><td>Agent Loop：多轮工具调用</td><td><span class="tag tag-green">PASS</span></td><td>test-agent.ts</td></tr>
+          <tr><td>Agent Loop：错误恢复</td><td><span class="tag tag-green">PASS</span></td><td>test-agent.ts</td></tr>
+          <tr><td>CLI：命令行交互</td><td><span class="tag tag-green">PASS</span></td><td>手动验证</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ Section 9: ROADMAP ════════════ -->
+<section id="roadmap" class="section">
+  <div class="container">
+    <span class="section-label">Chapter 09</span>
+    <h2>下一步计划</h2>
+    <p class="lead">Phase 1 实现了最小可用的 ReAct 循环。Phase 2 将完善工具系统。</p>
+
+    <div class="card-grid">
+      <div class="card" style="border-top:3px solid var(--green)">
+        <h4>read 工具</h4>
+        <p>文件读取，支持 offset/limit 分块读取大文件</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--blue)">
+        <h4>write 工具</h4>
+        <p>文件写入，支持大文件分块写入</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--orange)">
+        <h4>edit 工具</h4>
+        <p>查找替换编辑，精确修改代码片段</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--red)">
+        <h4>权限策略</h4>
+        <p>allowlist / denylist 控制，防止危险操作</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ FOOTER ════════════ -->
+<footer class="footer">
+  <p>FirmClaw v1.0.0 — 基于 ReAct 架构的本地优先 AI 智能体框架</p>
+  <p style="margin-top:6px;color:var(--text-muted)">2026-03-25 | TypeScript | MiniMax M2.7 | 5 Dependencies</p>
+</footer>
+
+</body>
+</html>

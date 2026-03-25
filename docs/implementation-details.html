@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirmClaw v1.0 — Implementation Details</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-card: #1a1a26;
+    --bg-code: #0d0d15;
+    --border: #2a2a3a;
+    --text-primary: #e4e4ef;
+    --text-secondary: #8888a4;
+    --text-muted: #5a5a74;
+    --accent: #6c63ff;
+    --accent-glow: rgba(108, 99, 255, 0.3);
+    --green: #4ade80;
+    --green-bg: rgba(74, 222, 128, 0.1);
+    --orange: #fb923c;
+    --orange-bg: rgba(251, 146, 60, 0.1);
+    --blue: #60a5fa;
+    --blue-bg: rgba(96, 165, 250, 0.1);
+    --red: #f87171;
+    --red-bg: rgba(248, 113, 113, 0.1);
+    --purple: #c084fc;
+    --purple-bg: rgba(192, 132, 252, 0.1);
+    --cyan: #22d3ee;
+    --cyan-bg: rgba(34, 211, 238, 0.1);
+    --yellow: #fbbf24;
+    --yellow-bg: rgba(251, 191, 36, 0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .hero {
+    position: relative;
+    padding: 80px 40px 60px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, var(--cyan-bg) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero h1 { font-size: 48px; font-weight: 700; letter-spacing: -1px; margin-bottom: 12px; }
+  .hero .subtitle { font-size: 17px; color: var(--text-secondary); max-width: 600px; margin: 0 auto; }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  .toc {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,0.9); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border); padding: 10px 0;
+  }
+  .toc-inner { display: flex; gap: 4px; padding: 0 24px; max-width: 960px; margin: 0 auto; overflow-x: auto; }
+  .toc a { color: var(--text-secondary); text-decoration: none; font-size: 13px; padding: 5px 12px; border-radius: 6px; transition: all .2s; font-weight: 500; white-space: nowrap; }
+  .toc a:hover { color: var(--cyan); background: var(--cyan-bg); }
+
+  .section { padding: 80px 0; }
+  .section + .section { border-top: 1px solid var(--border); }
+  .section-label { display: inline-block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--cyan); margin-bottom: 10px; }
+  h2 { font-size: 34px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 14px; color: #fff; }
+  h3 { font-size: 22px; font-weight: 600; margin-bottom: 12px; color: #fff; margin-top: 48px; }
+  p { color: var(--text-secondary); margin-bottom: 16px; }
+  .lead { font-size: 17px; max-width: 720px; }
+  strong { color: var(--text-primary); font-weight: 600; }
+
+  .diagram-container {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px 24px; margin: 28px 0; overflow-x: auto;
+  }
+  .diagram-container svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  .diagram-title { text-align: center; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-top: 16px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 24px 0; }
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; transition: border-color .2s; }
+  .card:hover { border-color: var(--cyan); }
+
+  .table-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 24px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: rgba(34,211,238,0.06); }
+  th { text-align: left; padding: 12px 20px; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+  td { padding: 12px 20px; font-size: 14px; color: var(--text-secondary); border-top: 1px solid var(--border); }
+  code { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: var(--bg-code); padding: 2px 7px; border-radius: 4px; color: var(--accent); border: 1px solid var(--border); }
+
+  pre { background: var(--bg-code); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.6; }
+  pre code { background: none; border: none; padding: 0; color: var(--text-secondary); }
+
+  .tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 6px; }
+  .tag-cyan { background: var(--cyan-bg); color: var(--cyan); }
+  .tag-green { background: var(--green-bg); color: var(--green); }
+  .tag-orange { background: var(--orange-bg); color: var(--orange); }
+  .tag-blue { background: var(--blue-bg); color: var(--blue); }
+  .tag-red { background: var(--red-bg); color: var(--red); }
+  .tag-purple { background: var(--purple-bg); color: var(--purple); }
+  .tag-yellow { background: var(--yellow-bg); color: var(--yellow); }
+
+  .callout {
+    background: var(--cyan-bg); border: 1px solid rgba(34,211,238,0.2);
+    border-radius: 10px; padding: 16px 20px; margin: 20px 0;
+    font-size: 14px; color: var(--cyan);
+  }
+  .callout strong { color: var(--cyan); }
+
+  .comparison { display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: start; margin: 28px 0; }
+  .comparison-vs { text-align: center; padding-top: 40px; color: var(--red); font-weight: 700; font-size: 18px; }
+
+  .footer { text-align: center; padding: 48px 24px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 14px; }
+
+  @media (max-width: 768px) {
+    .hero { padding: 50px 20px 40px; }
+    .hero h1 { font-size: 32px; }
+    h2 { font-size: 26px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .comparison { grid-template-columns: 1fr; }
+    .comparison-vs { padding: 10px 0; }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <h1>Implementation Details</h1>
+  <p class="subtitle">深入 FirmClaw v1.0 的实现细节 — 系统提示词、工具定义、API 交互、事件广播系统的真实数据流</p>
+</section>
+
+<nav class="toc">
+  <div class="toc-inner">
+    <a href="#system-prompt">系统提示词</a>
+    <a href="#tools">工具定义</a>
+    <a href="#api-payload">API 数据包</a>
+    <a href="#eventstream">事件广播系统</a>
+    <a href="#event-demo">事件触发时序</a>
+    <a href="#eventstream-code">源码解读</a>
+  </div>
+</nav>
+
+<!-- ════════════ SYSTEM PROMPT ════════════ -->
+<section id="system-prompt" class="section">
+  <div class="container">
+    <span class="section-label">Detail 01</span>
+    <h2>系统提示词（System Prompt）</h2>
+    <p class="lead">系统提示词是发送给 LLM 的第一条消息。它定义了智能体的身份、能力和行为规则。LLM 根据"它"来决定是直接回答还是调用工具。</p>
+
+    <div class="diagram-container">
+      <svg width="740" height="320" viewBox="0 0 740 320">
+        <defs>
+          <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="rgba(0,0,0,0.3)"/></filter>
+        </defs>
+
+        <!-- The prompt box -->
+        <rect x="30" y="15" width="680" height="290" rx="14" fill="var(--bg-code)" stroke="var(--purple)" stroke-width="2" filter="url(#shadow)"/>
+
+        <!-- Header bar -->
+        <rect x="30" y="15" width="680" height="40" rx="14" fill="var(--purple-bg)"/>
+        <rect x="30" y="41" width="680" height="14" fill="var(--purple-bg)"/>
+        <circle cx="55" cy="35" r="5" fill="var(--red)"/>
+        <circle cx="75" cy="35" r="5" fill="var(--orange)"/>
+        <circle cx="95" cy="35" r="5" fill="var(--green)"/>
+        <text x="120" y="40" fill="var(--purple)" font-size="12" font-weight="600" font-family="JetBrains Mono">role: "system"</text>
+        <text x="650" y="40" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono" text-anchor="end">index.ts L28-40</text>
+
+        <!-- Content lines -->
+        <text x="50" y="80" fill="var(--text-secondary)" font-size="13" font-family="Inter" font-weight="500">你是一个本地 AI 智能体助手，可以执行终端命令来帮助用户完成任务。</text>
+
+        <!-- Section: 工作方式 -->
+        <text x="50" y="115" fill="var(--cyan)" font-size="13" font-family="Inter" font-weight="600">## 工作方式</text>
+        <text x="60" y="140" fill="var(--text-secondary)" font-size="12" font-family="Inter">1. 理解用户的需求</text>
+        <text x="60" y="160" fill="var(--text-secondary)" font-size="12" font-family="Inter">2. <tspan fill="var(--green)">使用 bash 工具执行</tspan>必要的命令来获取信息或完成任务</text>
+        <text x="60" y="180" fill="var(--text-secondary)" font-size="12" font-family="Inter">3. 根据命令输出分析结果</text>
+        <text x="60" y="200" fill="var(--text-secondary)" font-size="12" font-family="Inter">4. 给出清晰、有用的最终答案</text>
+
+        <!-- Section: 注意事项 -->
+        <text x="50" y="235" fill="var(--orange)" font-size="13" font-family="Inter" font-weight="600">## 注意事项</text>
+        <text x="60" y="258" fill="var(--text-secondary)" font-size="12" font-family="Inter">- 在执行命令前，先说明你打算做什么</text>
+        <text x="60" y="278" fill="var(--text-secondary)" font-size="12" font-family="Inter">- 如果命令执行失败，<tspan fill="var(--orange)">分析错误原因并尝试其他方法</tspan></text>
+        <text x="60" y="298" fill="var(--text-secondary)" font-size="12" font-family="Inter">- 使用中文回复 | 回答要简洁直接，不要多余的客套话</text>
+
+        <!-- Annotations -->
+        <line x1="540" y1="80" x2="710" y2="80" stroke="var(--cyan)" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="600" y="73" fill="var(--cyan)" font-size="10" font-family="Inter" text-anchor="middle">定义智能体身份</text>
+
+        <line x1="490" y1="160" x2="710" y2="130" stroke="var(--green)" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="600" y="123" fill="var(--green)" font-size="10" font-family="Inter" text-anchor="middle">引导 LLM 使用工具</text>
+
+        <line x1="530" y1="278" x2="710" y2="180" stroke="var(--orange)" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="620" y="173" fill="var(--orange)" font-size="10" font-family="Inter" text-anchor="middle">错误恢复策略</text>
+      </svg>
+      <div class="diagram-title">Figure 1 — System Prompt Content (index.ts L28-40)</div>
+    </div>
+
+    <div class="callout">
+      <strong>关键点：</strong>系统提示词中明确告诉 LLM "使用 bash 工具执行命令"。如果没有这句话，LLM 可能不知道自己有工具可用，而尝试纯文本回答它无法回答的问题。
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ TOOLS ════════════ -->
+<section id="tools" class="section">
+  <div class="container">
+    <span class="section-label">Detail 02</span>
+    <h2>工具定义 — 发送给 LLM 的真实数据</h2>
+    <p class="lead">LLM 并不直接知道有哪些工具。在每次调用 LLM 时，我们把工具列表转换为 OpenAI function calling 格式附在请求中。LLM 根据工具的 <code>name</code>、<code>description</code>、<code>parameters</code> 来决定是否调用。</p>
+
+    <h3>内部定义 → API 格式的转换</h3>
+    <div class="diagram-container">
+      <svg width="740" height="280" viewBox="0 0 740 280">
+        <!-- Internal format -->
+        <rect x="20" y="15" width="310" height="250" rx="12" fill="var(--bg-code)" stroke="var(--green)" stroke-width="1.5"/>
+        <rect x="20" y="15" width="310" height="32" rx="12" fill="var(--green-bg)"/>
+        <rect x="20" y="35" width="310" height="12" fill="var(--green-bg)"/>
+        <text x="35" y="36" fill="var(--green)" font-size="11" font-weight="600">内部格式 (bash.ts)</text>
+
+        <text x="35" y="68" fill="var(--purple)" font-size="11" font-family="JetBrains Mono">export const bashTool: Tool = {</text>
+        <text x="45" y="88" fill="var(--cyan)" font-size="11" font-family="JetBrains Mono">name:</text>
+        <text x="82" y="88" fill="var(--green)" font-size="11" font-family="JetBrains Mono">'bash',</text>
+        <text x="45" y="108" fill="var(--cyan)" font-size="11" font-family="JetBrains Mono">description:</text>
+        <text x="130" y="108" fill="var(--green)" font-size="11" font-family="JetBrains Mono">'Execute a bash command...'</text>
+        <text x="45" y="128" fill="var(--cyan)" font-size="11" font-family="JetBrains Mono">parameters:</text>
+        <text x="125" y="128" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">{ type:'object',</text>
+        <text x="55" y="148" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">  properties: { command: {...} },</text>
+        <text x="55" y="168" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">  required: ['command'] },</text>
+        <text x="45" y="188" fill="var(--cyan)" font-size="11" font-family="JetBrains Mono">execute:</text>
+        <text x="100" y="188" fill="var(--yellow)" font-size="11" font-family="JetBrains Mono">async (params) => { ... }</text>
+        <text x="35" y="208" fill="var(--purple)" font-size="11" font-family="JetBrains Mono">}</text>
+
+        <text x="175" y="252" fill="var(--text-muted)" font-size="10" text-anchor="middle">execute 函数不会发送给 LLM</text>
+
+        <!-- Arrow -->
+        <line x1="335" y1="140" x2="400" y2="140" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow-accent)"/>
+        <text x="367" y="128" fill="var(--accent)" font-size="10" font-weight="600" text-anchor="middle" font-family="Inter">convertTools()</text>
+
+        <!-- API format -->
+        <rect x="410" y="15" width="310" height="250" rx="12" fill="var(--bg-code)" stroke="var(--blue)" stroke-width="1.5"/>
+        <rect x="410" y="15" width="310" height="32" rx="12" fill="var(--blue-bg)"/>
+        <rect x="410" y="35" width="310" height="12" fill="var(--blue-bg)"/>
+        <text x="425" y="36" fill="var(--blue)" font-size="11" font-weight="600">OpenAI API 格式 (发给 LLM)</text>
+
+        <text x="425" y="68" fill="var(--purple)" font-size="11" font-family="JetBrains Mono">{</text>
+        <text x="435" y="88" fill="var(--cyan)" font-size="11" font-family="JetBrains Mono">type:</text>
+        <text x="468" y="88" fill="var(--green)" font-size="11" font-family="JetBrains Mono">'function',</text>
+        <text x="435" y="108" fill="var(--cyan)" font-size="11" font-family="JetBrains Mono">function:</text>
+        <text x="493" y="108" fill="var(--purple)" font-size="11" font-family="JetBrains Mono">{</text>
+        <text x="445" y="128" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">name:</text>
+        <text x="482" y="128" fill="var(--green)" font-size="11" font-family="JetBrains Mono">'bash',</text>
+        <text x="445" y="148" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">description:</text>
+        <text x="530" y="148" fill="var(--green)" font-size="11" font-family="JetBrains Mono">'Execute...'</text>
+        <text x="445" y="168" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">parameters: {</text>
+        <text x="455" y="188" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">  type: 'object',</text>
+        <text x="455" y="208" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">  properties: {</text>
+        <text x="465" y="228" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">    command: {</text>
+        <text x="475" y="248" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">      type: 'string' }</text>
+
+        <!-- Highlight difference -->
+        <rect x="410" y="55" width="310" height="26" rx="4" fill="rgba(96,165,250,0.08)" stroke="rgba(96,165,250,0.15)"/>
+      </svg>
+      <div class="diagram-title">Figure 2 — Tool Definition: Internal Format → OpenAI API Format</div>
+    </div>
+
+    <h3>当前支持的工具</h3>
+    <div class="card-grid">
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <h4><span class="tag tag-green">bash</span> 唯一可用工具</h4>
+        <pre style="margin:12px 0 0;font-size:11px;padding:14px;"><code>{
+  <span style="color:var(--cyan)">name</span>: <span style="color:var(--green)">"bash"</span>,
+  <span style="color:var(--cyan)">description</span>: <span style="color:var(--green)">"Execute a bash command
+    in the terminal..."</span>,
+  <span style="color:var(--cyan)">parameters</span>: {
+    <span style="color:var(--cyan)">type</span>: <span style="color:var(--green)">"object"</span>,
+    <span style="color:var(--cyan)">properties</span>: {
+      <span style="color:var(--cyan)">command</span>: {
+        <span style="color:var(--cyan)">type</span>: <span style="color:var(--green)">"string"</span>,
+        <span style="color:var(--cyan)">description</span>: <span style="color:var(--green)">"The bash
+          command to execute"</span>
+      }
+    },
+    <span style="color:var(--cyan)">required</span>: [<span style="color:var(--green)">"command"</span>]
+  }
+}</code></pre>
+        <p style="font-size:12px;margin-bottom:0">LLM 通过这个 JSON Schema 知道：有一个叫 bash 的工具，接受一个 command 字符串参数。</p>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--text-muted);">
+        <h4><span class="tag" style="background:var(--bg-code);color:var(--text-muted);">Phase 2</span> 计划中的工具</h4>
+        <ul style="list-style:none;margin-top:12px;">
+          <li style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-secondary);">
+            <span class="tag tag-blue" style="margin-right:6px;">read</span> 文件读取（offset/limit 分块）
+          </li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-secondary);">
+            <span class="tag tag-orange" style="margin-right:6px;">write</span> 文件写入（支持大文件）
+          </li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-secondary);">
+            <span class="tag tag-red" style="margin-right:6px;">edit</span> 查找替换编辑代码
+          </li>
+          <li style="padding:6px 0;font-size:13px;color:var(--text-secondary);">
+            <span class="tag tag-purple" style="margin-right:6px;">glob</span> 文件搜索/匹配
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ API PAYLOAD ════════════ -->
+<section id="api-payload" class="section">
+  <div class="container">
+    <span class="section-label">Detail 03</span>
+    <h2>发送给 MiniMax API 的真实数据包</h2>
+    <p class="lead">每次 Agent Loop 调用 LLM 时，<code>LLMClient.chat()</code> 构建一个 HTTP POST 请求发送到 <code>https://api.minimax.chat/v1/chat/completions</code>。以下是真实的数据结构。</p>
+
+    <div class="diagram-container">
+      <svg width="740" height="480" viewBox="0 0 740 480">
+        <!-- Request box -->
+        <rect x="20" y="10" width="700" height="460" rx="12" fill="var(--bg-code)" stroke="var(--accent)" stroke-width="1.5"/>
+
+        <!-- Header -->
+        <rect x="20" y="10" width="700" height="34" rx="12" fill="var(--accent-glow)"/>
+        <rect x="20" y="32" width="700" height="12" fill="var(--accent-glow)"/>
+        <text x="35" y="32" fill="var(--accent)" font-size="12" font-weight="600" font-family="JetBrains Mono">POST https://api.minimax.chat/v1/chat/completions</text>
+        <text x="660" y="32" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono" text-anchor="end">LLMClient.chat()</text>
+
+        <!-- Headers -->
+        <rect x="35" y="52" width="670" height="24" rx="4" fill="var(--purple-bg)"/>
+        <text x="48" y="68" fill="var(--purple)" font-size="10" font-family="JetBrains Mono">Authorization: Bearer sk-cp-xxx... | Content-Type: application/json</text>
+
+        <!-- Body -->
+        <text x="35" y="100" fill="var(--text-muted)" font-size="10" font-family="Inter">REQUEST BODY</text>
+        <text x="35" y="118" fill="var(--purple)" font-size="11" font-family="JetBrains Mono">{</text>
+        <text x="45" y="136" fill="var(--cyan)" font-size="11" font-family="JetBrains Mono">"model"</text>
+        <text x="85" y="136" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">: </text>
+        <text x="92" y="136" fill="var(--green)" font-size="11" font-family="JetBrains Mono">"MiniMax-M2.7"</text>
+        <text x="215" y="136" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">,</text>
+
+        <text x="45" y="156" fill="var(--cyan)" font-size="11" font-family="JetBrains Mono">"stream"</text>
+        <text x="88" y="156" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">: </text>
+        <text x="95" y="156" fill="var(--orange)" font-size="11" font-family="JetBrains Mono">true</text>
+        <text x="118" y="156" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">,</text>
+
+        <text x="45" y="178" fill="var(--cyan)" font-size="11" font-family="JetBrains Mono">"messages"</text>
+        <text x="105" y="178" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">: [</text>
+
+        <!-- system message -->
+        <rect x="60" y="186" width="630" height="38" rx="6" fill="var(--purple-bg)" stroke="rgba(192,132,252,0.15)"/>
+        <text x="75" y="202" fill="var(--purple)" font-size="10" font-weight="600">{ role: "system", content: "你是一个本地 AI 智能体助手..." }</text>
+        <text x="75" y="218" fill="var(--text-muted)" font-size="9">← 系统提示词，定义智能体身份</text>
+
+        <!-- user message -->
+        <rect x="60" y="228" width="630" height="38" rx="6" fill="var(--blue-bg)" stroke="rgba(96,165,250,0.15)"/>
+        <text x="75" y="244" fill="var(--blue)" font-size="10" font-weight="600">{ role: "user", content: "列出当前目录文件" }</text>
+        <text x="75" y="260" fill="var(--text-muted)" font-size="9">← 用户的输入</text>
+
+        <!-- assistant message (if turn > 1) -->
+        <rect x="60" y="270" width="630" height="38" rx="6" fill="var(--orange-bg)" stroke="rgba(251,146,60,0.15)"/>
+        <text x="75" y="286" fill="var(--orange)" font-size="10" font-weight="600">{ role: "assistant", content: "...", tool_calls: [{ name:"bash", arguments:'{"command":"ls"}' }] }</text>
+        <text x="75" y="302" fill="var(--text-muted)" font-size="9">← 上一轮 LLM 的回复（如果循环了多轮）</text>
+
+        <!-- tool result (if turn > 1) -->
+        <rect x="60" y="312" width="630" height="38" rx="6" fill="var(--green-bg)" stroke="rgba(74,222,128,0.15)"/>
+        <text x="75" y="328" fill="var(--green)" font-size="10" font-weight="600">{ role: "tool", tool_call_id: "call_xxx", content: "docs/  src/  package.json" }</text>
+        <text x="75" y="344" fill="var(--text-muted)" font-size="9">← 工具执行结果（通过 tool_call_id 关联到上面的 tool_calls）</text>
+
+        <text x="45" y="364" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">],</text>
+
+        <!-- tools array -->
+        <text x="45" y="384" fill="var(--cyan)" font-size="11" font-family="JetBrains Mono">"tools"</text>
+        <text x="82" y="384" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">: [</text>
+
+        <rect x="58" y="392" width="630" height="52" rx="6" fill="var(--cyan-bg)" stroke="rgba(34,211,238,0.15)"/>
+        <text x="72" y="408" fill="var(--cyan)" font-size="10" font-weight="600">{ type: "function", function: {</text>
+        <text x="82" y="424" fill="var(--text-secondary)" font-size="10">name: "bash",</text>
+        <text x="82" y="438" fill="var(--text-secondary)" font-size="10">description: "Execute a bash command...", parameters: { type:"object", properties:{ command:... }, required:["command"] }</text>
+
+        <text x="45" y="456" fill="var(--text-secondary)" font-size="11" font-family="JetBrains Mono">]  }</text>
+      </svg>
+      <div class="diagram-title">Figure 3 — Actual HTTP POST Payload Sent to MiniMax API</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ EVENTSTREAM ════════════ -->
+<section id="eventstream" class="section">
+  <div class="container">
+    <span class="section-label">Detail 04 — Deep Dive</span>
+    <h2>事件广播系统（EventStream）</h2>
+    <p class="lead">这是很多人容易混淆的部分。我用最通俗的方式从零讲解。</p>
+
+    <h3>什么是"事件广播"？</h3>
+    <p>想象一个广播电台：</p>
+
+    <div class="diagram-container">
+      <svg width="740" height="260" viewBox="0 0 740 260">
+        <!-- Broadcaster (Agent Loop) -->
+        <rect x="40" y="90" width="180" height="80" rx="12" fill="var(--orange-bg)" stroke="var(--orange)" stroke-width="2"/>
+        <text x="130" y="122" fill="var(--orange)" font-size="14" font-weight="700" text-anchor="middle" font-family="Inter">Agent Loop</text>
+        <text x="130" y="142" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="Inter">（广播电台）</text>
+        <text x="130" y="160" fill="var(--text-muted)" font-size="10" text-anchor="middle" font-family="JetBrains Mono">events.emit('xxx')</text>
+
+        <!-- Radio waves -->
+        <circle cx="260" cy="130" r="20" fill="none" stroke="var(--orange)" stroke-width="1" opacity="0.3"/>
+        <circle cx="260" cy="130" r="35" fill="none" stroke="var(--orange)" stroke-width="1" opacity="0.2"/>
+        <circle cx="260" cy="130" r="50" fill="none" stroke="var(--orange)" stroke-width="1" opacity="0.1"/>
+
+        <!-- Subscribers -->
+        <rect x="340" y="20" width="180" height="65" rx="10" fill="var(--purple-bg)" stroke="var(--purple)" stroke-width="1.5"/>
+        <text x="430" y="46" fill="var(--purple)" font-size="12" font-weight="600" text-anchor="middle">CLI (console.log)</text>
+        <text x="430" y="66" fill="var(--text-muted)" font-size="10" text-anchor="middle" font-family="JetBrains Mono">events.on('xxx', ...)</text>
+
+        <rect x="340" y="100" width="180" height="65" rx="10" fill="var(--blue-bg)" stroke="var(--blue)" stroke-width="1.5"/>
+        <text x="430" y="126" fill="var(--blue)" font-size="12" font-weight="600" text-anchor="middle">Web UI (WebSocket)</text>
+        <text x="430" y="146" fill="var(--text-muted)" font-size="10" text-anchor="middle" font-family="JetBrains Mono">events.on('xxx', ...)</text>
+
+        <rect x="340" y="180" width="180" height="65" rx="10" fill="var(--green-bg)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="430" y="206" fill="var(--green)" font-size="12" font-weight="600" text-anchor="middle">Log File (fs.write)</text>
+        <text x="430" y="226" fill="var(--text-muted)" font-size="10" text-anchor="middle" font-family="JetBrains Mono">events.on('xxx', ...)</text>
+
+        <!-- Arrows -->
+        <line x1="220" y1="115" x2="335" y2="52" stroke="var(--purple)" stroke-width="1" stroke-dasharray="4 3"/>
+        <line x1="220" y1="130" x2="335" y2="132" stroke="var(--blue)" stroke-width="1" stroke-dasharray="4 3"/>
+        <line x1="220" y1="145" x2="335" y2="212" stroke="var(--green)" stroke-width="1" stroke-dasharray="4 3"/>
+
+        <!-- Key insight -->
+        <rect x="560" y="70" width="170" height="130" rx="10" fill="var(--accent-glow)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="645" y="95" fill="#fff" font-size="12" font-weight="700" text-anchor="middle">关键洞察</text>
+        <text x="645" y="118" fill="var(--text-secondary)" font-size="10" text-anchor="middle" font-family="Inter">Agent Loop</text>
+        <text x="645" y="134" fill="var(--text-secondary)" font-size="10" text-anchor="middle" font-family="Inter">不需要知道</text>
+        <text x="645" y="150" fill="var(--text-secondary)" font-size="10" text-anchor="middle" font-family="Inter">谁在监听</text>
+        <text x="645" y="172" fill="var(--accent)" font-size="10" text-anchor="middle" font-weight="600" font-family="Inter">只管 "喊话"</text>
+        <text x="645" y="188" fill="var(--text-muted)" font-size="9" text-anchor="middle" font-family="Inter">不管 "谁听到"</text>
+      </svg>
+      <div class="diagram-title">Figure 4 — Event Broadcasting: Radio Station Analogy</div>
+    </div>
+
+    <h3>为什么不用 console.log？</h3>
+    <div class="comparison">
+      <div>
+        <h4 style="color:var(--red);font-size:16px;">❌ 直接 console.log</h4>
+        <pre style="margin-top:12px;font-size:12px;padding:14px;"><code><span style="color:var(--comment);">// Agent Loop 内部直接打印</span>
+<span style="color:var(--purple);">class</span> <span style="color:var(--cyan);">AgentLoop</span> {
+  <span style="color:var(--purple);">async</span> <span style="color:var(--yellow);">run</span>(msg) {
+    <span style="color:var(--cyan);">console</span>.log(<span style="color:var(--green);">"思考中..."</span>);  <span style="color:var(--comment);">// 写死了！</span>
+    <span style="color:var(--cyan);">console</span>.log(<span style="color:var(--green);">"调用 bash"</span>); <span style="color:var(--comment);">// 写死了！</span>
+    <span style="color:var(--cyan);">console</span>.log(result);       <span style="color:var(--comment);">// 写死了！</span>
+  }
+}
+
+<span style="color:var(--red);">问题：</span>
+- Web UI 怎么接收？
+- 日志文件怎么写入？
+- 测试时怎么断言？
+- 改显示格式要改 Agent Loop？</code></pre>
+      </div>
+      <div class="comparison-vs">VS</div>
+      <div>
+        <h4 style="color:var(--green);font-size:16px;">✅ 事件广播</h4>
+        <pre style="margin-top:12px;font-size:12px;padding:14px;"><code><span style="color:var(--comment);">// Agent Loop 只发事件，不关心谁听</span>
+<span style="color:var(--purple);">class</span> <span style="color:var(--cyan);">AgentLoop</span> {
+  <span style="color:var(--purple);">async</span> <span style="color:var(--yellow);">run</span>(msg) {
+    <span style="color:var(--cyan);">this</span>.events.emit(<span style="color:var(--green);">'tool_start'</span>, data);
+    <span style="color:var(--cyan);">this</span>.events.emit(<span style="color:var(--green);">'tool_end'</span>, data);
+  }
+}
+
+<span style="color:var(--comment);">// CLI 订阅 → console.log</span>
+events.on(<span style="color:var(--green);">'tool_start'</span>, (e) => {
+  console.log(e.data);
+});
+
+<span style="color:var(--comment);">// Web UI 订阅 → WebSocket 推送</span>
+events.on(<span style="color:var(--green);">'tool_start'</span>, (e) => {
+  ws.send(JSON.stringify(e));
+});</code></pre>
+      </div>
+    </div>
+
+    <h3>EventStream 的实现原理</h3>
+    <p>EventStream 继承自 Node.js 内置的 <code>EventEmitter</code>，只做了两件事：</p>
+
+    <div class="diagram-container">
+      <svg width="740" height="240" viewBox="0 0 740 240">
+        <!-- EventEmitter base -->
+        <rect x="20" y="15" width="320" height="210" rx="12" fill="var(--bg-card)" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="6 3"/>
+        <text x="180" y="42" fill="var(--text-muted)" font-size="13" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">Node.js EventEmitter</text>
+        <text x="180" y="65" fill="var(--text-muted)" font-size="11" text-anchor="middle" font-family="Inter">Node.js 内置模块，提供发布/订阅能力</text>
+
+        <text x="40" y="100" fill="var(--text-muted)" font-size="11" font-family="JetBrains Mono">.emit(event, data)</text>
+        <text x="40" y="118" fill="var(--text-muted)" font-size="11" font-family="JetBrains Mono">.on(event, callback)</text>
+        <text x="40" y="136" fill="var(--text-muted)" font-size="11" font-family="JetBrains Mono">.off(event, callback)</text>
+
+        <text x="40" y="170" fill="var(--text-muted)" font-size="10" font-family="Inter">核心机制：内部维护一个 Map</text>
+        <text x="40" y="188" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">{ "thinking_delta": [fn1, fn2],</text>
+        <text x="40" y="204" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">  "tool_start": [fn1] }</text>
+
+        <!-- Arrow -->
+        <text x="365" y="120" fill="var(--accent)" font-size="20" font-weight="700">extends</text>
+
+        <!-- EventStream -->
+        <rect x="420" y="15" width="300" height="210" rx="12" fill="var(--cyan-bg)" stroke="var(--cyan)" stroke-width="2"/>
+        <text x="570" y="42" fill="var(--cyan)" font-size="13" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">EventStream</text>
+        <text x="570" y="65" fill="var(--text-secondary)" font-size="11" text-anchor="middle" font-family="Inter">只做了两件小事</text>
+
+        <!-- Enhancement 1 -->
+        <rect x="435" y="80" width="270" height="50" rx="8" fill="var(--bg-code)" stroke="var(--cyan)" stroke-width="1"/>
+        <text x="445" y="100" fill="var(--cyan)" font-size="10" font-weight="600">1. 限制事件类型</text>
+        <text x="445" y="118" fill="var(--text-secondary)" font-size="10" font-family="JetBrains Mono">只允许 5 种事件名（防止拼写错误）</text>
+
+        <!-- Enhancement 2 -->
+        <rect x="435" y="140" width="270" height="70" rx="8" fill="var(--bg-code)" stroke="var(--cyan)" stroke-width="1"/>
+        <text x="445" y="160" fill="var(--cyan)" font-size="10" font-weight="600">2. 统一事件格式</text>
+        <text x="445" y="178" fill="var(--text-secondary)" font-size="10">自动包装成 { type, data } 对象</text>
+        <text x="445" y="196" fill="var(--text-secondary)" font-size="10">callback 收到的始终是结构化对象</text>
+      </svg>
+      <div class="diagram-title">Figure 5 — EventStream: EventEmitter + Two Small Enhancements</div>
+    </div>
+
+    <h3>5 种事件类型的真实触发场景</h3>
+    <div class="diagram-container">
+      <svg width="740" height="420" viewBox="0 0 740 420">
+        <!-- Event 1: thinking_delta -->
+        <rect x="20" y="10" width="700" height="68" rx="10" fill="var(--bg-card)" stroke="var(--orange)" stroke-width="1.5"/>
+        <rect x="30" y="18" width="130" height="22" rx="6" fill="var(--orange-bg)"/>
+        <text x="95" y="34" fill="var(--orange)" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">thinking_delta</text>
+        <text x="170" y="34" fill="var(--text-secondary)" font-size="10">LLM 生成的每一个字</text>
+        <text x="30" y="56" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">触发位置: agent-loop.ts L93 → events.emit('thinking_delta', delta)</text>
+        <text x="30" y="70" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">触发频率: 每收到一个流式 chunk 就触发一次（可能每秒几十次）</text>
+
+        <!-- Event 2: tool_start -->
+        <rect x="20" y="88" width="700" height="68" rx="10" fill="var(--bg-card)" stroke="var(--blue)" stroke-width="1.5"/>
+        <rect x="30" y="96" width="100" height="22" rx="6" fill="var(--blue-bg)"/>
+        <text x="80" y="112" fill="var(--blue)" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">tool_start</text>
+        <text x="140" y="112" fill="var(--text-secondary)" font-size="10">工具开始执行</text>
+        <text x="30" y="134" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">触发位置: agent-loop.ts L127 → events.emit('tool_start', { toolName, args })</text>
+        <text x="30" y="148" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">实际数据: { type:"tool_start", data: { toolName:"bash", args:{ command:"ls" } } }</text>
+
+        <!-- Event 3: tool_end -->
+        <rect x="20" y="166" width="700" height="68" rx="10" fill="var(--bg-card)" stroke="var(--green)" stroke-width="1.5"/>
+        <rect x="30" y="174" width="90" height="22" rx="6" fill="var(--green-bg)"/>
+        <text x="75" y="190" fill="var(--green)" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">tool_end</text>
+        <text x="130" y="190" fill="var(--text-secondary)" font-size="10">工具执行完成</text>
+        <text x="30" y="212" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">触发位置: agent-loop.ts L148 → events.emit('tool_end', { toolName, result, isError })</text>
+        <text x="30" y="226" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">实际数据: { type:"tool_end", data: { toolName:"bash", result:"docs/ src/ pkg.json", isError:false } }</text>
+
+        <!-- Event 4: message_end -->
+        <rect x="20" y="244" width="700" height="68" rx="10" fill="var(--bg-card)" stroke="var(--purple)" stroke-width="1.5"/>
+        <rect x="30" y="252" width="110" height="22" rx="6" fill="var(--purple-bg)"/>
+        <text x="85" y="268" fill="var(--purple)" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">message_end</text>
+        <text x="150" y="268" fill="var(--text-secondary)" font-size="10">LLM 最终回复完成</text>
+        <text x="30" y="290" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">触发位置: agent-loop.ts L104 → events.emit('message_end', response.content)</text>
+        <text x="30" y="304" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">含义: LLM 给出了最终答案（没有 tool_calls），任务完成</text>
+
+        <!-- Event 5: error -->
+        <rect x="20" y="322" width="700" height="68" rx="10" fill="var(--bg-card)" stroke="var(--red)" stroke-width="1.5"/>
+        <rect x="30" y="330" width="60" height="22" rx="6" fill="var(--red-bg)"/>
+        <text x="60" y="346" fill="var(--red)" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono">error</text>
+        <text x="100" y="346" fill="var(--text-secondary)" font-size="10">出错时</text>
+        <text x="30" y="368" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">触发位置: agent-loop.ts L117, L133, L158 → events.emit('error', errorMessage)</text>
+        <text x="30" y="382" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">实际数据: { type:"error", data: "Unknown tool: \"rm\". Available: bash" }</text>
+
+        <!-- Frequency bar -->
+        <text x="30" y="412" fill="var(--text-muted)" font-size="10" font-family="Inter">触发频率: ████████████████████ thinking_delta (高频) │ ████ tool_start/end (中频) │ ██ message_end/error (低频)</text>
+      </svg>
+      <div class="diagram-title">Figure 6 — All 5 Event Types: Trigger Points, Real Data, Frequency</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ EVENT DEMO ════════════ -->
+<section id="event-demo" class="section">
+  <div class="container">
+    <span class="section-label">Detail 05</span>
+    <h2>事件触发的完整时序</h2>
+    <p class="lead">以用户问 "列出目录文件" 为例，展示从 Agent Loop 内部到 CLI 显示的完整事件流。</p>
+
+    <div class="diagram-container">
+      <svg width="740" height="520" viewBox="0 0 740 520">
+        <!-- Timeline vertical line -->
+        <line x1="40" y1="20" x2="40" y2="500" stroke="var(--border)" stroke-width="2"/>
+
+        <!-- Step 1 -->
+        <circle cx="40" cy="30" r="6" fill="var(--orange)"/>
+        <text x="25" y="14" fill="var(--text-muted)" font-size="9" text-anchor="middle" font-family="JetBrains Mono">L93</text>
+        <rect x="60" y="12" width="660" height="38" rx="8" fill="var(--orange-bg)" stroke="rgba(251,146,60,0.2)"/>
+        <text x="75" y="30" fill="var(--orange)" font-size="10" font-weight="600" font-family="JetBrains Mono">emit('thinking_delta', '我来查看')</text>
+        <text x="75" y="44" fill="var(--text-muted)" font-size="9">LLM 开始生成文本，每收到一个 chunk 触发一次</text>
+        <text x="500" y="30" fill="var(--purple)" font-size="9" font-family="JetBrains Mono">→ CLI: process.stdout.write('我来查看')</text>
+
+        <!-- Step 2 -->
+        <circle cx="40" cy="90" r="6" fill="var(--orange)"/>
+        <text x="25" y="78" fill="var(--text-muted)" font-size="9" text-anchor="middle" font-family="JetBrains Mono">L93</text>
+        <rect x="60" y="72" width="660" height="38" rx="8" fill="var(--orange-bg)" stroke="rgba(251,146,60,0.2)"/>
+        <text x="75" y="90" fill="var(--orange)" font-size="10" font-weight="600" font-family="JetBrains Mono">emit('thinking_delta', '当前目录的文件')</text>
+        <text x="500" y="90" fill="var(--purple)" font-size="9" font-family="JetBrains Mono">→ CLI: process.stdout.write('当前目录的文件')</text>
+
+        <!-- Step 3: tool_start -->
+        <circle cx="40" cy="155" r="6" fill="var(--blue)"/>
+        <text x="25" y="143" fill="var(--text-muted)" font-size="9" text-anchor="middle" font-family="JetBrains Mono">L127</text>
+        <rect x="60" y="137" width="660" height="38" rx="8" fill="var(--blue-bg)" stroke="rgba(96,165,250,0.2)"/>
+        <text x="75" y="155" fill="var(--blue)" font-size="10" font-weight="600" font-family="JetBrains Mono">emit('tool_start', { toolName: "bash", args: { command: "ls" } })</text>
+        <text x="500" y="155" fill="var(--purple)" font-size="9" font-family="JetBrains Mono">→ CLI: console.log('>>> [bash] {"command":"ls"}')</text>
+
+        <!-- Step 4: bash executes -->
+        <circle cx="40" cy="215" r="6" fill="var(--text-muted)" stroke="var(--text-muted)" stroke-width="1" fill-opacity="0"/>
+        <rect x="60" y="197" width="660" height="38" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-dasharray="4 3"/>
+        <text x="75" y="215" fill="var(--text-muted)" font-size="10" font-family="JetBrains Mono">bashTool.execute({ command: "ls" }) → child_process.exec("ls") → stdout: "docs/ src/ pkg.json"</text>
+        <text x="500" y="215" fill="var(--text-muted)" font-size="9">← 这里没有 emit，是纯工具执行</text>
+
+        <!-- Step 5: tool_end -->
+        <circle cx="40" cy="280" r="6" fill="var(--green)"/>
+        <text x="25" y="268" fill="var(--text-muted)" font-size="9" text-anchor="middle" font-family="JetBrains Mono">L148</text>
+        <rect x="60" y="262" width="660" height="38" rx="8" fill="var(--green-bg)" stroke="rgba(74,222,128,0.2)"/>
+        <text x="75" y="280" fill="var(--green)" font-size="10" font-weight="600" font-family="JetBrains Mono">emit('tool_end', { toolName:"bash", result:"docs/  src/  package.json", isError:false })</text>
+        <text x="500" y="280" fill="var(--purple)" font-size="9" font-family="JetBrains Mono">→ CLI: console.log('<<< [bash] docs/ src/...')</text>
+
+        <!-- Step 6: Loop back - thinking -->
+        <circle cx="40" cy="345" r="6" fill="var(--orange)"/>
+        <text x="25" y="333" fill="var(--text-muted)" font-size="9" text-anchor="middle" font-family="JetBrains Mono">L93</text>
+        <rect x="60" y="327" width="660" height="38" rx="8" fill="var(--orange-bg)" stroke="rgba(251,146,60,0.2)"/>
+        <text x="75" y="345" fill="var(--orange)" font-size="10" font-weight="600" font-family="JetBrains Mono">emit('thinking_delta', '当前目录包含以下文件')</text>
+        <text x="500" y="345" fill="var(--purple)" font-size="9" font-family="JetBrains Mono">→ CLI: process.stdout.write('当前目录包含...')</text>
+        <text x="300" y="345" fill="var(--accent)" font-size="9" font-weight="600">← 第 2 轮循环</text>
+
+        <!-- Step 7: message_end -->
+        <circle cx="40" cy="410" r="6" fill="var(--purple)"/>
+        <text x="25" y="398" fill="var(--text-muted)" font-size="9" text-anchor="middle" font-family="JetBrains Mono">L104</text>
+        <rect x="60" y="392" width="660" height="38" rx="8" fill="var(--purple-bg)" stroke="rgba(192,132,252,0.2)"/>
+        <text x="75" y="410" fill="var(--purple)" font-size="10" font-weight="600" font-family="JetBrains Mono">emit('message_end', '当前目录包含以下文件：docs/、src/、package.json')</text>
+        <text x="500" y="410" fill="var(--purple)" font-size="9" font-family="JetBrains Mono">→ return { text: '...', turns: 2, toolCalls: 1 }</text>
+
+        <!-- Summary -->
+        <rect x="60" y="455" width="660" height="50" rx="10" fill="var(--accent-glow)" stroke="var(--accent)" stroke-width="1"/>
+        <text x="75" y="475" fill="#fff" font-size="11" font-weight="600">总计触发 6 次事件：</text>
+        <text x="75" y="494" fill="var(--text-secondary)" font-size="10">thinking_delta ×3 → tool_start ×1 → tool_end ×1 → message_end ×1</text>
+      </svg>
+      <div class="diagram-title">Figure 7 — Complete Event Timeline: "列出当前目录文件" (2 turns, 1 tool call)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ EVENTSTREAM CODE ════════════ -->
+<section id="eventstream-code" class="section">
+  <div class="container">
+    <span class="section-label">Detail 06</span>
+    <h2>源码逐行解读</h2>
+
+    <h3>EventStream 完整源码（仅 49 行）</h3>
+    <pre><code><span style="color:var(--comment);">// 导入 Node.js 内置的 EventEmitter</span>
+<span style="color:var(--purple);">import</span> { EventEmitter } <span style="color:var(--purple);">from</span> <span style="color:var(--green);">'node:events'</span>;
+
+<span style="color:var(--comment);">// 限制允许的事件类型 —— 防止拼写错误</span>
+<span style="color:var(--purple);">export type</span> <span style="color:var(--cyan);">AgentEventType</span> =
+  | <span style="color:var(--green);">'thinking_delta'</span>   <span style="color:var(--comment);">// LLM 生成的文本片段</span>
+  | <span style="color:var(--green);">'tool_start'</span>       <span style="color:var(--comment);">// 工具开始执行</span>
+  | <span style="color:var(--green);">'tool_end'</span>         <span style="color:var(--comment);">// 工具执行完成</span>
+  | <span style="color:var(--green);">'message_end'</span>      <span style="color:var(--comment);">// 最终回复完成</span>
+  | <span style="color:var(--green);">'error'</span>;           <span style="color:var(--comment);">// 出错了</span>
+
+<span style="color:var(--comment);">// 统一的事件对象格式</span>
+<span style="color:var(--purple);">export interface</span> <span style="color:var(--cyan);">AgentEvent</span> {
+  type: <span style="color:var(--cyan);">AgentEventType</span>;  <span style="color:var(--comment);">// 事件类型</span>
+  data?: <span style="color:var(--cyan);">unknown</span>;         <span style="color:var(--comment);">// 事件数据</span>
+}
+
+<span style="color:var(--comment);">// 继承 EventEmitter，只做了两件小事：</span>
+<span style="color:var(--purple);">export class</span> <span style="color:var(--cyan);">EventStream</span> <span style="color:var(--purple);">extends</span> <span style="color:var(--cyan);">EventEmitter</span> {
+
+  <span style="color:var(--comment);">// ① 重写 emit：自动把 data 包装成 { type, data } 对象</span>
+  <span style="color:var(--yellow);">emit</span>(event: <span style="color:var(--cyan);">AgentEventType</span>, data?: <span style="color:var(--cyan);">unknown</span>): <span style="color:var(--cyan);">boolean</span> {
+    <span style="color:var(--purple);">return super</span>.emit(event, { type: event, data });
+    <span style="color:var(--comment);">//           ^^^^^^^^^^^^^^^^^^^^^^^^</span>
+    <span style="color:var(--comment);">//  callback 收到的始终是 { type: "tool_start", data: {...} }</span>
+  }
+
+  <span style="color:var(--comment);">// ② 重写 on：callback 参数类型化</span>
+  <span style="color:var(--yellow);">on</span>(event: <span style="color:var(--cyan);">AgentEventType</span>, listener: (event: <span style="color:var(--cyan);">AgentEvent</span>) => <span style="color:var(--cyan);">void</span>): <span style="color:var(--cyan);">this</span> {
+    <span style="color:var(--purple);">return super</span>.on(event, listener);
+  }
+}</code></pre>
+
+    <h3>Agent Loop 中的 emit 调用点（标注）</h3>
+    <pre><code><span style="color:var(--purple);">async</span> <span style="color:var(--yellow);">run</span>(userMessage: <span style="color:var(--cyan);">string</span>): Promise&lt;<span style="color:var(--cyan);">AgentResult</span>&gt; {
+  <span style="color:var(--purple);">while</span> (turns &lt; this.config.maxTurns) {
+    turns++;
+
+    <span style="color:var(--comment);">// ═══ Step 1: 调用 LLM ═══</span>
+    <span style="color:var(--purple);">const</span> response = <span style="color:var(--purple);">await</span> this.llm.chat(messages, this.tools,
+      (delta) => {
+        <span style="color:var(--cyan);">this.events.emit(</span><span style="color:var(--green);">'thinking_delta'</span>, delta<span style="color:var(--cyan);">)</span>;  <span style="color:var(--red);">// ← 事件 1: 每个 chunk</span>
+      },
+    );
+
+    <span style="color:var(--comment);">// ═══ Step 2: 判断响应类型 ═══</span>
+    <span style="color:var(--purple);">if</span> (!response.tool_calls?.length) {
+      <span style="color:var(--cyan);">this.events.emit(</span><span style="color:var(--green);">'message_end'</span>, response.content<span style="color:var(--cyan);">)</span>;  <span style="color:var(--red);">// ← 事件 5: 最终答案</span>
+      <span style="color:var(--purple);">return</span> { text: response.content, turns, toolCalls: totalToolCalls };
+    }
+
+    <span style="color:var(--comment);">// ═══ Step 3: 执行工具 ═══</span>
+    <span style="color:var(--purple);">for</span> (<span style="color:var(--purple);">const</span> toolCall <span style="color:var(--purple);">of</span> response.tool_calls) {
+      <span style="color:var(--purple);">try</span> {
+        toolArgs = JSON.parse(toolCall.function.arguments);
+      } <span style="color:var(--purple);">catch</span> {
+        <span style="color:var(--cyan);">this.events.emit(</span><span style="color:var(--green);">'error'</span>, <span style="color:var(--green);">`Failed to parse...`</span><span style="color:var(--cyan);">)</span>;     <span style="color:var(--red);">// ← 事件 6: JSON 解析失败</span>
+        <span style="color:var(--purple);">continue</span>;
+      }
+
+      <span style="color:var(--cyan);">this.events.emit(</span><span style="color:var(--green);">'tool_start'</span>, { toolName, args: toolArgs }<span style="color:var(--cyan);">)</span>;  <span style="color:var(--red);">// ← 事件 2: 开始执行</span>
+
+      <span style="color:var(--purple);">const</span> tool = this.tools.get(toolName);
+      <span style="color:var(--purple);">if</span> (!tool) {
+        <span style="color:var(--cyan);">this.events.emit(</span><span style="color:var(--green);">'error'</span>, <span style="color:var(--green);">`Unknown tool: "${toolName}"`</span><span style="color:var(--cyan);">)</span>;   <span style="color:var(--red);">// ← 事件 6: 未知工具</span>
+        <span style="color:var(--purple);">continue</span>;
+      }
+
+      <span style="color:var(--purple);">try</span> {
+        <span style="color:var(--purple);">const</span> result = <span style="color:var(--purple);">await</span> tool.execute(toolArgs);
+        <span style="color:var(--cyan);">this.events.emit(</span><span style="color:var(--green);">'tool_end'</span>, { toolName, result: result.content }<span style="color:var(--cyan);">)</span>; <span style="color:var(--red);">// ← 事件 3: 执行完成</span>
+      } <span style="color:var(--purple);">catch</span> (error) {
+        <span style="color:var(--cyan);">this.events.emit(</span><span style="color:var(--green);">'error'</span>, <span style="color:var(--green);">`Tool crashed: ${error}`</span><span style="color:var(--cyan);">)</span>;           <span style="color:var(--red);">// ← 事件 6: 工具崩溃</span>
+      }
+    }
+  }
+}</code></pre>
+
+    <h3>CLI 中的 on 订阅（标注）</h3>
+    <pre><code><span style="color:var(--comment;">// index.ts — CLI 订阅所有事件，展示给用户</span>
+
+<span style="color:var(--purple);">const</span> events = agent.getEvents();
+
+<span style="color:var(--comment);">// 订阅 thinking_delta → LLM 正在生成文字</span>
+events.on(<span style="color:var(--green);">'thinking_delta'</span>, (e) => {
+  process.stdout.write(e.data <span style="color:var(--purple);">as</span> <span style="color:var(--cyan);">string</span>);  <span style="color:var(--comment);">// 直接输出到终端，不打换行</span>
+});
+
+<span style="color:var(--comment);">// 订阅 tool_start → 工具开始执行</span>
+events.on(<span style="color:var(--green);">'tool_start'</span>, (e) => {
+  <span style="color:var(--purple);">const</span> data = e.data <span style="color:var(--purple);">as</span> { toolName: <span style="color:var(--cyan);">string</span>; args: <span style="color:var(--cyan);">Record</span>&lt;<span style="color:var(--cyan);">string</span>, <span style="color:var(--cyan);">unknown</span>&gt; };
+  console.log(<span style="color:var(--green);">`\n>>> [${data.toolName}] ${JSON.stringify(data.args)}`</span>);
+});
+
+<span style="color:var(--comment);">// 订阅 tool_end → 工具执行完成</span>
+events.on(<span style="color:var(--green);">'tool_end'</span>, (e) => {
+  <span style="color:var(--purple);">const</span> data = e.data <span style="color:var(--purple);">as</span> { result: <span style="color:var(--cyan);">string</span> };
+  <span style="color:var(--purple);">const</span> preview = data.result.length > <span style="color:var(--orange);">300</span>
+    ? data.result.substring(<span style="color:var(--orange);">0</span>, <span style="color:var(--orange);">300</span>) + <span style="color:var(--green);">'...(truncated)'</span>
+    : data.result;
+  console.log(<span style="color:var(--green);">`<<< [${data.toolName}] ${preview}`</span>);
+});
+
+<span style="color:var(--comment);">// 订阅 error → 出错了</span>
+events.on(<span style="color:var(--green);">'error'</span>, (e) => {
+  console.error(<span style="color:var(--green);">`\n[Error] ${e.data}`</span>);
+});</code></pre>
+
+    <div class="callout">
+      <strong>总结：</strong>EventStream 的本质就是一个 <strong>中间人</strong>。Agent Loop 只管"喊话"（emit），CLI / Web UI / 日志 各自"接听"（on）。两边互不依赖，想换显示方式只需改订阅逻辑，Agent Loop 完全不用动。
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>FirmClaw v1.0 — Implementation Details</p>
+  <p style="margin-top:4px;color:var(--text-muted)">7 SVG Diagrams | Source: event-stream.ts, agent-loop.ts, client.ts, bash.ts, index.ts</p>
+</footer>
+
+</body>
+</html>

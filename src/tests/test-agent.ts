@@ -2,8 +2,7 @@
  * src/tests/test-agent.ts
  *
  * 测试目标：验证完整的 Agent Loop（ReAct 循环）
- * - 需要网络 + API Key
- * - 验证：LLM 能自动调用工具、获取结果、给出最终答案
+ * v1.1: AgentConfig 新增 workDir
  */
 
 import 'dotenv/config';
@@ -26,6 +25,7 @@ async function testAgent() {
   const agent = new AgentLoop(llm, tools, {
     systemPrompt: 'You are a helpful assistant with access to a bash tool. Reply concisely in Chinese.',
     maxTurns: 5,
+    workDir: process.cwd(),
   });
 
   // 订阅事件

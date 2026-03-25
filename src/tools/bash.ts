@@ -1,43 +1,36 @@
 /**
  * src/tools/bash.ts
  *
- * 【讲解】
- * bash 工具是 Phase 1 唯一的工具，也是智能体与操作系统交互的桥梁。
+ * bash 工具 — 智能体与操作系统交互的桥梁。
  *
- * 工作原理：
- * 1. LLM 决定要执行一个命令 → 生成 tool_call { name: "bash", arguments: { command: "ls" } }
- * 2. Agent Loop 解析出 tool name 和 arguments
- * 3. 调用 bashTool.execute({ command: "ls" })
- * 4. Node.js 通过 child_process.exec 执行命令
- * 5. stdout/stderr 被捕获并返回给 LLM 作为 observation
- *
- * 关键设计：
- * - timeout: 30秒超时，防止命令卡死
- * - maxBuffer: 1MB 缓冲区，防止命令输出过大撑爆内存
- * - try/catch: 命令执行失败时返回错误信息而非抛异常（LLM 需要看到错误来调整策略）
+ * v1.0: exec() + 超时 + maxBuffer
+ * v1.1: 适配 ToolContext（使用 context.workDir 作为 cwd）
+ *       （v1.5 会升级为 spawn()，这里先用 exec + cwd 选项过渡）
  */
 
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import path from 'node:path';
 import type { Tool, ToolResult } from './types.js';
+import type { ToolContext } from './context.js';
 
 const execAsync = promisify(exec);
 
 export const bashTool: Tool = {
   name: 'bash',
-  description: 'Execute a bash command in the terminal and return stdout and stderr output.',
+  description: 'Execute a shell command and return stdout and stderr output. The working directory defaults to workDir.',
   parameters: {
     type: 'object',
     properties: {
       command: {
         type: 'string',
-        description: 'The bash command to execute',
+        description: 'The shell command to execute',
       },
     },
     required: ['command'],
   },
 
-  async execute(params: Record<string, unknown>): Promise<ToolResult> {
+  async execute(params: Record<string, unknown>, context: ToolContext): Promise<ToolResult> {
     const command = params.command as string;
 
     if (!command || typeof command !== 'string') {
@@ -46,8 +39,9 @@ export const bashTool: Tool = {
 
     try {
       const { stdout, stderr } = await execAsync(command, {
-        timeout: 30_000,       // 30秒超时
-        maxBuffer: 1024 * 1024, // 1MB 输出缓冲
+        timeout: 30_000,
+        maxBuffer: 1024 * 1024,
+        cwd: context.workDir,
       });
 
       const output = [stdout, stderr].filter(Boolean).join('\n');

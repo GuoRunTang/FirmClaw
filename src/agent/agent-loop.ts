@@ -1,42 +1,12 @@
 /**
  * src/agent/agent-loop.ts
  *
- * 【讲解】
- * 这是整个 FirmClaw 系统的心脏 —— ReAct 循环的实现。
+ * ReAct 循环的实现 —— 整个 FirmClaw 系统的心脏。
  *
- * ═══════════════════════════════════════════════════════════════
- * 核心算法（伪代码）：
- * ═══════════════════════════════════════════════════════════════
- *
- * messages = [system_prompt, user_message]
- *
- * while turns < maxTurns:
- *     response = LLM(messages, tools)        ← 调用 LLM
- *     messages.push(response)                 ← 记录 LLM 回复
- *
- *     if response 没有 tool_calls:
- *         return response.content             ← 纯文本 → 结束
- *
- *     for each tool_call in response.tool_calls:
- *         result = execute_tool(tool_call)     ← 执行工具
- *         messages.push(result)               ← 把结果反馈给 LLM
- *
- * # 循环回到顶部，LLM 看到工具结果后继续思考
- *
- * ═══════════════════════════════════════════════════════════════
- *
- * 用人话说就是：
- * 1. 把用户的消息发给 LLM
- * 2. LLM 要么直接回答，要么要求调工具
- * 3. 如果要调工具 → 执行工具 → 把结果告诉 LLM → 回到第1步
- * 4. 如果直接回答 → 输出给用户 → 结束
- *
- * 这就是 ReAct = Reasoning（LLM 推理）+ Acting（工具执行）
- *
- * 关键设计：
- * - maxTurns 限制：防止 LLM 陷入无限循环（比如反复调同一个工具）
- * - 错误不中断：工具执行失败时返回错误信息给 LLM，让它调整策略
- * - 事件广播：通过 EventStream 实时通知外部发生了什么
+ * v1.1 改进：
+ * - 从 config.workDir 构建 ToolContext
+ * - 调用 registry.execute(name, args, context) 替代 tool.execute(args)
+ *   这样参数校验由 registry 自动完成
  */
 
 import type { Message } from '../llm/client.js';
@@ -76,6 +46,11 @@ export class AgentLoop {
       { role: 'user', content: userMessage },
     ];
 
+    // 构建 ToolContext（所有工具调用共享）
+    const toolContext = {
+      workDir: this.config.workDir || process.cwd(),
+    };
+
     let turns = 0;
     let totalToolCalls = 0;
 
@@ -89,7 +64,6 @@ export class AgentLoop {
       const response = await this.llm.chat(
         messages,
         this.tools,
-        // 流式回调：实时输出 LLM 正在生成的内容
         (delta) => {
           this.events.emit('thinking_delta', delta);
         },
@@ -100,7 +74,6 @@ export class AgentLoop {
 
       // ──── Step 2: 判断是否需要调工具 ────
       if (!response.tool_calls || response.tool_calls.length === 0) {
-        // 没有工具调用 → LLM 给出了最终答案 → 循环结束
         this.events.emit('message_end', response.content);
         return { text: response.content, turns, toolCalls: totalToolCalls };
       }
@@ -127,8 +100,7 @@ export class AgentLoop {
         this.events.emit('tool_start', { toolName, args: toolArgs });
 
         // 查找工具
-        const tool = this.tools.get(toolName);
-        if (!tool) {
+        if (!this.tools.has(toolName)) {
           const errorMsg = `Unknown tool: "${toolName}". Available: ${this.tools.getAll().map(t => t.name).join(', ')}`;
           this.events.emit('error', errorMsg);
           messages.push({
@@ -139,15 +111,13 @@ export class AgentLoop {
           continue;
         }
 
-        // 执行工具
+        // 执行工具（通过 registry.execute，自动做参数校验）
         try {
-          const result = await tool.execute(toolArgs);
+          const result = await this.tools.execute(toolName, toolArgs, toolContext);
           totalToolCalls++;
 
-          // 通知外部：工具执行完成
           this.events.emit('tool_end', { toolName, result: result.content, isError: result.isError });
 
-          // 将工具结果加入消息历史（作为 observation 反馈给 LLM）
           messages.push({
             role: 'tool',
             content: result.content,
