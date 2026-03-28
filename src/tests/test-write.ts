@@ -2,8 +2,9 @@
  * src/tests/test-write.ts
  *
  * 测试目标：验证 write_file 工具
- * - 不需要 API Key，不需要网络
- * - 验证：创建文件、覆写、自动创建目录、边界情况
+ * 阶段：Phase 2 (v1.3.0) — 文件写入工具
+ * 依赖：无（不需要 API Key，不需要网络）
+ * 测试内容：创建文件、覆写、自动创建目录、边界情况、交互测试
  */
 
 import fs from 'node:fs';

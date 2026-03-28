@@ -1,7 +1,10 @@
 /**
  * src/tests/test-llm.ts
  *
- * 测试目标：验证 LLM Client 与 MiniMax API 的通信
+ * 测试目标：验证 LLM Client 与 LLM API 的通信
+ * 阶段：Phase 1 (v1.0.0) — 最小可用 ReAct 循环
+ * 依赖：需要 API Key + 网络连接
+ * v1.0: 初始实现
  * v1.1: 适配新 registry（ajv 校验不影响 chat 调用，但 register 需要有效 schema）
  */
 

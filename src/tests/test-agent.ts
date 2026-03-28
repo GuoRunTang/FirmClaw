@@ -2,6 +2,9 @@
  * src/tests/test-agent.ts
  *
  * 测试目标：验证完整的 Agent Loop（ReAct 循环）
+ * 阶段：Phase 1 (v1.0.0) — 最小可用 ReAct 循环
+ * 依赖：需要 API Key + 网络连接
+ * v1.0: 初始实现（基础 ReAct 循环）
  * v1.1: AgentConfig 新增 workDir
  */
 

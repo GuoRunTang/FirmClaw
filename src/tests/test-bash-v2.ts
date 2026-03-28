@@ -2,7 +2,9 @@
  * src/tests/test-bash-v2.ts
  *
  * 测试目标：验证 bash 工具 spawn() 升级后的功能
- * - 超时控制、cwd 指定、大输出截断、退出码处理
+ * 阶段：Phase 2 (v1.5.0) — bash 工具升级为 spawn()
+ * 依赖：无（不需要 API Key，不需要网络）
+ * 测试内容：超时控制、cwd 指定、大输出截断、退出码处理、多行输出
  */
 
 import { bashTool } from '../tools/bash.js';

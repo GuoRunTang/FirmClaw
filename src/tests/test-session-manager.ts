@@ -1,19 +1,20 @@
 /**
  * src/tests/test-session-manager.ts
  *
- * SessionManager 单元测试。
+ * 测试目标：验证 SessionManager（会话管理器）
+ * 阶段：Phase 3 (v2.1.0) — 会话存储与管理
+ * 依赖：无（不需要 API Key，不需要网络）
  *
  * 测试用例：
  * 1. create → 返回有效 meta
- * 2. create + append + getMessages → 数据完整
+ * 2. create + append + getMessages → 数据完整（端到端）
  * 3. resume 已有会话 → 能读到历史
  * 4. resumeLatest → 返回最新的
  * 5. listSessions → 按时间降序
  * 6. gc → 清理过期会话
- * 7. 切换会话 → 正确切换
+ * 7. switchSession → 正确切换
  * 8. 禁用模式 → isEnabled() 返回 false
- *
- * v2.1
+ * 9. deleteSession → 会话从列表消失
  */
 
 import fs from 'node:fs/promises';

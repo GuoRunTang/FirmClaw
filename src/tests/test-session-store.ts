@@ -1,7 +1,9 @@
 /**
  * src/tests/test-session-store.ts
  *
- * SessionStore 单元测试。
+ * 测试目标：验证 SessionStore（JSONL 存储层）
+ * 阶段：Phase 3 (v2.1.0) — 会话存储与管理
+ * 依赖：无（不需要 API Key，不需要网络）
  *
  * 测试用例：
  * 1. 创建会话 → 文件存在
@@ -12,10 +14,9 @@
  * 6. updateMeta → 更新成功
  * 7. listAll → 包含新创建的
  * 8. delete → 文件消失
- * 9. 无效 sessionId → 抛错
+ * 9. 无效 sessionId → 抛错（路径遍历防护）
  * 10. 读取不存在的会话 → 返回空
- *
- * v2.1
+ * 11. 空 appendBatch → 不报错
  */
 
 import fs from 'node:fs/promises';

@@ -1,9 +1,14 @@
 /**
  * src/tests/test-token-counter.ts
  *
- * TokenCounter 单元测试。
+ * 测试目标：验证 TokenCounter（token 估算 + 消息裁剪）
+ * 阶段：Phase 3 (v2.3.0) — 上下文窗口管理
+ * 依赖：无（不需要 API Key，不需要网络）
  *
- * v2.3
+ * 测试用例：
+ * - 中文/英文 token 估算、空文本边界、带 tool_calls 的消息、
+ *   空消息裁剪、未超限不裁剪、tool 消息截断、整体裁剪、
+ *   system + 首条 user 保护规则、裁剪报告正确性
  */
 
 import { TokenCounter } from '../utils/token-counter.js';

@@ -2,6 +2,9 @@
  * src/tests/test-bash.ts
  *
  * 测试目标：验证 bash 工具独立运行是否正确
+ * 阶段：Phase 1 (v1.0.0) — 最小可用 ReAct 循环
+ * 依赖：无（不需要 API Key，不需要网络）
+ * v1.0: 初始实现
  * v1.1: 适配 ToolContext 接口
  */
 

@@ -2,8 +2,9 @@
  * src/tests/test-read.ts
  *
  * 测试目标：验证 read_file 工具
- * - 不需要 API Key，不需要网络
- * - 验证：普通读取、offset/limit、不存在的文件、二进制检测
+ * 阶段：Phase 2 (v1.2.0) — 文件读取工具
+ * 依赖：无（不需要 API Key，不需要网络）
+ * 测试内容：普通读取、offset/limit 分段、二进制检测、相对路径解析
  */
 
 import fs from 'node:fs';

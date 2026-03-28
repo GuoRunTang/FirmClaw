@@ -1,9 +1,16 @@
 /**
  * src/tests/test-context-builder.ts
  *
- * ContextBuilder + PromptTemplate 单元测试。
+ * 测试目标：验证 ContextBuilder（系统提示词组装）+ PromptTemplate（模板引擎）
+ * 阶段：Phase 3 (v2.2.0) — 系统提示词动态组装
+ * 依赖：无（不需要 API Key，不需要网络）
  *
- * v2.2
+ * 测试用例（PromptTemplate 8 项）：
+ * - 基础变量替换、默认值、条件渲染、多变量、空行清理
+ *
+ * 测试用例（ContextBuilder 9 项）：
+ * - 无工作区文件、有 SOUL.md、有 AGENTS.md、有 MEMORY.md、
+ *   有会话元数据、多工具、无会话、全部文件组合
  */
 
 import fs from 'node:fs/promises';
