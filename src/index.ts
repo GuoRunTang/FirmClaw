@@ -3,7 +3,7 @@
  *
  * 程序入口文件。
  *
- * v1.3: 注册 bash + read_file + write_file 工具
+ * v1.4: 注册 bash + read_file + write_file + edit_file 工具
  */
 
 import 'dotenv/config';
@@ -13,27 +13,32 @@ import { ToolRegistry } from './tools/registry.js';
 import { bashTool } from './tools/bash.js';
 import { readTool } from './tools/read.js';
 import { writeTool } from './tools/write.js';
+import { editTool } from './tools/edit.js';
 import { AgentLoop } from './agent/agent-loop.js';
 
 // ═══════════════════════════════════════════════════════════════
 // 系统提示词
 // ═══════════════════════════════════════════════════════════════
-const SYSTEM_PROMPT = `你是一个本地 AI 智能体助手，可以读取/写入文件和执行终端命令来帮助用户完成任务。
+const SYSTEM_PROMPT = `你是一个本地 AI 智能体助手，可以读取/写入/编辑文件和执行终端命令来帮助用户完成任务。
 
 ## 可用工具
 - **bash**: 执行终端命令（如 ls、cat、npm run 等）
 - **read_file**: 读取文件内容，支持 offset/limit 分段读取，返回带行号的内容
 - **write_file**: 创建或覆写文件，自动创建父目录
+- **edit_file**: 精确查找替换文件中的文本（old_str 必须在文件中唯一出现）
 
 ## 工作方式
 1. 理解用户的需求
 2. 优先使用 read_file 读取文件（比 bash cat 更精确）
-3. 使用 write_file 创建或修改文件
-4. 使用 bash 执行命令来获取动态信息或完成任务
-5. 根据结果分析并给出清晰的最终答案
+3. 使用 write_file 创建新文件
+4. 使用 edit_file 修改现有文件（比 write_file 覆写更安全）
+5. 使用 bash 执行命令来获取动态信息或完成任务
+6. 根据结果分析并给出清晰的最终答案
 
 ## 注意事项
 - 在执行操作前，先说明你打算做什么
+- edit_file 的 old_str 必须足够独特以确保唯一性，包含足够的上下文
+- 如果 edit_file 因非唯一匹配失败，扩大 old_str 的范围重试
 - 如果操作失败，分析错误原因并尝试其他方法
 - 使用中文回复
 - 回答要简洁直接，不要多余的客套话`;
@@ -52,7 +57,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  console.log(`FirmClaw v1.1.0`);
+  console.log(`FirmClaw v1.4.0`);
   console.log(`Model: ${model}`);
   console.log(`API: ${baseURL}`);
   console.log(`WorkDir: ${process.cwd()}`);
@@ -65,6 +70,7 @@ async function main(): Promise<void> {
   tools.register(bashTool);
   tools.register(readTool);
   tools.register(writeTool);
+  tools.register(editTool);
 
   const agent = new AgentLoop(llm, tools, {
     systemPrompt: SYSTEM_PROMPT,
