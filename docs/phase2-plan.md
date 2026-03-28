@@ -456,9 +456,11 @@ git tag v1.6.0
 
 | 版本 | 内容 | 状态 |
 |------|------|------|
-| v1.1.0 | ToolContext + ajv 校验 | ⬜ 待开始 |
-| v1.2.0 | read_file 工具 | ⬜ 待开始 |
-| v1.3.0 | write_file 工具 | ⬜ 待开始 |
-| v1.4.0 | edit_file 工具 | ⬜ 待开始 |
-| v1.5.0 | bash spawn() 升级 | ⬜ 待开始 |
-| v1.6.0 | 权限策略系统 | ⬜ 待开始 |
+| v1.1.0 | ToolContext + ajv 校验 | ✅ 完成 |
+| v1.2.0 | read_file 工具 | ✅ 完成 |
+| v1.3.0 | write_file 工具 | ✅ 完成 |
+| v1.4.0 | edit_file 工具 | ✅ 完成 |
+| v1.5.0 | bash spawn() 升级 | ✅ 完成 |
+| v1.6.0 | 权限策略系统 | ✅ 完成 |
+
+**Phase 2 全部完成！**
