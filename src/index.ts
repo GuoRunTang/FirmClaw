@@ -3,7 +3,7 @@
  *
  * 程序入口文件。
  *
- * v1.4: 注册 bash + read_file + write_file + edit_file 工具
+ * v1.6: 注册全部 4 工具 + 权限策略
  */
 
 import 'dotenv/config';
@@ -14,6 +14,7 @@ import { bashTool } from './tools/bash.js';
 import { readTool } from './tools/read.js';
 import { writeTool } from './tools/write.js';
 import { editTool } from './tools/edit.js';
+import { DefaultPermissionPolicy } from './tools/permissions.js';
 import { AgentLoop } from './agent/agent-loop.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -57,10 +58,12 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  console.log(`FirmClaw v1.5.0`);
+  const workDir = process.cwd();
+
+  console.log(`FirmClaw v1.6.0`);
   console.log(`Model: ${model}`);
   console.log(`API: ${baseURL}`);
-  console.log(`WorkDir: ${process.cwd()}`);
+  console.log(`WorkDir: ${workDir}`);
   console.log('Type "exit" to quit.\n');
 
   // ──── 2. 初始化组件 ────
@@ -72,10 +75,14 @@ async function main(): Promise<void> {
   tools.register(writeTool);
   tools.register(editTool);
 
+  // 设置权限策略：允许 workDir，禁止系统目录和危险命令
+  const policy = new DefaultPermissionPolicy({ allowedPaths: [workDir] });
+  tools.setPolicy(policy);
+
   const agent = new AgentLoop(llm, tools, {
     systemPrompt: SYSTEM_PROMPT,
     maxTurns: 10,
-    workDir: process.cwd(),
+    workDir,
   });
 
   // ──── 3. 订阅事件流 ────
