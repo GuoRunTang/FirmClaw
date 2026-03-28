@@ -3,11 +3,16 @@
  *
  * 程序入口文件。
  *
+ * v1.0: 初始 CLI（基础 ReAct 循环 + bash 工具）
  * v1.6: 注册全部 4 工具 + 权限策略
+ * v2.4: 集成 Phase 3 全部模块（会话管理 + 动态提示词 + 上下文裁剪 + 斜杠命令）
  */
 
 import 'dotenv/config';
 import * as readline from 'node:readline';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
 import { LLMClient } from './llm/client.js';
 import { ToolRegistry } from './tools/registry.js';
 import { bashTool } from './tools/bash.js';
@@ -16,33 +21,9 @@ import { writeTool } from './tools/write.js';
 import { editTool } from './tools/edit.js';
 import { DefaultPermissionPolicy } from './tools/permissions.js';
 import { AgentLoop } from './agent/agent-loop.js';
-
-// ═══════════════════════════════════════════════════════════════
-// 系统提示词
-// ═══════════════════════════════════════════════════════════════
-const SYSTEM_PROMPT = `你是一个本地 AI 智能体助手，可以读取/写入/编辑文件和执行终端命令来帮助用户完成任务。
-
-## 可用工具
-- **bash**: 执行终端命令（如 ls、cat、npm run 等）
-- **read_file**: 读取文件内容，支持 offset/limit 分段读取，返回带行号的内容
-- **write_file**: 创建或覆写文件，自动创建父目录
-- **edit_file**: 精确查找替换文件中的文本（old_str 必须在文件中唯一出现）
-
-## 工作方式
-1. 理解用户的需求
-2. 优先使用 read_file 读取文件（比 bash cat 更精确）
-3. 使用 write_file 创建新文件
-4. 使用 edit_file 修改现有文件（比 write_file 覆写更安全）
-5. 使用 bash 执行命令来获取动态信息或完成任务
-6. 根据结果分析并给出清晰的最终答案
-
-## 注意事项
-- 在执行操作前，先说明你打算做什么
-- edit_file 的 old_str 必须足够独特以确保唯一性，包含足够的上下文
-- 如果 edit_file 因非唯一匹配失败，扩大 old_str 的范围重试
-- 如果操作失败，分析错误原因并尝试其他方法
-- 使用中文回复
-- 回答要简洁直接，不要多余的客套话`;
+import { SessionManager } from './session/manager.js';
+import { ContextBuilder } from './session/context-builder.js';
+import { TokenCounter } from './utils/token-counter.js';
 
 // ═══════════════════════════════════════════════════════════════
 // 主函数
@@ -60,11 +41,11 @@ async function main(): Promise<void> {
 
   const workDir = process.cwd();
 
-  console.log(`FirmClaw v1.6.0`);
+  console.log(`FirmClaw v2.4.0`);
   console.log(`Model: ${model}`);
   console.log(`API: ${baseURL}`);
   console.log(`WorkDir: ${workDir}`);
-  console.log('Type "exit" to quit.\n');
+  console.log('Type "/help" for commands, "exit" to quit.\n');
 
   // ──── 2. 初始化组件 ────
   const llm = new LLMClient(apiKey, baseURL, model);
@@ -75,17 +56,40 @@ async function main(): Promise<void> {
   tools.register(writeTool);
   tools.register(editTool);
 
-  // 设置权限策略：允许 workDir，禁止系统目录和危险命令
+  // 设置权限策略
   const policy = new DefaultPermissionPolicy({ allowedPaths: [workDir] });
   tools.setPolicy(policy);
 
+  // Phase 3: 初始化会话系统
+  const sessionDir = path.join(os.homedir(), '.firmclaw', 'sessions');
+  const sessionManager = new SessionManager({ storageDir: sessionDir });
+  const contextBuilder = new ContextBuilder({ workDir });
+  const tokenCounter = new TokenCounter();
+
   const agent = new AgentLoop(llm, tools, {
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt: '', // 由 ContextBuilder 动态生成
     maxTurns: 10,
     workDir,
+    sessionManager,
+    contextBuilder,
+    tokenCounter,
+    trimConfig: {
+      maxTokens: 128000,
+      maxToolResultTokens: 500,
+    },
   });
 
-  // ──── 3. 订阅事件流 ────
+  // ──── 3. 启动时自动恢复上次会话 ────
+  try {
+    const latest = await sessionManager.resumeLatest();
+    if (latest) {
+      console.log(`Resumed session: ${latest.id} (${latest.title}, ${latest.messageCount} msgs)`);
+    }
+  } catch {
+    // 首次运行无历史会话，忽略
+  }
+
+  // ──── 4. 订阅事件流 ────
   const events = agent.getEvents();
 
   events.on('thinking_delta', (e) => {
@@ -109,7 +113,17 @@ async function main(): Promise<void> {
     console.error(`\n[Error] ${e.data}`);
   });
 
-  // ──── 4. 启动命令行交互 ────
+  events.on('session_start', (e) => {
+    const data = e.data as { id: string; title: string };
+    console.log(`\n[System] New session started: ${data.id} (${data.title})`);
+  });
+
+  events.on('context_trimmed', (e) => {
+    const data = e.data as { originalTokens: number; trimmedTokens: number };
+    console.log(`\n[System] Context trimmed: ${data.originalTokens} → ${data.trimmedTokens} tokens`);
+  });
+
+  // ──── 5. 启动命令行交互 ────
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -130,8 +144,15 @@ async function main(): Promise<void> {
         return;
       }
 
-      console.log('');
+      // ──── 斜杠命令 ────
+      if (trimmed.startsWith('/')) {
+        await handleCommand(trimmed);
+        prompt();
+        return;
+      }
 
+      // ──── 普通消息 → agent.run() ────
+      console.log('');
       try {
         const result = await agent.run(trimmed);
         console.log(`\n--- [${result.turns} turns, ${result.toolCalls} tool calls] ---\n`);
@@ -143,7 +164,109 @@ async function main(): Promise<void> {
     });
   };
 
+  // ──── 6. 斜杠命令处理 ────
+  async function handleCommand(cmd: string): Promise<void> {
+    const parts = cmd.split(/\s+/);
+    const command = parts[0].toLowerCase();
+    const arg = parts.slice(1).join(' ');
+
+    switch (command) {
+      case '/help': {
+        console.log(`
+Available commands:
+  /new              Create a new session
+  /resume [id]      Resume session (latest or by ID)
+  /sessions         List all sessions
+  /session          Show current session info
+  /soul             Display SOUL.md content
+  /memory           Display MEMORY.md content
+  /help             Show this help message
+  /exit, /quit      Exit
+  Any other text    Send as user message to agent
+`);
+        break;
+      }
+
+      case '/new': {
+        const meta = await sessionManager.create(workDir);
+        agent.resetSession(meta.id);
+        console.log(`New session created: ${meta.id}`);
+        break;
+      }
+
+      case '/resume': {
+        try {
+          const meta = arg
+            ? await sessionManager.resume(arg)
+            : await sessionManager.resumeLatest();
+          if (meta) {
+            agent.resetSession(meta.id);
+            console.log(`Resumed session: ${meta.id} (${meta.title}, ${meta.messageCount} msgs)`);
+          } else {
+            console.log('No session found.');
+          }
+        } catch (error: unknown) {
+          console.error(`Failed to resume: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        break;
+      }
+
+      case '/sessions': {
+        const sessions = await sessionManager.listSessions();
+        if (sessions.length === 0) {
+          console.log('No sessions found.');
+        } else {
+          console.log(`\nSessions (${sessions.length}):`);
+          sessions.forEach((s, i) => {
+            const marker = s.id === agent.getCurrentSessionId() ? ' *' : '  ';
+            console.log(`${marker}[${i + 1}] ${s.id} | ${s.title} | ${s.messageCount} msgs | ${s.updatedAt}`);
+          });
+          console.log('  (* = current session)');
+        }
+        break;
+      }
+
+      case '/session': {
+        const id = agent.getCurrentSessionId();
+        if (id) {
+          const meta = await sessionManager.resume(id);
+          console.log(JSON.stringify(meta, null, 2));
+        } else {
+          console.log('No active session.');
+        }
+        break;
+      }
+
+      case '/soul': {
+        const soulPath = path.join(workDir, '.firmclaw', 'SOUL.md');
+        if (fs.existsSync(soulPath)) {
+          console.log(fs.readFileSync(soulPath, 'utf-8'));
+        } else {
+          console.log('No SOUL.md found. Create one at .firmclaw/SOUL.md');
+        }
+        break;
+      }
+
+      case '/memory': {
+        const memPath = path.join(workDir, '.firmclaw', 'MEMORY.md');
+        if (fs.existsSync(memPath)) {
+          console.log(fs.readFileSync(memPath, 'utf-8'));
+        } else {
+          console.log('No MEMORY.md found.');
+        }
+        break;
+      }
+
+      default:
+        console.log(`Unknown command: ${cmd}`);
+        console.log('Type "/help" for available commands.');
+    }
+  }
+
   prompt();
 }
 
-main();
+main().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});
