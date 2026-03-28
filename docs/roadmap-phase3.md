@@ -970,7 +970,9 @@ Context trimmed: 128000 → 95000 tokens
 
 | 版本 | 内容 | 状态 |
 |------|------|------|
-| v2.1.0 | 会话存储（SessionStore + SessionManager） | ⏳ 待开发 |
-| v2.2.0 | 系统提示词组装（ContextBuilder + PromptTemplate） | ⏳ 待开发 |
-| v2.3.0 | 上下文窗口管理（TokenCounter）+ AgentLoop 集成 | ⏳ 待开发 |
-| v2.4.0 | CLI 交互升级 + 全量集成 | ⏳ 待开发 |
+| v2.1.0 | 会话存储（SessionStore + SessionManager） | ✅ 完成 |
+| v2.2.0 | 系统提示词组装（ContextBuilder + PromptTemplate） | ✅ 完成 |
+| v2.3.0 | 上下文窗口管理（TokenCounter）+ AgentLoop 集成 | ✅ 完成 |
+| v2.4.0 | CLI 交互升级 + 全量集成 | ✅ 完成 |
+
+**Phase 3 全部完成！**
