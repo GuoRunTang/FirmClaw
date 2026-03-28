@@ -57,7 +57,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  console.log(`FirmClaw v1.4.0`);
+  console.log(`FirmClaw v1.5.0`);
   console.log(`Model: ${model}`);
   console.log(`API: ${baseURL}`);
   console.log(`WorkDir: ${process.cwd()}`);
