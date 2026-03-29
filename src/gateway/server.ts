@@ -16,9 +16,10 @@
  *                  → close / stop()
  *
  * v5.1: 初始实现
+ * v5.4: 集成 Web UI（HTTP GET 返回聊天页面）
  */
 
-import { createServer, type Server as HttpServer, type IncomingMessage } from 'node:http';
+import { createServer, type Server as HttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
 import type {
@@ -41,6 +42,7 @@ import type { Summarizer } from '../session/summarizer.js';
 import type { AgentConfig } from '../agent/types.js';
 import { AgentLoop } from '../agent/agent-loop.js';
 import type { EventStream } from '../utils/event-stream.js';
+import { getWebUIHTML } from './web-ui.js';
 
 export class GatewayServer {
   private config: ResolvedGatewayConfig;
@@ -127,7 +129,9 @@ export class GatewayServer {
       throw new Error('GatewayServer requires LLMClient and ToolRegistry. Call setLLM() and setTools() before start().');
     }
 
-    this.httpServer = createServer();
+    this.httpServer = createServer((req, res) => {
+      this.handleHttpRequest(req, res);
+    });
 
     this.wss = new WebSocketServer({
       server: this.httpServer,
@@ -145,6 +149,7 @@ export class GatewayServer {
           ? `\n[Gateway] Token: ${this.auth.getToken()}`
           : '\n[Gateway] Authentication disabled (no token configured)';
         console.log(`[Gateway] WebSocket server listening on ws://${this.config.host}:${this.config.port}${tokenInfo}`);
+        console.log(`[Gateway] Web UI: http://${this.config.host}:${this.config.port}?token=${this.auth.getToken()}`);
         resolve();
       });
     });
@@ -212,6 +217,27 @@ export class GatewayServer {
   }
 
   // ──── 连接处理 ────
+
+  /**
+   * 处理 HTTP 请求（v5.4: Web UI）
+   *
+   * GET / → 返回聊天页面 HTML
+   * 其他路径 → 404
+   */
+  private handleHttpRequest(req: IncomingMessage, res: ServerResponse): void {
+    if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
+      const html = getWebUIHTML();
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': Buffer.byteLength(html, 'utf-8'),
+      });
+      res.end(html);
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  }
 
   /**
    * 处理新的 WebSocket 连接

@@ -1566,5 +1566,5 @@ $ npx tsx src/index.ts --serve --port 3000 --web
 | v5.1.0 | WebSocket 网关服务器（GatewayServer + ConnectionManager + MessageRouter + AuthGuard） | ✅ 完成 |
 | v5.2.0 | CLI 交互界面增强（Renderer + ProgressIndicator） | ✅ 完成 |
 | v5.3.0 | 子智能体（SubagentManager + subagent 工具） | ✅ 完成 |
-| v5.4.0 | Web UI（静态文件 + HTTP 服务） | ⏳ 待开发 |
+| v5.4.0 | Web UI（静态文件 + HTTP 服务） | ✅ 完成 |
 | v6.0.0 | 全量整合 + 版本发布 | ⏳ 待开发 |

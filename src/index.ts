@@ -10,6 +10,7 @@
  * v5.1: 集成 Phase 6 v5.1 模块（WebSocket Gateway + /serve 命令）
  * v5.2: 集成 CLI 富文本渲染器 + 进度指示器
  * v5.3: 集成子智能体管理器（SubagentManager）
+ * v5.4: 集成 Web UI（HTTP 静态页面服务）
  */
 
 import 'dotenv/config';
@@ -54,7 +55,7 @@ async function main(): Promise<void> {
 
   const workDir = process.cwd();
 
-  console.log(`FirmClaw v5.3.0`);
+  console.log(`FirmClaw v5.4.0`);
   console.log(`Model: ${model}`);
   console.log(`API: ${baseURL}`);
   console.log(`WorkDir: ${workDir}`);
@@ -516,7 +517,8 @@ Available commands:
         });
 
         await gateway.start();
-        console.log(`\nConnect with: wscat -c ws://localhost:${port}?token=${token}`);
+        console.log(`\n  WebSocket: wscat -c ws://localhost:${port}?token=${token}`);
+        console.log(`  Web UI:    http://localhost:${port}?token=${token}`);
         break;
       }
 
