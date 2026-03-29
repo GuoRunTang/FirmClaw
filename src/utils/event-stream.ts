@@ -23,24 +23,26 @@
  * v3.1: 新增 summary_generated
  * v3.2: 新增 memory_saved
  * v4.1: 新增 approval_requested / approval_granted / approval_denied
+ * v4.2: 新增 prompt_injection_detected
  */
 
 import { EventEmitter } from 'node:events';
 
 /** 所有事件类型 */
 export type AgentEventType =
-  | 'thinking_delta'     // LLM 生成的文本片段
-  | 'tool_start'         // 工具开始执行
-  | 'tool_end'           // 工具执行完成
-  | 'message_end'        // 最终文本回复完成
-  | 'error'              // 出错了
-  | 'session_start'      // v2.3: 会话开始 { id, title, createdAt }
-  | 'context_trimmed'    // v2.3: 上下文被裁剪 { originalTokens, trimmedTokens }
-  | 'summary_generated'  // v3.1: 摘要生成 { compressedCount, originalTokens, newTokens }
-  | 'memory_saved'       // v3.2: 记忆保存 { id, tag }
-  | 'approval_requested' // v4.1: 审批请求 { id, toolName, args, riskLevel }
-  | 'approval_granted'   // v4.1: 审批通过 { toolName, args }
-  | 'approval_denied';   // v4.1: 审批拒绝 { toolName, args, reason }
+  | 'thinking_delta'                // LLM 生成的文本片段
+  | 'tool_start'                    // 工具开始执行
+  | 'tool_end'                      // 工具执行完成
+  | 'message_end'                   // 最终文本回复完成
+  | 'error'                         // 出错了
+  | 'session_start'                 // v2.3: 会话开始 { id, title, createdAt }
+  | 'context_trimmed'               // v2.3: 上下文被裁剪 { originalTokens, trimmedTokens }
+  | 'summary_generated'             // v3.1: 摘要生成 { compressedCount, originalTokens, newTokens }
+  | 'memory_saved'                  // v3.2: 记忆保存 { id, tag }
+  | 'approval_requested'            // v4.1: 审批请求 { id, toolName, args, riskLevel }
+  | 'approval_granted'              // v4.1: 审批通过 { toolName, args }
+  | 'approval_denied'               // v4.1: 审批拒绝 { toolName, args, reason }
+  | 'prompt_injection_detected';    // v4.2: 注入检测 { toolName, matchTypes }
 
 /** 事件对象 */
 export interface AgentEvent {

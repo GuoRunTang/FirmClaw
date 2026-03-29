@@ -6,6 +6,7 @@
  * v1.1: ajv 参数校验 + execute() 方法
  * v1.6: 集成权限策略，execute() 中在校验和调用之间插入权限检查
  * v4.1: 新增 checkPermissionForRisk() 公开方法
+ * v4.2: 集成 PromptGuard，execute() 返回前扫描注入
  */
 
 import Ajv from 'ajv';
@@ -13,12 +14,14 @@ import path from 'node:path';
 import type { Tool, ToolDefinition, ToolResult } from './types.js';
 import type { ToolContext } from './context.js';
 import type { PermissionPolicy, PermissionResult } from './permissions.js';
+import type { PromptGuard } from '../agent/prompt-guard.js';
 
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
   private validators: Map<string, Ajv.ValidateFunction> = new Map();
   private ajv: Ajv;
   private policy: PermissionPolicy | null = null;
+  private promptGuard: PromptGuard | null = null;
 
   constructor() {
     this.ajv = new Ajv({ allErrors: true });
@@ -49,6 +52,11 @@ export class ToolRegistry {
   /** 设置权限策略 */
   setPolicy(policy: PermissionPolicy): void {
     this.policy = policy;
+  }
+
+  /** v4.2: 设置 Prompt Injection 防护 */
+  setPromptGuard(guard: PromptGuard): void {
+    this.promptGuard = guard;
   }
 
   /**
@@ -96,7 +104,20 @@ export class ToolRegistry {
     }
 
     // 4. 执行
-    return tool.execute(params, context);
+    const result = await tool.execute(params, context);
+
+    // v4.2: Prompt Injection 防护
+    if (this.promptGuard) {
+      const guardResult = this.promptGuard.scan(result.content);
+      if (guardResult.suspicious) {
+        return {
+          content: guardResult.cleanedContent,
+          isError: result.isError,
+        };
+      }
+    }
+
+    return result;
   }
 
   /**
