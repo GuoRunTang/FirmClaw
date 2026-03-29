@@ -7,6 +7,7 @@
  * v1.6: 集成权限策略，execute() 中在校验和调用之间插入权限检查
  * v4.1: 新增 checkPermissionForRisk() 公开方法
  * v4.2: 集成 PromptGuard，execute() 返回前扫描注入
+ * v4.5: 集成 HookManager，execute() 前后运行钩子
  */
 
 import Ajv from 'ajv';
@@ -15,6 +16,7 @@ import type { Tool, ToolDefinition, ToolResult } from './types.js';
 import type { ToolContext } from './context.js';
 import type { PermissionPolicy, PermissionResult } from './permissions.js';
 import type { PromptGuard } from '../agent/prompt-guard.js';
+import type { HookManager } from './hook-manager.js';
 
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
@@ -22,6 +24,7 @@ export class ToolRegistry {
   private ajv: Ajv;
   private policy: PermissionPolicy | null = null;
   private promptGuard: PromptGuard | null = null;
+  private hookManager: HookManager | null = null;
 
   constructor() {
     this.ajv = new Ajv({ allErrors: true });
@@ -59,6 +62,11 @@ export class ToolRegistry {
     this.promptGuard = guard;
   }
 
+  /** v4.5: 设置工具钩子管理器 */
+  setHookManager(manager: HookManager): void {
+    this.hookManager = manager;
+  }
+
   /**
    * 校验工具参数
    */
@@ -78,9 +86,10 @@ export class ToolRegistry {
   }
 
   /**
-   * 执行工具：参数校验 → 权限检查 → 执行
+   * 执行工具：参数校验 → before hooks → 权限检查 → 执行 → after hooks → prompt guard
    *
    * v1.6: 在参数校验和执行之间插入权限策略检查
+   * v4.5: 在校验后插入 before hooks，执行后插入 after hooks
    */
   async execute(name: string, params: Record<string, unknown>, context: ToolContext): Promise<ToolResult> {
     // 1. 参数校验
@@ -95,7 +104,17 @@ export class ToolRegistry {
       return { content: `Unknown tool: "${name}"`, isError: true };
     }
 
-    // 3. 权限检查
+    // 3. v4.5: Before Hooks（可修改参数或拒绝执行）
+    if (this.hookManager) {
+      const hookCtx = { toolName: name, args: params, toolContext: context };
+      const modifiedArgs = await this.hookManager.runBeforeHooks(name, hookCtx);
+      if (modifiedArgs === null) {
+        return { content: 'Execution denied by hook.', isError: true };
+      }
+      params = modifiedArgs;
+    }
+
+    // 4. 权限检查
     if (this.policy) {
       const permResult = this.checkPermission(name, params, context);
       if (!permResult.allowed) {
@@ -103,10 +122,22 @@ export class ToolRegistry {
       }
     }
 
-    // 4. 执行
+    // 5. 执行
     const result = await tool.execute(params, context);
 
-    // v4.2: Prompt Injection 防护
+    // 6. v4.5: After Hooks（可审计/处理结果）
+    if (this.hookManager) {
+      const permResult = this.checkPermissionForRisk(name, params, context);
+      await this.hookManager.runAfterHooks(name, {
+        toolName: name,
+        args: params,
+        result,
+        toolContext: context,
+        riskLevel: permResult.riskLevel,
+      });
+    }
+
+    // 7. v4.2: Prompt Injection 防护
     if (this.promptGuard) {
       const guardResult = this.promptGuard.scan(result.content);
       if (guardResult.suspicious) {

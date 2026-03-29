@@ -10,6 +10,7 @@
  *
  * v2.1: 初始实现
  * v3.3: append 时自动更新搜索索引
+ * v4.5: 新增 branch() 方法
  */
 
 import crypto from 'node:crypto';
@@ -209,6 +210,56 @@ export class SessionManager {
     if (cached) {
       Object.assign(cached, meta);
     }
+  }
+
+  /**
+   * v4.5: 从当前会话的指定消息处创建分支
+   *
+   * @param fromMessageIndex - 从第几条消息开始分叉（0-based）
+   * @param newTitle - 分支会话标题（可选，默认为 "Branch from [parent]"）
+   * @returns 新会话的元数据
+   */
+  async branch(fromMessageIndex: number, newTitle?: string): Promise<SessionMeta> {
+    if (!this.currentSessionId) {
+      throw new Error('No active session. Call create() or resume() first.');
+    }
+
+    // 从存储读取实际消息数（metaCache 可能不准确）
+    const messages = await this.store.readMessages(this.currentSessionId);
+    const totalMessages = messages.length;
+    const actualIndex = Math.min(Math.max(0, fromMessageIndex), totalMessages);
+
+    const now = new Date().toISOString();
+    const parentMeta = this.metaCache.get(this.currentSessionId);
+    const workDir = parentMeta?.workDir ?? process.cwd();
+    const id = this.generateId();
+
+    const branchMeta: SessionMeta = {
+      id,
+      createdAt: now,
+      updatedAt: now,
+      workDir,
+      title: newTitle ?? `Branch from ${this.currentSessionId.slice(0, 8)}`,
+      messageCount: actualIndex,
+      parentSessionId: this.currentSessionId,
+      branchPoint: actualIndex,
+    };
+
+    await this.store.branchFrom(this.currentSessionId, branchMeta, actualIndex);
+    this.metaCache.set(id, branchMeta);
+
+    return branchMeta;
+  }
+
+  /**
+   * v4.5: 列出指定会话的所有分支
+   */
+  async listBranches(sessionId?: string): Promise<SessionMeta[]> {
+    const targetId = sessionId ?? this.currentSessionId;
+    if (!targetId) return [];
+
+    const allSessions = await this.store.listAll();
+    return allSessions.filter(s => s.parentSessionId === targetId);
   }
 }
 

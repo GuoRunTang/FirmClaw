@@ -15,6 +15,7 @@
  *   {"role":"assistant","content":"好的...","timestamp":"..."}
  *
  * v2.1: 初始实现
+ * v4.5: 新增 branchFrom() 方法
  */
 
 import fs from 'node:fs/promises';
@@ -178,5 +179,33 @@ export class SessionStore {
         throw error;
       }
     }
+  }
+
+  /**
+   * v4.5: 从源会话创建分支
+   *
+   * 复制源会话的前 upToLine 条消息到新会话。
+   * 新会话的 meta 中记录 parentSessionId 和 branchPoint。
+   *
+   * @param sourceSessionId - 源会话 ID
+   * @param newMeta - 新会话的元数据
+   * @param upToLine - 复制到第几条消息（0 = 全部）
+   */
+  async branchFrom(sourceSessionId: string, newMeta: SessionMeta, upToLine: number): Promise<void> {
+    this.validateSessionId(sourceSessionId);
+    this.validateSessionId(newMeta.id);
+
+    const allMessages = await this.readMessages(sourceSessionId);
+    const branchMessages = upToLine > 0
+      ? allMessages.slice(0, upToLine)
+      : allMessages;
+
+    // 一次性构建完整的新会话文件内容（避免 create + appendBatch 的竞争问题）
+    const metaLine = META_PREFIX + JSON.stringify(newMeta) + '\n';
+    const msgLines = branchMessages.map(m => JSON.stringify(m)).join('\n');
+    const content = metaLine + (msgLines ? msgLines + '\n' : '');
+
+    await this.ensureDir();
+    await fs.writeFile(this.filePath(newMeta.id), content, 'utf-8');
   }
 }

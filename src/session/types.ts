@@ -4,6 +4,7 @@
  * 会话系统的类型定义。
  *
  * v2.1: 基础会话类型 —— SessionMeta / StoredMessage / SessionConfig
+ * v4.5: SessionMeta 新增 parentSessionId / branchPoint
  */
 
 /** 会话元数据（存储在 JSONL 文件首行 #META） */
@@ -20,6 +21,10 @@ export interface SessionMeta {
   title: string;
   /** 消息条数 */
   messageCount: number;
+  /** v4.5: 父会话 ID（分支来源） */
+  parentSessionId?: string;
+  /** v4.5: 分支点消息序号（从第几条消息开始分叉） */
+  branchPoint?: number;
 }
 
 /** 存储的单条消息（JSONL 一行） */
