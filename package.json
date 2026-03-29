@@ -1,6 +1,6 @@
 {
   "name": "firmclaw",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "A local-first AI agent framework based on ReAct architecture",
   "type": "module",
   "main": "dist/index.js",
@@ -17,7 +17,8 @@
     "test:heartbeat": "tsx src/tests/test-heartbeat.ts",
     "test:hooks": "tsx src/tests/test-hook-manager.ts",
     "test:branch": "tsx src/tests/test-session-branch.ts",
-    "test:all": "tsx src/tests/test-v1.6-permissions.ts && tsx src/tests/test-approval-gateway.ts && tsx src/tests/test-prompt-guard.ts && tsx src/tests/test-audit-logger.ts && tsx src/tests/test-heartbeat.ts && tsx src/tests/test-hook-manager.ts && tsx src/tests/test-session-branch.ts"
+    "test:gateway": "tsx src/tests/test-ws-gateway.ts",
+    "test:all": "tsx src/tests/test-v1.6-permissions.ts && tsx src/tests/test-approval-gateway.ts && tsx src/tests/test-prompt-guard.ts && tsx src/tests/test-audit-logger.ts && tsx src/tests/test-heartbeat.ts && tsx src/tests/test-hook-manager.ts && tsx src/tests/test-session-branch.ts && tsx src/tests/test-ws-gateway.ts"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -28,6 +29,7 @@
     "dotenv": "^17.3.1",
     "openai": "^6.32.0",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "ws": "^8.20.0"
   }
 }

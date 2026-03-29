@@ -1,0 +1,458 @@
+/**
+ * src/gateway/server.ts
+ *
+ * WebSocket 服务器 —— FirmClaw 对外服务入口。
+ *
+ * 设计要点：
+ * - 基于 ws 库实现标准 WebSocket
+ * - JSON-RPC 2.0 协议
+ * - 每个连接独立 AgentLoop 实例
+ * - EventStream 事件自动转发到 WebSocket
+ * - 依赖通过构造函数 + setter 注入（与现有代码风格一致）
+ *
+ * 生命周期：
+ *   start() → listening → connection → message → response
+ *                                      → notification（EventStream 转发）
+ *                  → close / stop()
+ *
+ * v5.1: 初始实现
+ */
+
+import { createServer, type Server as HttpServer, type IncomingMessage } from 'node:http';
+import { WebSocketServer } from 'ws';
+import type { WebSocket } from 'ws';
+import type {
+  GatewayConfig,
+  ResolvedGatewayConfig,
+  ConnectionContext,
+  JsonRpcResponse,
+} from './types.js';
+import { ConnectionManager } from './connection.js';
+import { MessageRouter } from './router.js';
+import { AuthGuard } from './auth.js';
+import { EVENT_TO_NOTIFICATION_METHOD } from './types.js';
+import { JsonRpcErrorCode, RouteError } from './types.js';
+import type { LLMClient } from '../llm/client.js';
+import type { ToolRegistry } from '../tools/registry.js';
+import type { SessionManager } from '../session/manager.js';
+import type { ContextBuilder } from '../session/context-builder.js';
+import type { TokenCounter } from '../utils/token-counter.js';
+import type { Summarizer } from '../session/summarizer.js';
+import type { AgentConfig } from '../agent/types.js';
+import { AgentLoop } from '../agent/agent-loop.js';
+import type { EventStream } from '../utils/event-stream.js';
+
+export class GatewayServer {
+  private config: ResolvedGatewayConfig;
+  private wss: WebSocketServer | null = null;
+  private httpServer: HttpServer | null = null;
+  private connections: ConnectionManager;
+  private router: MessageRouter;
+  private auth: AuthGuard;
+  private startTime: number | null = null;
+
+  // AgentLoop 工厂所需的依赖（通过 setter 注入）
+  private llm: LLMClient | null = null;
+  private tools: ToolRegistry | null = null;
+  private sessionManager: SessionManager | null = null;
+  private contextBuilder: ContextBuilder | null = null;
+  private tokenCounter: TokenCounter | null = null;
+  private summarizer: Summarizer | null = null;
+  private agentConfig: AgentConfig | null = null;
+
+  /** 每个连接对应的 AgentLoop 实例（用于事件转发） */
+  private agentLoops: Map<string, { loop: AgentLoop; eventStream: EventStream }> = new Map();
+
+  constructor(config?: GatewayConfig) {
+    this.config = {
+      port: config?.port ?? 3000,
+      host: config?.host ?? '127.0.0.1',
+      authToken: config?.authToken ?? '',
+      maxConnections: config?.maxConnections ?? 10,
+      requestTimeoutMs: config?.requestTimeoutMs ?? 300_000,
+      maxMessageSize: config?.maxMessageSize ?? 1_048_576,
+    };
+
+    this.connections = new ConnectionManager(this.config.maxConnections);
+    this.router = new MessageRouter();
+    this.auth = new AuthGuard(this.config.authToken || undefined);
+
+    this.registerBuiltinRoutes();
+  }
+
+  // ──── 依赖注入 ────
+
+  /** 设置 LLM 客户端 */
+  setLLM(llm: LLMClient): void {
+    this.llm = llm;
+  }
+
+  /** 设置工具注册中心 */
+  setTools(tools: ToolRegistry): void {
+    this.tools = tools;
+  }
+
+  /** 设置会话管理器 */
+  setSessionManager(sm: SessionManager): void {
+    this.sessionManager = sm;
+  }
+
+  /** 设置上下文构建器 */
+  setContextBuilder(cb: ContextBuilder): void {
+    this.contextBuilder = cb;
+  }
+
+  /** 设置 Token 计数器 */
+  setTokenCounter(tc: TokenCounter): void {
+    this.tokenCounter = tc;
+  }
+
+  /** 设置摘要压缩器 */
+  setSummarizer(s: Summarizer): void {
+    this.summarizer = s;
+  }
+
+  /** 设置 Agent 配置模板 */
+  setAgentConfig(config: AgentConfig): void {
+    this.agentConfig = config;
+  }
+
+  // ──── 服务器生命周期 ────
+
+  /**
+   * 启动 WebSocket 服务器
+   */
+  async start(): Promise<void> {
+    if (!this.llm || !this.tools) {
+      throw new Error('GatewayServer requires LLMClient and ToolRegistry. Call setLLM() and setTools() before start().');
+    }
+
+    this.httpServer = createServer();
+
+    this.wss = new WebSocketServer({
+      server: this.httpServer,
+      maxPayload: this.config.maxMessageSize,
+      clientTracking: true,
+    });
+
+    this.wss.on('connection', (ws, req) => this.handleConnection(ws, req));
+
+    this.startTime = Date.now();
+
+    return new Promise((resolve) => {
+      this.httpServer!.listen(this.config.port, this.config.host, () => {
+        const tokenInfo = this.auth.isEnabled()
+          ? `\n[Gateway] Token: ${this.auth.getToken()}`
+          : '\n[Gateway] Authentication disabled (no token configured)';
+        console.log(`[Gateway] WebSocket server listening on ws://${this.config.host}:${this.config.port}${tokenInfo}`);
+        resolve();
+      });
+    });
+  }
+
+  /**
+   * 停止服务器（优雅关闭所有连接）
+   */
+  async stop(): Promise<void> {
+    // 清理所有 AgentLoop 的事件监听
+    for (const [, { eventStream }] of this.agentLoops) {
+      eventStream.removeAllListeners();
+    }
+    this.agentLoops.clear();
+
+    // 关闭所有 WebSocket 连接
+    if (this.wss) {
+      this.wss.close();
+      this.wss = null;
+    }
+
+    // 关闭 HTTP 服务器
+    if (this.httpServer) {
+      await new Promise<void>((resolve) => {
+        this.httpServer!.close(() => resolve());
+      });
+      this.httpServer = null;
+    }
+
+    this.connections.unregisterAll();
+    this.startTime = null;
+
+    console.log('[Gateway] Server stopped.');
+  }
+
+  /**
+   * 获取服务器状态
+   */
+  getStatus(): {
+    running: boolean;
+    connections: number;
+    port: number;
+    uptime: number;
+  } {
+    return {
+      running: this.wss !== null,
+      connections: this.connections.count(),
+      port: this.config.port,
+      uptime: this.startTime ? Date.now() - this.startTime : 0,
+    };
+  }
+
+  /**
+   * 获取认证守卫
+   */
+  getAuthGuard(): AuthGuard {
+    return this.auth;
+  }
+
+  /**
+   * 获取消息路由器（用于注册自定义路由）
+   */
+  getRouter(): MessageRouter {
+    return this.router;
+  }
+
+  // ──── 连接处理 ────
+
+  /**
+   * 处理新的 WebSocket 连接
+   */
+  private handleConnection(ws: WebSocket, request: IncomingMessage): void {
+    // 认证检查
+    const url = request.url || '';
+    if (!this.auth.authenticate(url, request.headers)) {
+      ws.close(4001, 'Authentication failed');
+      console.log('[Gateway] Connection rejected: authentication failed');
+      return;
+    }
+
+    // 注册连接
+    let ctx: ConnectionContext;
+    try {
+      ctx = this.connections.register((data) => {
+        if (ws.readyState === ws.OPEN) {
+          ws.send(data);
+        }
+      });
+    } catch (err: unknown) {
+      ws.close(4002, err instanceof Error ? err.message : 'Max connections reached');
+      console.log(`[Gateway] Connection rejected: ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
+
+    console.log(`[Gateway] Client connected: ${ctx.connectionId} (total: ${this.connections.count()})`);
+
+    // 为连接创建 AgentLoop
+    const { loop, eventStream } = this.createAgentLoopForConnection(ctx);
+    this.agentLoops.set(ctx.connectionId, { loop, eventStream });
+
+    // 将 EventStream 事件转发为 JSON-RPC notification
+    this.forwardEvents(ctx, eventStream);
+
+    // 处理消息
+    ws.on('message', (raw: Buffer) => {
+      this.handleMessage(ctx, raw.toString('utf-8')).catch(() => {
+        // 错误已在 handleMessage 内部处理
+      });
+    });
+
+    // 处理关闭
+    ws.on('close', () => {
+      console.log(`[Gateway] Client disconnected: ${ctx.connectionId}`);
+      this.cleanupConnection(ctx.connectionId);
+    });
+
+    // 处理错误
+    ws.on('error', (err: Error) => {
+      console.error(`[Gateway] Error on ${ctx.connectionId}: ${err.message}`);
+      this.cleanupConnection(ctx.connectionId);
+    });
+  }
+
+  /**
+   * 处理客户端消息
+   */
+  private async handleMessage(ctx: ConnectionContext, raw: string): Promise<void> {
+    this.connections.touch(ctx.connectionId);
+
+    const response = await this.router.handle(raw, ctx);
+
+    // 通知不需要响应
+    if (response !== null) {
+      this.connections.sendTo(ctx.connectionId, JSON.stringify(response));
+    }
+  }
+
+  /**
+   * 将 EventStream 事件转发为 JSON-RPC notification
+   */
+  private forwardEvents(ctx: ConnectionContext, eventStream: EventStream): void {
+    for (const [eventType, method] of Object.entries(EVENT_TO_NOTIFICATION_METHOD)) {
+      eventStream.on(eventType as import('../utils/event-stream.js').AgentEventType, (e) => {
+        if (ctx.busy) {
+          // 只在处理请求时转发事件
+          this.connections.sendTo(ctx.connectionId, JSON.stringify({
+            jsonrpc: '2.0' as const,
+            method,
+            params: (e as { data?: unknown }).data,
+          }));
+        }
+      });
+    }
+  }
+
+  // ──── 内置路由 ────
+
+  /**
+   * 注册内置 JSON-RPC 路由
+   */
+  private registerBuiltinRoutes(): void {
+    // agent.chat — 发送消息
+    this.router.register('agent.chat', async (params, ctx) => {
+      const message = params.message as string;
+      if (!message) {
+        throw new RouteError(JsonRpcErrorCode.INVALID_PARAMS, 'message is required');
+      }
+
+      const entry = this.agentLoops.get(ctx.connectionId);
+      if (!entry) {
+        throw new RouteError(JsonRpcErrorCode.INTERNAL_ERROR, 'AgentLoop not initialized');
+      }
+
+      if (ctx.busy) {
+        throw new RouteError(JsonRpcErrorCode.SERVER_BUSY, 'Server is busy processing another request');
+      }
+
+      this.connections.setBusy(ctx.connectionId, true);
+      try {
+        const result = await entry.loop.run(message);
+        return { text: result.text, turns: result.turns, toolCalls: result.toolCalls };
+      } finally {
+        this.connections.setBusy(ctx.connectionId, false);
+      }
+    });
+
+    // session.list — 列出会话
+    this.router.register('session.list', async () => {
+      if (!this.sessionManager) {
+        throw new RouteError(JsonRpcErrorCode.INTERNAL_ERROR, 'SessionManager not configured');
+      }
+      return this.sessionManager.listSessions();
+    });
+
+    // session.new — 新建会话
+    this.router.register('session.new', async (_params, ctx) => {
+      if (!this.sessionManager || !this.agentConfig) {
+        throw new RouteError(JsonRpcErrorCode.INTERNAL_ERROR, 'SessionManager or AgentConfig not configured');
+      }
+      const meta = await this.sessionManager.create(this.agentConfig.workDir ?? process.cwd());
+      this.connections.bindSession(ctx.connectionId, meta.id);
+
+      // 重置连接对应的 AgentLoop 的会话
+      const entry = this.agentLoops.get(ctx.connectionId);
+      if (entry) {
+        entry.loop.resetSession(meta.id);
+      }
+
+      return meta;
+    });
+
+    // session.resume — 恢复会话
+    this.router.register('session.resume', async (params, ctx) => {
+      const sessionId = params.sessionId as string;
+      if (!sessionId) {
+        throw new RouteError(JsonRpcErrorCode.INVALID_PARAMS, 'sessionId is required');
+      }
+      if (!this.sessionManager) {
+        throw new RouteError(JsonRpcErrorCode.INTERNAL_ERROR, 'SessionManager not configured');
+      }
+
+      try {
+        const meta = await this.sessionManager.resume(sessionId);
+        this.connections.bindSession(ctx.connectionId, meta.id);
+
+        const entry = this.agentLoops.get(ctx.connectionId);
+        if (entry) {
+          entry.loop.resetSession(meta.id);
+        }
+
+        return meta;
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new RouteError(JsonRpcErrorCode.SESSION_NOT_FOUND, message);
+      }
+    });
+
+    // session.branch — 创建分支
+    this.router.register('session.branch', async (params) => {
+      const fromMessageIndex = params.fromMessageIndex as number;
+      if (typeof fromMessageIndex !== 'number') {
+        throw new RouteError(JsonRpcErrorCode.INVALID_PARAMS, 'fromMessageIndex is required and must be a number');
+      }
+      if (!this.sessionManager) {
+        throw new RouteError(JsonRpcErrorCode.INTERNAL_ERROR, 'SessionManager not configured');
+      }
+
+      return this.sessionManager.branch(fromMessageIndex);
+    });
+
+    // approval.respond — 审批响应
+    this.router.register('approval.respond', async (params, ctx) => {
+      const approved = params.approved as boolean;
+      const entry = this.agentLoops.get(ctx.connectionId);
+      if (!entry) {
+        return { success: false };
+      }
+
+      // 获取审批网关（通过 AgentLoop 的配置）
+      // 注意：这里简化处理，直接在 agent.chat 的 busy 期间等待审批
+      // 实际的审批流程需要在 EventStream 事件中传递
+      return { success: approved };
+    });
+
+    // agent.cancel — 取消当前执行（占位，完整实现需要 AbortController）
+    this.router.register('agent.cancel', async () => {
+      return { success: false, reason: 'Not yet implemented' };
+    });
+
+    // gateway.status — 获取网关状态
+    this.router.register('gateway.status', async () => {
+      return this.getStatus();
+    });
+  }
+
+  // ──── 私有方法 ────
+
+  /**
+   * 为连接创建独立的 AgentLoop 实例
+   */
+  private createAgentLoopForConnection(ctx: ConnectionContext): { loop: AgentLoop; eventStream: EventStream } {
+    if (!this.llm || !this.tools || !this.agentConfig) {
+      throw new Error('Missing required dependencies for AgentLoop creation');
+    }
+
+    // 为每个连接创建独立的 SessionManager（如果全局有配置的话）
+    // 或者共享全局 SessionManager（不同连接通过不同 sessionId 隔离）
+    const loop = new AgentLoop(this.llm, this.tools, {
+      ...this.agentConfig,
+      sessionManager: this.sessionManager ?? undefined,
+      contextBuilder: this.contextBuilder ?? undefined,
+      tokenCounter: this.tokenCounter ?? undefined,
+      summarizer: this.summarizer ?? undefined,
+    });
+
+    const eventStream = loop.getEvents();
+    return { loop, eventStream };
+  }
+
+  /**
+   * 清理连接资源
+   */
+  private cleanupConnection(connectionId: string): void {
+    const entry = this.agentLoops.get(connectionId);
+    if (entry) {
+      entry.eventStream.removeAllListeners();
+      this.agentLoops.delete(connectionId);
+    }
+    this.connections.unregister(connectionId);
+  }
+}

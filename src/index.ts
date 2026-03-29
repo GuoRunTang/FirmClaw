@@ -7,6 +7,7 @@
  * v1.6: 注册全部 4 工具 + 权限策略
  * v2.4: 集成 Phase 3 全部模块（会话管理 + 动态提示词 + 上下文裁剪 + 斜杠命令）
  * v3.4: 集成 Phase 4 全部模块（摘要压缩 + 记忆管理 + 全文搜索 + 新斜杠命令）
+ * v5.1: 集成 Phase 6 v5.1 模块（WebSocket Gateway + /serve 命令）
  */
 
 import 'dotenv/config';
@@ -29,6 +30,8 @@ import { Summarizer } from './session/summarizer.js';
 import { MemoryManager } from './session/memory-manager.js';
 import type { MemoryTag } from './session/memory-manager.js';
 import { SearchEngine } from './session/search-engine.js';
+import { GatewayServer } from './gateway/server.js';
+import { AuthGuard } from './gateway/auth.js';
 
 // ═══════════════════════════════════════════════════════════════
 // 主函数
@@ -46,7 +49,7 @@ async function main(): Promise<void> {
 
   const workDir = process.cwd();
 
-  console.log(`FirmClaw v3.4.0`);
+  console.log(`FirmClaw v5.1.0`);
   console.log(`Model: ${model}`);
   console.log(`API: ${baseURL}`);
   console.log(`WorkDir: ${workDir}`);
@@ -203,6 +206,10 @@ async function main(): Promise<void> {
   };
 
   // ──── 6. 斜杠命令处理 ────
+
+  // v5.1: Gateway 服务器实例
+  let gateway: GatewayServer | null = null;
+
   async function handleCommand(cmd: string): Promise<void> {
     const parts = cmd.split(/\s+/);
     const command = parts[0].toLowerCase();
@@ -223,6 +230,9 @@ Available commands:
   /search <query>   Full-text search across sessions and memories
   /compact          Manually trigger context compression
   /index            Show search index statistics
+  /serve [port]     Start WebSocket server (default: 3000)
+  /serve stop       Stop WebSocket server
+  /serve status     Show server status
   /help             Show this help message
   /exit, /quit      Exit
   Any other text    Send as user message to agent
@@ -420,6 +430,67 @@ Available commands:
         for (const [source, count] of Object.entries(stats.sources)) {
           console.log(`    - ${source}: ${count}`);
         }
+        break;
+      }
+
+      // ──── v5.1: Gateway 命令 ────
+
+      case '/serve': {
+        if (arg === 'stop') {
+          if (gateway) {
+            await gateway.stop();
+            gateway = null;
+            console.log('[Gateway] Server stopped.');
+          } else {
+            console.log('Gateway is not running.');
+          }
+          break;
+        }
+
+        if (arg === 'status') {
+          if (gateway) {
+            const status = gateway.getStatus();
+            const uptime = Math.round(status.uptime / 1000);
+            console.log(`[Gateway] Running: ws://localhost:${status.port} (${status.connections} connections, uptime: ${uptime}s)`);
+          } else {
+            console.log('Gateway is not running.');
+          }
+          break;
+        }
+
+        // /serve [port]
+        const port = parseInt(arg) || 3000;
+        if (gateway) {
+          const status = gateway.getStatus();
+          console.log(`Gateway is already running on port ${status.port}. Use "/serve stop" first.`);
+          break;
+        }
+
+        // 首次启动时自动生成 token
+        const token = AuthGuard.generateToken();
+        gateway = new GatewayServer({ port, authToken: token });
+        gateway.setLLM(llm);
+        gateway.setTools(tools);
+        gateway.setSessionManager(sessionManager);
+        gateway.setContextBuilder(contextBuilder);
+        gateway.setTokenCounter(tokenCounter);
+        gateway.setSummarizer(summarizer);
+        gateway.setAgentConfig({
+          systemPrompt: '',
+          maxTurns: 10,
+          workDir,
+          sessionManager,
+          contextBuilder,
+          tokenCounter,
+          trimConfig: {
+            maxTokens: 128000,
+            maxToolResultTokens: 500,
+          },
+          summarizer,
+        });
+
+        await gateway.start();
+        console.log(`\nConnect with: wscat -c ws://localhost:${port}?token=${token}`);
         break;
       }
 
