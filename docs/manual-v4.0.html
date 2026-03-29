@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirmClaw v4.0 技术手册</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   全局变量与重置
+   ═══════════════════════════════════════════════════════ */
+:root {
+  --sidebar-w: 280px;
+  --bg: #0d1117;
+  --bg-sidebar: #010409;
+  --bg-card: #161b22;
+  --bg-code: #0d1117;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  --accent: #58a6ff;
+  --accent-hover: #79c0ff;
+  --green: #3fb950;
+  --yellow: #d29922;
+  --red: #f85149;
+  --purple: #bc8cff;
+  --cyan: #39d2c0;
+  --tag-v1: #238636;
+  --tag-v2: #1f6feb;
+  --tag-v3: #8957e5;
+  --tag-v4: #bc8cff;
+  --radius: 8px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════════════
+   侧边栏
+   ═══════════════════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-header {
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar-header h1 .logo {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+}
+.sidebar-header .version {
+  font-size: 11px;
+  color: var(--purple);
+  background: rgba(188,140,255,0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+.sidebar-nav { flex: 1; padding: 12px 0; }
+.nav-group { margin-bottom: 4px; }
+.nav-group-title {
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px 7px 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+}
+.nav-item:hover { color: var(--text); background: rgba(88,166,255,0.06); }
+.nav-item.active { color: var(--accent); background: rgba(88,166,255,0.1); border-left-color: var(--accent); }
+.nav-item .nav-icon { width: 16px; text-align: center; flex-shrink: 0; }
+.nav-item .nav-ver {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.nav-ver.v10 { background: rgba(35,134,54,0.15); color: var(--green); }
+.nav-ver.v11 { background: rgba(31,111,235,0.15); color: var(--accent); }
+.nav-ver.v30 { background: rgba(137,87,229,0.15); color: var(--tag-v3); }
+.nav-ver.v40 { background: rgba(188,140,255,0.15); color: var(--purple); }
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════
+   主内容区
+   ═══════════════════════════════════════════════════════ */
+.main { flex: 1; margin-left: var(--sidebar-w); min-width: 0; }
+.content { max-width: 920px; margin: 0 auto; padding: 40px 48px 80px; }
+
+/* ═══════════════════════════════════════════════════════
+   横向 Tab 导航
+   ═══════════════════════════════════════════════════════ */
+.top-tabs {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(13,17,23,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 0; padding: 0 48px;
+  max-width: 920px; margin: 0 auto;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 12px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all 0.15s;
+  white-space: nowrap; font-family: var(--font);
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ═══════════════════════════════════════════════════════
+   Section 通用样式
+   ═══════════════════════════════════════════════════════ */
+.section { display: none; animation: fadeIn 0.25s ease; }
+.section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.section h2 { font-size: 28px; font-weight: 700; margin-bottom: 8px; padding-top: 20px; }
+.section > h2::after {
+  content: ''; display: block; width: 48px; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  border-radius: 2px; margin-top: 8px; margin-bottom: 24px;
+}
+.section h3 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.section h4 { font-size: 14px; font-weight: 600; margin: 20px 0 8px; color: var(--accent); }
+.section p { margin-bottom: 12px; color: var(--text-secondary); }
+
+/* ═══════════════════════════════════════════════════════
+   特殊组件
+   ═══════════════════════════════════════════════════════ */
+.ver-tag {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 4px; vertical-align: middle; margin-left: 6px; letter-spacing: 0.02em;
+}
+.ver-tag.phase1 { background: rgba(35,134,54,0.15); color: var(--green); }
+.ver-tag.phase2 { background: rgba(31,111,235,0.15); color: var(--accent); }
+.ver-tag.phase3 { background: rgba(137,87,229,0.15); color: var(--tag-v3); }
+.ver-tag.phase4 { background: rgba(188,140,255,0.15); color: var(--purple); }
+
+.callout { padding: 14px 18px; border-radius: var(--radius); margin: 16px 0; border-left: 3px solid; font-size: 13px; }
+.callout.info { background: rgba(88,166,255,0.08); border-color: var(--accent); color: var(--text-secondary); }
+.callout.warn { background: rgba(210,153,34,0.08); border-color: var(--yellow); color: var(--text-secondary); }
+.callout.danger { background: rgba(248,81,73,0.08); border-color: var(--red); color: var(--text-secondary); }
+.callout.success { background: rgba(63,185,80,0.08); border-color: var(--green); color: var(--text-secondary); }
+.callout strong { color: var(--text); }
+.callout code { background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+pre {
+  background: var(--bg-code); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px;
+  overflow-x: auto; margin: 12px 0; font-size: 12.5px; line-height: 1.6;
+}
+pre code { font-family: var(--font-mono); color: var(--text); }
+code {
+  font-family: var(--font-mono); font-size: 12.5px;
+  background: rgba(255,255,255,0.06); padding: 2px 6px;
+  border-radius: 4px; color: var(--accent);
+}
+
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+th {
+  text-align: left; padding: 10px 14px;
+  background: rgba(255,255,255,0.03); border-bottom: 2px solid var(--border);
+  font-weight: 600; color: var(--text); font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+ul, ol { margin: 8px 0 12px 20px; color: var(--text-secondary); }
+li { margin-bottom: 4px; }
+
+.file-tree {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px;
+  margin: 16px 0; font-family: var(--font-mono);
+  font-size: 13px; line-height: 1.8; overflow-x: auto;
+}
+.file-tree .comment { color: var(--text-muted); }
+.file-tree .dir { color: var(--accent); }
+.file-tree .file { color: var(--text); }
+.file-tree .new { color: var(--green); }
+
+.flow-diagram {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+  margin: 16px 0; text-align: center; overflow-x: auto;
+}
+.flow-diagram svg { max-width: 100%; height: auto; }
+
+.interface-box {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); margin: 12px 0; overflow: hidden;
+}
+.interface-header {
+  padding: 10px 16px;
+  background: rgba(88,166,255,0.06); border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 14px;
+  font-weight: 600; color: var(--accent);
+  display: flex; align-items: center; gap: 8px;
+}
+.interface-body {
+  padding: 12px 16px; font-family: var(--font-mono);
+  font-size: 12.5px; line-height: 1.8;
+}
+.interface-body .field { color: var(--text-secondary); }
+.interface-body .type { color: var(--purple); }
+.interface-body .comment-inline { color: var(--text-muted); }
+
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 16px; }
+.badge { font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
+.badge.dep { background: rgba(188,140,255,0.12); color: var(--purple); }
+.badge.runtime { background: rgba(63,185,80,0.12); color: var(--green); }
+.badge.dev { background: rgba(210,153,34,0.12); color: var(--yellow); }
+.badge.zero { background: rgba(57,210,192,0.12); color: var(--cyan); }
+
+.param-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 16px; margin: 6px 0;
+  display: grid; grid-template-columns: 140px 80px 1fr;
+  gap: 8px; align-items: baseline; font-size: 13px;
+}
+.param-card .pname { font-family: var(--font-mono); color: var(--accent); font-weight: 600; }
+.param-card .ptype { font-family: var(--font-mono); color: var(--purple); font-size: 12px; }
+.param-card .pdesc { color: var(--text-secondary); }
+
+.stat-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px; margin: 16px 0;
+}
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px; text-align: center;
+}
+.stat-card .stat-value { font-size: 32px; font-weight: 700; color: var(--accent); }
+.stat-card .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .top-tabs { padding: 0 16px; }
+  .content { padding: 24px 16px 60px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     侧边栏
+     ═══════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1><span class="logo">FC</span> FirmClaw <span class="version">v4.0</span></h1>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-group-title">概述</div>
+      <a class="nav-item active" data-section="overview" onclick="showSection('overview')">
+        <span class="nav-icon">&#x1F4D6;</span> 项目简介
+      </a>
+      <a class="nav-item" data-section="architecture" onclick="showSection('architecture')">
+        <span class="nav-icon">&#x1F3D7;</span> 系统架构
+      </a>
+      <a class="nav-item" data-section="quickstart" onclick="showSection('quickstart')">
+        <span class="nav-icon">&#x1F680;</span> 快速开始
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 1-2 核心</div>
+      <a class="nav-item" data-section="agent-loop" onclick="showSection('agent-loop')">
+        <span class="nav-icon">&#x1F9E0;</span> Agent Loop
+        <span class="nav-ver v10">v1.0</span>
+      </a>
+      <a class="nav-item" data-section="llm" onclick="showSection('llm')">
+        <span class="nav-icon">&#x1F4AC;</span> LLM Client
+        <span class="nav-ver v10">v1.0</span>
+      </a>
+      <a class="nav-item" data-section="event-stream" onclick="showSection('event-stream')">
+        <span class="nav-icon">&#x1F4E1;</span> EventStream
+        <span class="nav-ver v10">v1.0</span>
+      </a>
+      <a class="nav-item" data-section="tools" onclick="showSection('tools')">
+        <span class="nav-icon">&#x1F527;</span> 工具系统
+        <span class="nav-ver v11">v1.1-v1.6</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 3 会话管理</div>
+      <a class="nav-item" data-section="session" onclick="showSection('session')">
+        <span class="nav-icon">&#x1F4C4;</span> SessionManager
+        <span class="nav-ver v30">v2.1</span>
+      </a>
+      <a class="nav-item" data-section="context-builder" onclick="showSection('context-builder')">
+        <span class="nav-icon">&#x1F3AF;</span> ContextBuilder
+        <span class="nav-ver v30">v2.2</span>
+      </a>
+      <a class="nav-item" data-section="token-counter" onclick="showSection('token-counter')">
+        <span class="nav-icon">&#x1F4CA;</span> TokenCounter
+        <span class="nav-ver v30">v2.3</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 4 智能记忆</div>
+      <a class="nav-item" data-section="summarizer" onclick="showSection('summarizer')">
+        <span class="nav-icon">&#x1F4DD;</span> Summarizer
+        <span class="nav-ver v40">v3.1</span>
+      </a>
+      <a class="nav-item" data-section="memory" onclick="showSection('memory')">
+        <span class="nav-icon">&#x1F9E0;</span> MemoryManager
+        <span class="nav-ver v40">v3.2</span>
+      </a>
+      <a class="nav-item" data-section="search" onclick="showSection('search')">
+        <span class="nav-icon">&#x1F50D;</span> SearchEngine
+        <span class="nav-ver v40">v3.3</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">参考</div>
+      <a class="nav-item" data-section="file-structure" onclick="showSection('file-structure')">
+        <span class="nav-icon">&#x1F4C1;</span> 文件结构
+      </a>
+      <a class="nav-item" data-section="cli" onclick="showSection('cli')">
+        <span class="nav-icon">&#x2328;</span> CLI 命令
+      </a>
+      <a class="nav-item" data-section="version-history" onclick="showSection('version-history')">
+        <span class="nav-icon">&#x1F4CB;</span> 版本历史
+      </a>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="margin-bottom:8px">
+      <a href="manual-v2.0.html" style="color:var(--accent);text-decoration:none;font-size:11px;">v2.0 手册</a>
+      <span style="color:var(--text-muted);margin:0 4px">|</span>
+      <a href="manual-v3.0.html" style="color:var(--accent);text-decoration:none;font-size:11px;">v3.0 手册</a>
+    </div>
+    TypeScript + Node.js &middot; ReAct Architecture
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════
+     主内容区
+     ═══════════════════════════════════════════════════════ -->
+<div class="main">
+  <div class="top-tabs">
+    <button class="tab-btn active" data-section="overview" onclick="showSection('overview')">概述</button>
+    <button class="tab-btn" data-section="architecture" onclick="showSection('architecture')">架构</button>
+    <button class="tab-btn" data-section="quickstart" onclick="showSection('quickstart')">快速开始</button>
+    <button class="tab-btn" data-section="summarizer" onclick="showSection('summarizer')">摘要</button>
+    <button class="tab-btn" data-section="memory" onclick="showSection('memory')">记忆</button>
+    <button class="tab-btn" data-section="search" onclick="showSection('search')">搜索</button>
+    <button class="tab-btn" data-section="cli" onclick="showSection('cli')">CLI</button>
+    <button class="tab-btn" data-section="version-history" onclick="showSection('version-history')">版本</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 项目简介
+         ═══════════════════════════════════════════════════ -->
+    <div class="section active" id="sec-overview">
+      <h2>项目简介</h2>
+      <p>FirmClaw 是一个从零搭建的 <strong>本地优先 AI 智能体框架</strong>，核心采用 ReAct（Reasoning + Acting）架构。灵感来源于 OpenClaw，目标是实现一个可理解、可扩展、本地运行的智能体系统。</p>
+
+      <h3>v4.0 核心亮点</h3>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value">201</div>
+          <div class="stat-label">测试用例全部通过</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Phase 4 新增外部依赖</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">5</div>
+          <div class="stat-label">新增 CLI 斜杠命令</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">4</div>
+          <div class="stat-label">开发阶段已完成</div>
+        </div>
+      </div>
+
+      <h3>完整能力矩阵</h3>
+      <table>
+        <thead><tr><th>能力</th><th>模块</th><th>版本</th></tr></thead>
+        <tbody>
+          <tr><td>理解自然语言指令并自主规划执行步骤</td><td>Agent Loop + LLM Client</td><td><span class="ver-tag phase1">v1.0</span></td></tr>
+          <tr><td>执行任意终端命令并获取输出</td><td>bash 工具</td><td><span class="ver-tag phase1">v1.0</span> <span class="ver-tag phase2">v1.5</span></td></tr>
+          <tr><td>读取 / 创建 / 编辑文件</td><td>read / write / edit 工具</td><td><span class="ver-tag phase2">v1.2-v1.4</span></td></tr>
+          <tr><td>三层安全防护（路径白名单+命令黑名单+敏感文件）</td><td>PermissionPolicy</td><td><span class="ver-tag phase2">v1.6</span></td></tr>
+          <tr><td>多轮对话（会话持久化 + 自动恢复）</td><td>SessionManager + SessionStore</td><td><span class="ver-tag phase3">v2.1</span></td></tr>
+          <tr><td>动态系统提示词（SOUL.md / AGENTS.md / MEMORY.md）</td><td>ContextBuilder + PromptTemplate</td><td><span class="ver-tag phase3">v2.2</span></td></tr>
+          <tr><td>上下文窗口管理（token 计数 + 智能裁剪）</td><td>TokenCounter</td><td><span class="ver-tag phase3">v2.3</span></td></tr>
+          <tr><td>LLM 摘要压缩（长对话保留关键信息）</td><td>Summarizer</td><td><span class="ver-tag phase4">v3.1</span></td></tr>
+          <tr><td>结构化记忆管理（MEMORY.md 读写 + 自动分类）</td><td>MemoryManager</td><td><span class="ver-tag phase4">v3.2</span></td></tr>
+          <tr><td>全文搜索引擎（BM25 + 中英文混合分词）</td><td>SearchEngine</td><td><span class="ver-tag phase4">v3.3</span></td></tr>
+          <tr><td>记忆搜索自动注入系统提示词</td><td>ContextBuilder 集成</td><td><span class="ver-tag phase4">v3.4</span></td></tr>
+          <tr><td>实时流式输出 + 事件广播</td><td>EventStream</td><td><span class="ver-tag phase1">v1.0</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>会成功的典型场景（v4.0）</h3>
+      <pre><code># 场景 1：长对话 + 摘要压缩
+> （连续讨论 50+ 轮技术方案）
+&#x2705; 触发 LLM 摘要压缩，关键决策保留，对话不中断
+
+# 场景 2：跨会话记忆
+> /remember 用户偏好 pnpm 而非 npm
+> /new
+> 我应该用什么包管理器？
+&#x2705; 记忆自动注入系统提示词，Agent 记住偏好
+
+# 场景 3：全文搜索
+> /search ReAct 架构
+&#x2705; BM25 搜索跨会话消息 + 记忆条目，返回 Top-K 结果
+
+# 场景 4：代码分析 + 修改
+> 读取 package.json，找出所有依赖，然后用 bash 检查版本
+&#x2705; Agent 串联 read_file → bash(npm outdated) → 汇总报告</code></pre>
+
+      <h3>能力边界一览</h3>
+      <table>
+        <thead><tr><th>模块</th><th>能做</th><th>不能做</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Summarizer</strong></td><td>LLM 摘要压缩，保留关键决策和偏好</td><td>语义理解级别的摘要（依赖 LLM 能力）</td></tr>
+          <tr><td><strong>MemoryManager</strong></td><td>结构化读写 MEMORY.md，4 种标签分类</td><td>向量搜索（Phase 6）、记忆过期策略</td></tr>
+          <tr><td><strong>SearchEngine</strong></td><td>BM25 排序、中英文混合分词、索引持久化</td><td>语义搜索、拼音搜索、模糊匹配</td></tr>
+          <tr><td><strong>Agent Loop</strong></td><td>自动推理、串联多步工具调用、流式输出</td><td>跨会话自主循环定时任务（Phase 5）</td></tr>
+          <tr><td><strong>权限策略</strong></td><td>路径白名单、命令黑名单、敏感文件保护</td><td>人工审批（Phase 5）</td></tr>
+        </tbody>
+      </table>
+
+      <h3>性能边界</h3>
+      <table>
+        <thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>摘要触发阈值</td><td>80,000 tokens</td><td>历史消息超过此值时自动触发 LLM 摘要</td></tr>
+          <tr><td>每次摘要消息上限</td><td>50 条</td><td>单次摘要最多压缩的消息数</td></tr>
+          <tr><td>摘要最大 token 数</td><td>2,000 tokens</td><td>摘要 prompt 要求不超过 1500 字</td></tr>
+          <tr><td>上下文窗口上限</td><td>128,000 tokens</td><td>TokenCounter 裁剪阈值</td></tr>
+          <tr><td>BM25 搜索性能</td><td>&lt; 50ms / 1000 文档</td><td>纯 JS 实现，内存索引</td></tr>
+          <tr><td>搜索结果数量</td><td>10 条（默认）</td><td>可配置 maxResults</td></tr>
+          <tr><td>Agent 最大循环轮次</td><td>10 轮（默认）</td><td>防止无限循环</td></tr>
+          <tr><td>bash 输出截断</td><td>100KB</td><td>超长输出自动截断</td></tr>
+          <tr><td>read_file 大小限制</td><td>10MB</td><td>超大文件拒绝读取</td></tr>
+        </tbody>
+      </table>
+
+      <h3>依赖一览</h3>
+      <div class="badge-row">
+        <span class="badge dep">openai ^6.32</span>
+        <span class="badge dep">ajv ^8.18</span>
+        <span class="badge dep">dotenv ^17.3</span>
+        <span class="badge dev">typescript ^6.0</span>
+        <span class="badge dev">tsx ^4.21</span>
+        <span class="badge runtime">Node.js >= 18</span>
+        <span class="badge zero">Phase 4 零新增依赖</span>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 系统架构
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-architecture">
+      <h2>系统架构</h2>
+      <p>FirmClaw v4.0 在 v2.0 的 ReAct 循环基础上，新增了三层智能记忆体系：摘要压缩、记忆管理、全文搜索。</p>
+
+      <h3>v4.0 架构总览</h3>
+      <div class="flow-diagram">
+        <svg viewBox="0 0 820 520" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-mono)" font-size="11">
+          <!-- User -->
+          <rect x="310" y="10" width="200" height="36" rx="8" fill="#238636" opacity="0.9"/>
+          <text x="410" y="33" text-anchor="middle" fill="#fff" font-weight="600">User (CLI)</text>
+
+          <!-- Agent Loop -->
+          <rect x="260" y="70" width="300" height="44" rx="8" fill="#1f6feb" opacity="0.9"/>
+          <text x="410" y="97" text-anchor="middle" fill="#fff" font-weight="600">AgentLoop (ReAct)</text>
+
+          <!-- ContextBuilder -->
+          <rect x="30" y="150" width="210" height="44" rx="8" fill="rgba(137,87,229,0.2)" stroke="#8957e5" stroke-width="1.5"/>
+          <text x="135" y="177" text-anchor="middle" fill="#bc8cff" font-weight="600">ContextBuilder</text>
+
+          <!-- Summarizer -->
+          <rect x="260" y="150" width="140" height="44" rx="8" fill="rgba(188,140,255,0.15)" stroke="#bc8cff" stroke-width="1.5"/>
+          <text x="330" y="177" text-anchor="middle" fill="#bc8cff" font-weight="600">Summarizer</text>
+
+          <!-- TokenCounter -->
+          <rect x="420" y="150" width="140" height="44" rx="8" fill="rgba(63,185,80,0.12)" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="490" y="177" text-anchor="middle" fill="#3fb950" font-weight="600">TokenCounter</text>
+
+          <!-- LLM -->
+          <rect x="580" y="150" width="140" height="44" rx="8" fill="#6e40c9" opacity="0.9"/>
+          <text x="650" y="177" text-anchor="middle" fill="#fff" font-weight="600">LLMClient</text>
+
+          <!-- MemoryManager -->
+          <rect x="30" y="240" width="150" height="44" rx="8" fill="rgba(188,140,255,0.15)" stroke="#bc8cff" stroke-width="1.5"/>
+          <text x="105" y="267" text-anchor="middle" fill="#bc8cff" font-weight="600">MemoryManager</text>
+
+          <!-- SearchEngine -->
+          <rect x="200" y="240" width="150" height="44" rx="8" fill="rgba(57,210,192,0.15)" stroke="#39d2c0" stroke-width="1.5"/>
+          <text x="275" y="267" text-anchor="middle" fill="#39d2c0" font-weight="600">SearchEngine</text>
+
+          <!-- MEMORY.md -->
+          <rect x="30" y="320" width="120" height="32" rx="6" fill="#30363d"/>
+          <text x="90" y="340" text-anchor="middle" fill="#8b949e">MEMORY.md</text>
+
+          <!-- search-index.json -->
+          <rect x="200" y="320" width="140" height="32" rx="6" fill="#30363d"/>
+          <text x="270" y="340" text-anchor="middle" fill="#8b949e">search-index.json</text>
+
+          <!-- SessionManager -->
+          <rect x="380" y="240" width="150" height="44" rx="8" fill="rgba(88,166,255,0.12)" stroke="#58a6ff" stroke-width="1.5"/>
+          <text x="455" y="267" text-anchor="middle" fill="#58a6ff" font-weight="600">SessionManager</text>
+
+          <!-- ToolRegistry -->
+          <rect x="550" y="240" width="170" height="44" rx="8" fill="rgba(248,81,73,0.15)" stroke="#f85149" stroke-width="1.5"/>
+          <text x="635" y="267" text-anchor="middle" fill="#f85149" font-weight="600">ToolRegistry</text>
+
+          <!-- Tools -->
+          <rect x="555" y="310" width="70" height="26" rx="4" fill="#30363d"/>
+          <text x="590" y="328" text-anchor="middle" fill="#8b949e" font-size="10">bash</text>
+          <rect x="635" y="310" width="70" height="26" rx="4" fill="#30363d"/>
+          <text x="670" y="328" text-anchor="middle" fill="#8b949e" font-size="10">read</text>
+          <rect x="555" y="344" width="70" height="26" rx="4" fill="#30363d"/>
+          <text x="590" y="362" text-anchor="middle" fill="#8b949e" font-size="10">write</text>
+          <rect x="635" y="344" width="70" height="26" rx="4" fill="#30363d"/>
+          <text x="670" y="362" text-anchor="middle" fill="#8b949e" font-size="10">edit</text>
+
+          <!-- EventStream -->
+          <rect x="380" y="320" width="150" height="32" rx="6" fill="#30363d"/>
+          <text x="455" y="340" text-anchor="middle" fill="#8b949e">EventStream</text>
+
+          <!-- Arrows -->
+          <line x1="410" y1="46" x2="410" y2="70" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="330" y1="114" x2="135" y2="150" stroke="#8957e5" stroke-width="1.2" stroke-dasharray="4 2"/>
+          <line x1="380" y1="114" x2="330" y2="150" stroke="#bc8cff" stroke-width="1.5"/>
+          <line x1="470" y1="114" x2="490" y2="150" stroke="#3fb950" stroke-width="1.2"/>
+          <line x1="560" y1="92" x2="650" y2="150" stroke="#58a6ff" stroke-width="1.5"/>
+          <line x1="105" y1="194" x2="105" y2="240" stroke="#bc8cff" stroke-width="1" stroke-dasharray="4 2"/>
+          <line x1="200" y1="194" x2="275" y2="240" stroke="#39d2c0" stroke-width="1" stroke-dasharray="4 2"/>
+          <line x1="105" y1="284" x2="90" y2="320" stroke="#484f58" stroke-width="1"/>
+          <line x1="275" y1="284" x2="270" y2="320" stroke="#484f58" stroke-width="1"/>
+          <line x1="500" y1="194" x2="490" y2="240" stroke="#58a6ff" stroke-width="1.2"/>
+          <line x1="620" y1="194" x2="635" y2="240" stroke="#58a6ff" stroke-width="1.2"/>
+
+          <!-- Data flow labels -->
+          <text x="200" y="140" fill="#8b949e" font-size="9">build(prompt)</text>
+          <text x="345" y="140" fill="#8b949e" font-size="9">summarize()</text>
+          <text x="460" y="140" fill="#8b949e" font-size="9">trim()</text>
+
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 3 L 0 6 z" fill="#58a6ff"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <h3>上下文管理优先级</h3>
+      <p>AgentLoop 在每次 run() 中按以下优先级管理上下文：</p>
+      <table>
+        <thead><tr><th>优先级</th><th>策略</th><th>触发条件</th><th>效果</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1</strong></td><td>LLM 摘要压缩 <span class="ver-tag phase4">v3.1</span></td><td>历史消息 > 80K tokens</td><td>保留语义，高质量压缩</td></tr>
+          <tr><td><strong>2</strong></td><td>TokenCounter 裁剪 <span class="ver-tag phase3">v2.3</span></td><td>总消息 > 128K tokens</td><td>保底措施，截断旧消息</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout info">
+        <strong>渐进增强设计</strong>：Summarizer、MemoryManager、SearchEngine 均为<strong>可选组件</strong>。不设置时 AgentLoop 自动降级为 Phase 3 的行为，不影响核心功能。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 快速开始
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-quickstart">
+      <h2>快速开始</h2>
+      <h3>1. 环境要求</h3>
+      <div class="badge-row">
+        <span class="badge runtime">Node.js >= 18</span>
+        <span class="badge dep">npm / pnpm</span>
+        <span class="badge dep">Git</span>
+      </div>
+      <h3>2. 安装</h3>
+      <pre><code>git clone &lt;repo-url&gt;
+cd FirmClaw
+npm install</code></pre>
+      <h3>3. 配置 .env</h3>
+      <pre><code>LLM_API_KEY=sk-your-api-key-here
+LLM_BASE_URL=https://api.minimax.chat/v1
+LLM_MODEL=MiniMax-M2.7</code></pre>
+      <h3>4. 运行</h3>
+      <pre><code>npm run dev</code></pre>
+      <h3>5. 运行全部测试（201 个用例）</h3>
+      <pre><code># Phase 1-2 测试（离线）
+npx tsx src/tests/test-v1.0-bash.ts
+npx tsx src/tests/test-v1.5-bash.ts
+npx tsx src/tests/test-v1.2-read.ts
+npx tsx src/tests/test-v1.3-write.ts
+npx tsx src/tests/test-v1.4-edit.ts
+npx tsx src/tests/test-v1.6-permissions.ts
+
+# Phase 3 测试
+npx tsx src/tests/test-v2.1-session-store.ts
+npx tsx src/tests/test-v2.1-session-manager.ts
+npx tsx src/tests/test-v2.2-context-builder.ts
+npx tsx src/tests/test-v2.3-token-counter.ts
+
+# Phase 4 测试（离线）
+npx tsx src/tests/test-summarizer.ts
+npx tsx src/tests/test-memory-manager.ts
+npx tsx src/tests/test-search-engine.ts</code></pre>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: Agent Loop
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-agent-loop">
+      <h2>Agent Loop <span class="ver-tag phase1">v1.0</span> + <span class="ver-tag phase4">v3.1</span></h2>
+      <p>AgentLoop 是 FirmClaw 的心脏，实现了完整的 ReAct 推理-行动循环。v3.1 集成 Summarizer 实现智能摘要压缩。</p>
+      <p><strong>源文件</strong>：<code>src/agent/agent-loop.ts</code></p>
+
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">interface</span> AgentConfig
+        </div>
+        <div class="interface-body">
+          <span class="field">systemPrompt</span>: <span class="type">string</span> <span class="comment-inline">// 系统提示词（ContextBuilder 设置后可留空）</span><br>
+          <span class="field">maxTurns</span>: <span class="type">number</span> <span class="comment-inline">// 最大循环轮次（默认 10）</span><br>
+          <span class="field">workDir</span><span class="type">?</span>: <span class="type">string</span> <span class="comment-inline">// 工作目录 [v1.1]</span><br>
+          <span class="field">sessionManager</span><span class="type">?</span>: <span class="type">SessionManager</span> <span class="comment-inline">// 会话管理器 [v2.1]</span><br>
+          <span class="field">contextBuilder</span><span class="type">?</span>: <span class="type">ContextBuilder</span> <span class="comment-inline">// 动态提示词 [v2.2]</span><br>
+          <span class="field">tokenCounter</span><span class="type">?</span>: <span class="type">TokenCounter</span> <span class="comment-inline">// Token 计数器 [v2.3]</span><br>
+          <span class="field">trimConfig</span><span class="type">?</span>: <span class="type">TrimConfig</span> <span class="comment-inline">// 裁剪配置 [v2.3]</span><br>
+          <span class="field">summarizer</span><span class="type">?</span>: <span class="type">Summarizer</span> <span class="comment-inline">// 摘要压缩器 [v3.1]</span>
+        </div>
+      </div>
+
+      <h3>v3.1 改进：摘要优先于裁剪</h3>
+      <pre><code>// 上下文管理流程（v3.1）
+async run(userMessage) {
+  // 1. 构建系统提示词（支持 query 搜索相关记忆）
+  systemPrompt = contextBuilder.build(tools, meta, userMessage);
+
+  // 2. 恢复历史消息
+  historyMessages = sessionManager.getMessages();
+
+  // 3. LLM 摘要压缩（优先于简单裁剪）
+  if (summarizer.shouldSummarize(historyMessages)) {
+    result = await summarizer.summarize(historyMessages);
+    historyMessages = result.messages;
+    emit('summary_generated', { compressedCount, originalTokens, newTokens });
+  }
+
+  // 4. TokenCounter 简单裁剪（保底）
+  if (tokenCounter) { messages = tokenCounter.trimMessages(allMessages); }
+
+  // 5. ReAct 循环...
+}</code></pre>
+
+      <h3>事件发射</h3>
+      <table>
+        <thead><tr><th>事件</th><th>版本</th><th>触发时机</th><th>data</th></tr></thead>
+        <tbody>
+          <tr><td><code>thinking_delta</code></td><td>v1.0</td><td>LLM 生成文本时</td><td>文本片段</td></tr>
+          <tr><td><code>tool_start</code></td><td>v1.0</td><td>工具开始执行</td><td><code>{toolName, args}</code></td></tr>
+          <tr><td><code>tool_end</code></td><td>v1.0</td><td>工具执行完成</td><td><code>{toolName, result, isError}</code></td></tr>
+          <tr><td><code>session_start</code></td><td>v2.3</td><td>新会话开始</td><td><code>{id, title}</code></td></tr>
+          <tr><td><code>context_trimmed</code></td><td>v2.3</td><td>上下文被裁剪</td><td><code>{originalTokens, trimmedTokens}</code></td></tr>
+          <tr><td><code>summary_generated</code></td><td>v3.1</td><td>摘要生成完成</td><td><code>{compressedCount, originalTokens, newTokens}</code></td></tr>
+          <tr><td><code>memory_saved</code></td><td>v3.2</td><td>记忆保存</td><td><code>{id, tag}</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: LLM Client
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-llm">
+      <h2>LLM Client <span class="ver-tag phase1">v1.0</span></h2>
+      <p>封装 LLM API 通信，支持 OpenAI 兼容格式，可无缝切换模型提供商。</p>
+      <p><strong>源文件</strong>：<code>src/llm/client.ts</code></p>
+      <div class="callout info">
+        <strong>模型无关设计</strong>：Agent Loop 不直接依赖 OpenAI SDK，只依赖 <code>Message</code> 接口。切换模型只需改 <code>.env</code> 配置。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: EventStream
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-event-stream">
+      <h2>EventStream <span class="ver-tag phase1">v1.0</span></h2>
+      <p>发布/订阅事件广播系统，基于 <code>EventEmitter</code>。v3.1/v3.2 新增 <code>summary_generated</code> 和 <code>memory_saved</code> 事件。</p>
+      <p><strong>源文件</strong>：<code>src/utils/event-stream.ts</code></p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 工具系统
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-tools">
+      <h2>工具系统 <span class="ver-tag phase1">v1.0</span> - <span class="ver-tag phase2">v1.6</span></h2>
+      <p>4 个核心工具 + 统一注册中心 + 三层权限策略。</p>
+
+      <h3>工具一览</h3>
+      <table>
+        <thead><tr><th>工具</th><th>功能</th><th>版本</th><th>安全机制</th></tr></thead>
+        <tbody>
+          <tr><td><code>bash</code></td><td>执行 Shell 命令</td><td><span class="ver-tag phase1">v1.0</span> <span class="ver-tag phase2">v1.5</span></td><td>命令黑名单 + 超时控制</td></tr>
+          <tr><td><code>read_file</code></td><td>读取文件内容</td><td><span class="ver-tag phase2">v1.2</span></td><td>10MB 限制 + 二进制检测</td></tr>
+          <tr><td><code>write_file</code></td><td>创建/覆写文件</td><td><span class="ver-tag phase2">v1.3</span></td><td>敏感文件保护</td></tr>
+          <tr><td><code>edit_file</code></td><td>精确查找替换</td><td><span class="ver-tag phase2">v1.4</span></td><td>唯一性校验</td></tr>
+        </tbody>
+      </table>
+
+      <h3>执行流水线</h3>
+      <pre><code>ToolRegistry.execute(name, args, ctx)
+  → 1. 参数校验（ajv JSON Schema）
+  → 2. 权限检查（PermissionPolicy）
+  → 3. 工具执行（tool.execute()）
+  → 4. 返回 ToolResult { content, isError }</code></pre>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: SessionManager
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-session">
+      <h2>SessionManager <span class="ver-tag phase3">v2.1</span> + <span class="ver-tag phase4">v3.3</span></h2>
+      <p>会话管理器，封装 SessionStore 提供业务 API。v3.3 在 <code>append()</code> 时自动更新搜索索引。</p>
+      <p><strong>源文件</strong>：<code>src/session/manager.ts</code></p>
+
+      <h3>v3.3 改进：自动索引更新</h3>
+      <pre><code>async append(messages) {
+  await this.store.appendBatch(sessionId, messages);
+
+  // v3.3: 自动更新搜索索引
+  if (this.searchEngine) {
+    for (const msg of messages) {
+      this.searchEngine.addDocument({
+        id: `${sessionId}:${timestamp}:${randomId}`,
+        source: 'session',
+        content: msg.content,
+        sessionId,
+        timestamp: msg.timestamp,
+      });
+    }
+  }
+}</code></pre>
+
+      <h3>关键方法</h3>
+      <table>
+        <thead><tr><th>方法</th><th>说明</th><th>版本</th></tr></thead>
+        <tbody>
+          <tr><td><code>create(workDir)</code></td><td>创建新会话</td><td>v2.1</td></tr>
+          <tr><td><code>resume(id)</code></td><td>恢复指定会话</td><td>v2.1</td></tr>
+          <tr><td><code>resumeLatest()</code></td><td>恢复最近会话</td><td>v2.1</td></tr>
+          <tr><td><code>append(messages)</code></td><td>追加消息（v3.3 自动索引）</td><td>v2.1</td></tr>
+          <tr><td><code>listSessions()</code></td><td>列出所有会话</td><td>v2.1</td></tr>
+          <tr><td><code>gc(maxAge)</code></td><td>清理过期会话</td><td>v2.1</td></tr>
+          <tr><td><code>setSearchEngine()</code></td><td>注入搜索引擎</td><td>v3.3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: ContextBuilder
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-context-builder">
+      <h2>ContextBuilder <span class="ver-tag phase3">v2.2</span> + <span class="ver-tag phase4">v3.2-v3.3</span></h2>
+      <p>系统提示词组装器。v3.2 集成 MemoryManager，v3.3 集成 SearchEngine 实现记忆搜索注入。</p>
+      <p><strong>源文件</strong>：<code>src/session/context-builder.ts</code></p>
+
+      <h3>v3.2-v3.3 改进</h3>
+      <pre><code>async build(tools, sessionMeta?, query?) {
+  // 加载工作区文件
+  const soul = loadWorkspaceFile('SOUL.md');
+  const agents = loadWorkspaceFile('AGENTS.md');
+
+  // v3.2/v3.3: 智能记忆注入
+  if (this.memoryManager) {
+    if (this.searchEngine && query) {
+      // 搜索相关记忆（Top 5）
+      const relevantIds = searchEngine.searchMemory(query, allMemory, 5);
+      memoryContent = relevant.map(...).join('\n');
+    } else {
+      // 无搜索引擎时使用全部记忆
+      memoryContent = memoryManager.getFormatted();
+    }
+  } else {
+    // 降级：直接读 MEMORY.md 文件
+    memoryContent = loadWorkspaceFile('MEMORY.md');
+  }
+
+  return renderTemplate(template, { soul, agents, memory: memoryContent, tools, ... });
+}</code></pre>
+
+      <div class="callout success">
+        <strong>使用效果</strong>：用户输入 "关于 pnpm 的问题" 时，系统会自动搜索记忆中与 pnpm 相关的条目，注入到系统提示词中，使 Agent 具备跨会话记忆能力。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: TokenCounter
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-token-counter">
+      <h2>TokenCounter <span class="ver-tag phase3">v2.3</span></h2>
+      <p>Token 计数器和上下文裁剪器，当摘要压缩不足时的保底措施。</p>
+      <p><strong>源文件</strong>：<code>src/utils/token-counter.ts</code></p>
+      <h3>裁剪策略</h3>
+      <ul>
+        <li>从最早的消息开始裁剪</li>
+        <li>优先裁剪 tool 结果（保留决策上下文）</li>
+        <li>始终保留 system prompt 和最近 2 条消息</li>
+      </ul>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: Summarizer
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-summarizer">
+      <h2>Summarizer <span class="ver-tag phase4">v3.1</span></h2>
+      <p>LLM 摘要压缩器 —— 将旧消息压缩为高质量摘要，保留关键决策和语义信息。</p>
+      <p><strong>源文件</strong>：<code>src/session/summarizer.ts</code></p>
+
+      <h3>设计要点</h3>
+      <ul>
+        <li><strong>复用 LLMClient</strong>：不引入新依赖，复用已有的 LLM 通信层</li>
+        <li><strong>滑动窗口</strong>：摘要成为新的"锚点"，后续基于摘要+新消息继续压缩</li>
+        <li><strong>容错设计</strong>：摘要失败不阻塞主流程，返回原始消息</li>
+        <li><strong>摘要 prompt</strong>：明确要求保留关键决策(✓)、用户偏好、技术方案、待办(○)</li>
+      </ul>
+
+      <h3>接口定义</h3>
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">class</span> Summarizer
+        </div>
+        <div class="interface-body">
+          <span class="comment-inline">// 构造函数</span><br>
+          <span class="type">constructor</span>(<span class="field">llm</span>: LLMClient, <span class="field">tokenCounter</span>: TokenCounter, <span class="field">config</span>?: SummarizerConfig)<br><br>
+          <span class="comment-inline">// 判断是否需要摘要</span><br>
+          <span class="type">shouldSummarize</span>(<span class="field">messages</span>: Message[]): <span class="type">boolean</span><br><br>
+          <span class="comment-inline">// 执行摘要压缩</span><br>
+          <span class="type">async summarize</span>(<span class="field">messages</span>: Message[]): <span class="type">Promise&lt;SummaryResult&gt;</span>
+        </div>
+      </div>
+
+      <h3>配置参数</h3>
+      <div class="param-card">
+        <span class="pname">summarizeThreshold</span>
+        <span class="ptype">number</span>
+        <span class="pdesc">触发摘要的 token 阈值，默认 80000</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">maxMessagesToSummarize</span>
+        <span class="ptype">number</span>
+        <span class="pdesc">每次最多压缩的消息条数，默认 50</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">maxSummaryTokens</span>
+        <span class="ptype">number</span>
+        <span class="pdesc">摘要最大 token 数，默认 2000</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">verbose</span>
+        <span class="ptype">boolean</span>
+        <span class="pdesc">是否输出摘要统计到控制台</span>
+      </div>
+
+      <h3>摘要流程</h3>
+      <pre><code>1. shouldSummarize(messages)
+   → 检查历史消息 token 数是否 >= 80000
+
+2. summarize(messages)
+   → 找到最早的可压缩消息段（跳过已有摘要）
+   → 取最多 50 条消息，保留最后 1 条
+   → 构建摘要请求 → 调用 LLM
+   → 用 [摘要] system 消息替代原始消息段
+   → 返回 { messages, summarized, compressedCount, originalTokens, newTokens }</code></pre>
+
+      <h3>使用示例</h3>
+      <pre><code>// index.ts 中的初始化
+const summarizer = new Summarizer(llm, tokenCounter, {
+  summarizeThreshold: 80000,
+  maxMessagesToSummarize: 50,
+});
+
+// AgentLoop 自动调用（无需手动触发）
+const agent = new AgentLoop(llm, tools, { ..., summarizer });
+
+// 手动触发：/compact 命令
+if (summarizer.shouldSummarize(messages)) {
+  const result = await summarizer.summarize(messages);
+  // result.newTokens &lt; result.originalTokens
+}</code></pre>
+
+      <div class="callout warn">
+        <strong>注意</strong>：摘要需要一次额外的 LLM API 调用，会增加约 2-5 秒延迟和少量 token 消耗。仅在历史消息超过 80K tokens 时自动触发。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: MemoryManager
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-memory">
+      <h2>MemoryManager <span class="ver-tag phase4">v3.2</span></h2>
+      <p>结构化记忆管理系统，读写 MEMORY.md，支持 4 种标签分类和自动 ID 生成。</p>
+      <p><strong>源文件</strong>：<code>src/session/memory-manager.ts</code></p>
+
+      <h3>记忆格式（MEMORY.md）</h3>
+      <pre><code># 长期记忆
+
+## 偏好
+- [P001] 用户偏好 pnpm 而非 npm (2026-03-28)
+- [P002] 代码注释使用中文 (2026-03-28)
+
+## 技术决策
+- [T001] 项目使用 TypeScript strict 模式 (2026-03-28)
+
+## 待办
+- [D001] 实现向量搜索模块 (2026-03-28)
+
+## 知识
+- [K001] FirmClaw 使用 ReAct 架构 (2026-03-28)</code></pre>
+
+      <h3>标签与 ID 体系</h3>
+      <table>
+        <thead><tr><th>标签</th><th>中文标题</th><th>ID 前缀</th><th>自动分类关键词</th></tr></thead>
+        <tbody>
+          <tr><td><code>preference</code></td><td>偏好</td><td>P</td><td>偏好/喜欢/希望/习惯/prefer/like</td></tr>
+          <tr><td><code>decision</code></td><td>技术决策</td><td>T</td><td>决定/使用/采用/选择/decid/using</td></tr>
+          <tr><td><code>todo</code></td><td>待办</td><td>D</td><td>待办/需要做/必须/todo/need to/must</td></tr>
+          <tr><td><code>knowledge</code></td><td>知识</td><td>K</td><td>其他所有内容</td></tr>
+        </tbody>
+      </table>
+
+      <h3>接口定义</h3>
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">class</span> MemoryManager
+        </div>
+        <div class="interface-body">
+          <span class="comment-inline">// 构造函数</span><br>
+          <span class="type">constructor</span>(<span class="field">config</span>: { workDir: string })<br><br>
+          <span class="comment-inline">// 核心方法</span><br>
+          <span class="type">async load</span>(): <span class="type">Promise&lt;void&gt;</span> <span class="comment-inline">// 加载 MEMORY.md</span><br>
+          <span class="type">async save</span>(): <span class="type">Promise&lt;void&gt;</span> <span class="comment-inline">// 保存到文件</span><br>
+          <span class="type">async add</span>(<span class="field">tag</span>: MemoryTag, <span class="field">content</span>: string): <span class="type">Promise&lt;MemoryEntry&gt;</span><br>
+          <span class="type">async remove</span>(<span class="field">id</span>: string): <span class="type">Promise&lt;boolean&gt;</span><br>
+          <span class="type">getAll</span>(): <span class="type">MemoryEntry[]</span><br>
+          <span class="type">getByTag</span>(<span class="field">tag</span>: MemoryTag): <span class="type">MemoryEntry[]</span><br>
+          <span class="type">getFormatted</span>(): <span class="type">string</span> <span class="comment-inline">// 格式化输出（注入系统提示词用）</span>
+        </div>
+      </div>
+
+      <h3>使用示例</h3>
+      <pre><code>// 初始化
+const mm = new MemoryManager({ workDir: process.cwd() });
+await mm.load();
+
+// 添加记忆
+const entry = await mm.add('preference', '用户偏好 pnpm 而非 npm');
+// → { id: 'P001', tag: 'preference', content: '...', date: '2026-03-29' }
+
+// 删除记忆
+await mm.remove('P001');
+
+// 查询
+mm.getByTag('decision');  // → 所有技术决策
+mm.getAll();               // → 全部记忆
+mm.getFormatted();         // → Markdown 格式化文本</code></pre>
+
+      <div class="callout info">
+        <strong>容错设计</strong>：MEMORY.md 解析时跳过无法识别的行；文件损坏时不崩溃，从空记忆开始；空记忆 getFormatted() 返回空字符串。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: SearchEngine
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-search">
+      <h2>SearchEngine <span class="ver-tag phase4">v3.3</span></h2>
+      <p>纯 JS BM25 全文搜索引擎，零外部依赖，支持中英文混合分词和索引持久化。</p>
+      <p><strong>源文件</strong>：<code>src/session/search-engine.ts</code></p>
+
+      <h3>BM25 算法</h3>
+      <pre><code>score(D, Q) = &Sigma; IDF(qi) &times; (f(qi,D) &times; (k1+1)) / (f(qi,D) + k1 &times; (1-b + b &times; |D|/avgdl))
+
+参数：k1 = 1.5（词频饱和），b = 0.75（长度归一化）
+IDF  = ln((N - n + 0.5) / (n + 0.5) + 1)  // Okapi BM25 变体</code></pre>
+
+      <h3>中英文混合分词策略</h3>
+      <pre><code>tokenize("FirmClaw 使用 ReAct 架构")
+→ ["firmclaw", "使用", "使", "用", "用r", "re", "ea", "ac", "ct", "re", "ea", "ac", "ct", "架", "架构", "构", "react"]
+  └─ 英文单词（转小写）    └─ 中文 bigram + 单字</code></pre>
+
+      <h3>接口定义</h3>
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">class</span> SearchEngine
+        </div>
+        <div class="interface-body">
+          <span class="type">constructor</span>(<span class="field">config</span>?: SearchEngineConfig)<br>
+          <span class="type">addDocument</span>(<span class="field">doc</span>: SearchDocument): <span class="type">void</span><br>
+          <span class="type">addDocuments</span>(<span class="field">docs</span>: SearchDocument[]): <span class="type">void</span><br>
+          <span class="type">removeDocument</span>(<span class="field">id</span>: string): <span class="type">boolean</span><br>
+          <span class="type">search</span>(<span class="field">query</span>: string, <span class="field">limit</span>?: number): <span class="type">SearchResult[]</span><br>
+          <span class="type">searchMemory</span>(<span class="field">query</span>, <span class="field">entries</span>, <span class="field">limit</span>?): <span class="type">string[]</span><br>
+          <span class="type">async persist</span>(): <span class="type">Promise&lt;void&gt;</span><br>
+          <span class="type">async load</span>(): <span class="type">Promise&lt;void&gt;</span><br>
+          <span class="type">getStats</span>(): <span class="type">{ docCount, sources }</span>
+        </div>
+      </div>
+
+      <h3>配置参数</h3>
+      <div class="param-card">
+        <span class="pname">indexDir</span>
+        <span class="ptype">string</span>
+        <span class="pdesc">索引存储目录，默认 ~/.firmclaw/index</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">k1</span>
+        <span class="ptype">number</span>
+        <span class="pdesc">BM25 词频饱和参数，默认 1.5</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">b</span>
+        <span class="ptype">number</span>
+        <span class="pdesc">BM25 长度归一化参数，默认 0.75</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">maxResults</span>
+        <span class="ptype">number</span>
+        <span class="pdesc">默认搜索结果上限，默认 10</span>
+      </div>
+
+      <h3>搜索结果格式</h3>
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">interface</span> SearchResult
+        </div>
+        <div class="interface-body">
+          <span class="field">id</span>: <span class="type">string</span> <span class="comment-inline">// 文档 ID</span><br>
+          <span class="field">score</span>: <span class="type">number</span> <span class="comment-inline">// BM25 相关性得分</span><br>
+          <span class="field">snippet</span>: <span class="type">string</span> <span class="comment-inline">// 匹配片段（80 字上下文）</span><br>
+          <span class="field">source</span>: <span class="type">'session' | 'memory' | 'tool_result'</span>
+        </div>
+      </div>
+
+      <h3>使用示例</h3>
+      <pre><code>// 初始化
+const engine = new SearchEngine({ indexDir: '~/.firmclaw/index' });
+await engine.load();
+
+// 添加文档
+engine.addDocument({
+  id: 'doc-1',
+  source: 'session',
+  content: 'FirmClaw 使用 ReAct 架构实现智能体循环',
+  timestamp: '2026-03-29T10:00:00Z',
+});
+
+// 搜索
+const results = engine.search('ReAct 架构');
+// → [{ id: 'doc-1', score: 8.52, snippet: '...ReAct 架构实现...', source: 'session' }]
+
+// 搜索记忆条目
+const memoryIds = engine.searchMemory('pnpm', memoryEntries, 5);
+
+// 持久化到磁盘
+await engine.persist();
+// → ~/.firmclaw/index/search-index.json</code></pre>
+
+      <div class="callout info">
+        <strong>纯 JS 实现</strong>：不依赖 SQLite / better-sqlite3 / sqlite-vec。索引存储在内存中，退出时序列化为 JSON。搜索 1000 文档 < 50ms。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 文件结构
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-file-structure">
+      <h2>文件结构</h2>
+      <div class="file-tree">
+<span class="dir">src/</span>
+├── <span class="dir">agent/</span>
+│   ├── <span class="file">agent-loop.ts</span>    <span class="comment">// ReAct 循环 [v1.0, v1.1, v2.3, v3.1]</span>
+│   └── <span class="file">types.ts</span>         <span class="comment">// AgentConfig / AgentResult [v1.0-v3.1]</span>
+├── <span class="dir">llm/</span>
+│   └── <span class="file">client.ts</span>        <span class="comment">// LLM API 通信层 [v1.0]</span>
+├── <span class="dir">session/</span>
+│   ├── <span class="file">types.ts</span>         <span class="comment">// 会话类型定义 [v2.1]</span>
+│   ├── <span class="file">store.ts</span>         <span class="comment">// JSONL 会话存储 [v2.1]</span>
+│   ├── <span class="file">manager.ts</span>       <span class="comment">// 会话管理器 [v2.1, v3.3]</span>
+│   ├── <span class="file">context-builder.ts</span> <span class="comment">// 动态提示词 [v2.2, v3.2, v3.3]</span>
+│   ├── <span class="new">summarizer.ts</span>     <span class="comment">// LLM 摘要压缩器 [v3.1] ★</span>
+│   ├── <span class="new">memory-manager.ts</span> <span class="comment">// 记忆管理系统 [v3.2] ★</span>
+│   └── <span class="new">search-engine.ts</span>  <span class="comment">// BM25 全文搜索 [v3.3] ★</span>
+├── <span class="dir">tools/</span>
+│   ├── <span class="file">types.ts</span>         <span class="comment">// Tool 接口 [v1.0]</span>
+│   ├── <span class="file">context.ts</span>       <span class="comment">// ToolContext [v1.1]</span>
+│   ├── <span class="file">registry.ts</span>      <span class="comment">// 工具注册中心 [v1.1-v1.6]</span>
+│   ├── <span class="file">bash.ts</span>          <span class="comment">// bash 工具 [v1.0, v1.5]</span>
+│   ├── <span class="file">read.ts</span>          <span class="comment">// read_file 工具 [v1.2]</span>
+│   ├── <span class="file">write.ts</span>         <span class="comment">// write_file 工具 [v1.3]</span>
+│   ├── <span class="file">edit.ts</span>          <span class="comment">// edit_file 工具 [v1.4]</span>
+│   └── <span class="file">permissions.ts</span>   <span class="comment">// 权限策略 [v1.6]</span>
+├── <span class="dir">utils/</span>
+│   ├── <span class="file">event-stream.ts</span>  <span class="comment">// 事件广播 [v1.0, v2.3, v3.1, v3.2]</span>
+│   ├── <span class="file">token-counter.ts</span> <span class="comment">// Token 计数 + 裁剪 [v2.3]</span>
+│   └── <span class="file">prompt-template.ts</span> <span class="comment">// 模板引擎 [v2.2]</span>
+├── <span class="dir">tests/</span>
+│   ├── <span class="file">test-v1.0-*.ts</span>   <span class="comment">// Phase 1 测试（4 个文件）</span>
+│   ├── <span class="file">test-v1.*-*.ts</span>   <span class="comment">// Phase 2 测试（6 个文件）</span>
+│   ├── <span class="file">test-v2.*-*.ts</span>   <span class="comment">// Phase 3 测试（4 个文件）</span>
+│   ├── <span class="new">test-summarizer.ts</span>      <span class="comment">// Summarizer 测试 18 用例 [v3.1] ★</span>
+│   ├── <span class="new">test-memory-manager.ts</span>  <span class="comment">// MemoryManager 测试 34 用例 [v3.2] ★</span>
+│   └── <span class="new">test-search-engine.ts</span>   <span class="comment">// SearchEngine 测试 38 用例 [v3.3] ★</span>
+└── <span class="file">index.ts</span>            <span class="comment">// CLI 入口 [v1.0-v3.4]</span>
+<span class="dir">docs/</span>
+├── <span class="file">roadmap.md</span>              <span class="comment">// 6 阶段路线图</span>
+├── <span class="file">roadmap-phase4.md</span>       <span class="comment">// Phase 4 设计文档</span>
+├── <span class="file">manual-v1.0.html</span>        <span class="comment">// v1.0 手册</span>
+├── <span class="file">manual-v2.0.html</span>        <span class="comment">// v2.0 手册</span>
+├── <span class="file">manual-v3.0.html</span>        <span class="comment">// v3.0 手册</span>
+└── <span class="new">manual-v4.0.html</span>        <span class="comment">// v4.0 手册（本文件）★</span>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: CLI 命令
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-cli">
+      <h2>CLI 命令</h2>
+      <p>v4.0 新增 5 个斜杠命令，总计 13 个可用命令。</p>
+
+      <h3>Phase 4 新增命令</h3>
+      <table>
+        <thead><tr><th>命令</th><th>说明</th><th>版本</th><th>示例</th></tr></thead>
+        <tbody>
+          <tr><td><code>/remember &lt;text&gt;</code></td><td>保存记忆（自动分类标签）</td><td><span class="ver-tag phase4">v3.4</span></td><td><code>/remember 用户偏好 pnpm</code></td></tr>
+          <tr><td><code>/forget &lt;id&gt;</code></td><td>删除记忆</td><td><span class="ver-tag phase4">v3.4</span></td><td><code>/forget P001</code></td></tr>
+          <tr><td><code>/search &lt;query&gt;</code></td><td>全文搜索（会话+记忆）</td><td><span class="ver-tag phase4">v3.4</span></td><td><code>/search ReAct 架构</code></td></tr>
+          <tr><td><code>/compact</code></td><td>手动触发上下文压缩</td><td><span class="ver-tag phase4">v3.4</span></td><td><code>/compact</code></td></tr>
+          <tr><td><code>/index</code></td><td>显示搜索索引统计</td><td><span class="ver-tag phase4">v3.4</span></td><td><code>/index</code></td></tr>
+          <tr><td><code>/memory [tag]</code></td><td>查看记忆（可按标签筛选）</td><td><span class="ver-tag phase4">v3.4</span></td><td><code>/memory preference</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>全部命令一览</h3>
+      <pre><code>Available commands:
+  /new              Create a new session
+  /resume [id]      Resume session (latest or by ID)
+  /sessions         List all sessions
+  /session          Show current session info
+  /soul             Display SOUL.md content
+  /memory [tag]     Display memories (optional tag filter)
+  /remember &lt;text&gt;  Save a memory (auto-classify tag)
+  /forget &lt;id&gt;      Delete a memory by ID
+  /search &lt;query&gt;   Full-text search across sessions and memories
+  /compact          Manually trigger context compression
+  /index            Show search index statistics
+  /help             Show this help message
+  /exit, /quit      Exit</code></pre>
+
+      <h3>完整交互示例</h3>
+      <pre><code>FirmClaw v4.0.0
+Model: MiniMax-M2.7
+API: https://api.minimax.chat/v1
+WorkDir: d:\code\FirmClaw
+Type "/help" for commands, "exit" to quit.
+
+> /remember 用户偏好使用 pnpm 而非 npm
+Memory saved: [P001] 用户偏好使用 pnpm 而非 npm
+
+> /remember 项目采用 TypeScript strict 模式
+Memory saved: [T001] 项目采用 TypeScript strict 模式
+
+> /memory
+# 长期记忆
+
+## 偏好
+- [P001] 用户偏好使用 pnpm 而非 npm (2026-03-29)
+
+## 技术决策
+- [T001] 项目采用 TypeScript strict 模式 (2026-03-29)
+
+> /new
+New session created: sess_abc123
+
+> 我应该用什么包管理器安装依赖？
+🧠 根据记忆，用户偏好使用 pnpm...
+>>> [bash] {"command":"pnpm install"}
+<<< [bash] ...done...
+--- [1 turns, 1 tool calls] ---
+
+> /search TypeScript
+Search results for "TypeScript":
+  Sessions:
+    [1] [session] ...TypeScript strict 模式... (score: 6.2)
+  Memories:
+    [1] [T001] 项目采用 TypeScript strict 模式 (2026-03-29)
+
+> /index
+Search Index:
+  Documents: 24
+  Sources:
+    - session: 22
+    - memory: 2
+
+> exit
+Bye!</code></pre>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 版本历史
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-version-history">
+      <h2>版本历史</h2>
+      <table>
+        <thead><tr><th>Tag</th><th>阶段</th><th>内容</th><th>测试</th></tr></thead>
+        <tbody>
+          <tr><td><strong>v1.0.0</strong></td><td>Phase 1</td><td>ReAct 循环、LLM Client、EventStream、bash 基础版</td><td>4 PASS</td></tr>
+          <tr><td><strong>v1.1.0</strong></td><td>Phase 2</td><td>ToolContext、ajv 参数校验、registry.execute()</td><td>4 PASS</td></tr>
+          <tr><td><strong>v1.2.0</strong></td><td>Phase 2</td><td>read_file 工具</td><td>6 PASS</td></tr>
+          <tr><td><strong>v1.3.0</strong></td><td>Phase 2</td><td>write_file 工具</td><td>8 PASS</td></tr>
+          <tr><td><strong>v1.4.0</strong></td><td>Phase 2</td><td>edit_file 工具（唯一性校验）</td><td>9 PASS</td></tr>
+          <tr><td><strong>v1.5.0</strong></td><td>Phase 2</td><td>bash 升级 spawn()（流式输出、超时、cwd）</td><td>7 PASS</td></tr>
+          <tr><td><strong>v1.6.0</strong></td><td>Phase 2</td><td>权限策略（白名单+黑名单+敏感文件）</td><td>15 PASS</td></tr>
+          <tr><td><strong>v2.1.0</strong></td><td>Phase 3</td><td>SessionStore（JSONL）+ SessionManager</td><td>55 PASS</td></tr>
+          <tr><td><strong>v2.2.0</strong></td><td>Phase 3</td><td>PromptTemplate + ContextBuilder</td><td>31 PASS</td></tr>
+          <tr><td><strong>v2.3.0</strong></td><td>Phase 3</td><td>TokenCounter + AgentLoop 集成</td><td>25 PASS</td></tr>
+          <tr><td><strong>v2.4.0</strong></td><td>Phase 3</td><td>CLI 集成会话命令 + 动态提示词</td><td>—</td></tr>
+          <tr>
+            <td><strong>v4.0.0</strong></td>
+            <td>Phase 4</td>
+            <td>Summarizer + MemoryManager + SearchEngine + CLI 集成</td>
+            <td><strong>90 PASS</strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Phase 4 测试明细</h3>
+      <table>
+        <thead><tr><th>测试文件</th><th>用例数</th><th>通过</th><th>失败</th></tr></thead>
+        <tbody>
+          <tr><td><code>test-summarizer.ts</code></td><td>18</td><td><span style="color:var(--green)">18</span></td><td>0</td></tr>
+          <tr><td><code>test-memory-manager.ts</code></td><td>34</td><td><span style="color:var(--green)">34</span></td><td>0</td></tr>
+          <tr><td><code>test-search-engine.ts</code></td><td>38</td><td><span style="color:var(--green)">38</span></td><td>0</td></tr>
+          <tr style="font-weight:700"><td>Phase 4 小计</td><td>90</td><td><span style="color:var(--green)">90</span></td><td>0</td></tr>
+          <tr style="font-weight:700"><td>全项目累计</td><td><strong>201</strong></td><td><span style="color:var(--green)"><strong>201</strong></span></td><td><strong>0</strong></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout success">
+        <strong>零回退</strong>：全部 201 个测试用例通过，包括 Phase 1-3 原有的 111 个测试。Phase 4 新增模块与已有功能完全兼容。
+      </div>
+
+      <h3>Phase 路线图</h3>
+      <table>
+        <thead><tr><th>阶段</th><th>目标</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td>Phase 1</td><td>最小可用的 ReAct 循环</td><td style="color:var(--green)">✅ v1.0-v1.1</td></tr>
+          <tr><td>Phase 2</td><td>完善工具系统</td><td style="color:var(--green)">✅ v1.2-v1.6</td></tr>
+          <tr><td>Phase 3</td><td>会话管理与系统提示词</td><td style="color:var(--green)">✅ v2.1-v2.4</td></tr>
+          <tr><td>Phase 4</td><td>上下文压缩与记忆系统</td><td style="color:var(--green)">✅ v3.1-v3.4 / v4.0.0</td></tr>
+          <tr><td>Phase 5</td><td>安全与进阶特性</td><td style="color:var(--text-muted)">⬜ 待开始</td></tr>
+          <tr><td>Phase 6</td><td>网关与多平台适配</td><td style="color:var(--text-muted)">⬜ 待开始</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /.content -->
+</div><!-- /.main -->
+
+<script>
+const sectionIds = [
+  'overview', 'architecture', 'quickstart',
+  'agent-loop', 'llm', 'event-stream', 'tools',
+  'session', 'context-builder', 'token-counter',
+  'summarizer', 'memory', 'search',
+  'file-structure', 'cli', 'version-history'
+];
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('sec-' + id);
+  if (target) target.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.section === id);
+  });
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.section === id);
+  });
+  window.scrollTo({ top: 0 });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const num = parseInt(e.key);
+  if (num >= 1 && num <= sectionIds.length) {
+    showSection(sectionIds[num - 1]);
+  }
+});
+</script>
+</body>
+</html>
