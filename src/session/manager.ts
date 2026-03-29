@@ -126,18 +126,19 @@ export class SessionManager {
       }
     }
 
-    // 更新缓存中的元数据
+    // 更新缓存中的元数据 + 同步写磁盘（避免并发 updateMeta 竞态）
     const cached = this.metaCache.get(this.currentSessionId);
     if (cached) {
       cached.updatedAt = new Date().toISOString();
       cached.messageCount += messages.length;
-      // 异步更新磁盘上的 meta，不阻塞主流程
-      this.store.updateMeta(this.currentSessionId, {
-        updatedAt: cached.updatedAt,
-        messageCount: cached.messageCount,
-      }).catch(() => {
+      try {
+        await this.store.updateMeta(this.currentSessionId, {
+          updatedAt: cached.updatedAt,
+          messageCount: cached.messageCount,
+        });
+      } catch {
         // 静默失败 —— meta 会在下次 resumeLatest 时同步
-      });
+      }
     }
   }
 
