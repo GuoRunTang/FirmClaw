@@ -8,6 +8,7 @@
  * v2.4: 集成 Phase 3 全部模块（会话管理 + 动态提示词 + 上下文裁剪 + 斜杠命令）
  * v3.4: 集成 Phase 4 全部模块（摘要压缩 + 记忆管理 + 全文搜索 + 新斜杠命令）
  * v5.1: 集成 Phase 6 v5.1 模块（WebSocket Gateway + /serve 命令）
+ * v5.2: 集成 CLI 富文本渲染器 + 进度指示器
  */
 
 import 'dotenv/config';
@@ -32,6 +33,8 @@ import type { MemoryTag } from './session/memory-manager.js';
 import { SearchEngine } from './session/search-engine.js';
 import { GatewayServer } from './gateway/server.js';
 import { AuthGuard } from './gateway/auth.js';
+import { Renderer } from './cli/renderer.js';
+import { ProgressIndicator } from './cli/progress.js';
 
 // ═══════════════════════════════════════════════════════════════
 // 主函数
@@ -49,7 +52,7 @@ async function main(): Promise<void> {
 
   const workDir = process.cwd();
 
-  console.log(`FirmClaw v5.1.0`);
+  console.log(`FirmClaw v5.2.0`);
   console.log(`Model: ${model}`);
   console.log(`API: ${baseURL}`);
   console.log(`WorkDir: ${workDir}`);
@@ -122,6 +125,8 @@ async function main(): Promise<void> {
 
   // ──── 4. 订阅事件流 ────
   const events = agent.getEvents();
+  const renderer = new Renderer({ width: process.stdout.columns || 80, color: true });
+  const progress = new ProgressIndicator();
 
   events.on('thinking_delta', (e) => {
     process.stdout.write(e.data as string);
@@ -129,39 +134,38 @@ async function main(): Promise<void> {
 
   events.on('tool_start', (e) => {
     const data = e.data as { toolName: string; args: Record<string, unknown> };
-    console.log(`\n>>> [${data.toolName}] ${JSON.stringify(data.args)}`);
+    progress.startTool(data.toolName);
+    console.log(`\n${renderer.renderToolStart(data.toolName, data.args)}`);
   });
 
   events.on('tool_end', (e) => {
-    const data = e.data as { toolName: string; result: string };
-    const preview = data.result.length > 300
-      ? data.result.substring(0, 300) + '...(truncated)'
-      : data.result;
-    console.log(`<<< [${data.toolName}] ${preview}`);
+    const data = e.data as { toolName: string; result: string; isError?: boolean };
+    const duration = progress.endTool();
+    console.log(`  ${renderer.renderToolEnd(data.toolName, data.result, data.isError)} ${duration}`);
   });
 
   events.on('error', (e) => {
-    console.error(`\n[Error] ${e.data}`);
+    console.error(`\n${renderer.renderError(String(e.data))}`);
   });
 
   events.on('session_start', (e) => {
     const data = e.data as { id: string; title: string };
-    console.log(`\n[System] New session started: ${data.id} (${data.title})`);
+    console.log(`\n${renderer.renderSystem(`New session started: ${data.id} (${data.title})`)}`);
   });
 
   events.on('context_trimmed', (e) => {
     const data = e.data as { originalTokens: number; trimmedTokens: number };
-    console.log(`\n[System] Context trimmed: ${data.originalTokens} → ${data.trimmedTokens} tokens`);
+    console.log(`\n${renderer.renderSystem(`Context trimmed: ${data.originalTokens.toLocaleString()} → ${data.trimmedTokens.toLocaleString()} tokens`)}`);
   });
 
   events.on('summary_generated', (e) => {
     const data = e.data as { compressedCount: number; originalTokens: number; newTokens: number };
-    console.log(`\n[System] Summary generated: ${data.compressedCount} messages compressed, ${data.originalTokens} → ${data.newTokens} tokens`);
+    console.log(`\n${renderer.renderSystem(`Summary generated: ${data.compressedCount} messages compressed, ${data.originalTokens.toLocaleString()} → ${data.newTokens.toLocaleString()} tokens`)}`);
   });
 
   events.on('memory_saved', (e) => {
     const data = e.data as { id: string; tag: string };
-    console.log(`\n[System] Memory saved: [${data.id}] (${data.tag})`);
+    console.log(`\n${renderer.renderSystem(`Memory saved: [${data.id}] (${data.tag})`)}`);
   });
 
   // ──── 5. 启动命令行交互 ────
@@ -196,7 +200,7 @@ async function main(): Promise<void> {
       console.log('');
       try {
         const result = await agent.run(trimmed);
-        console.log(`\n--- [${result.turns} turns, ${result.toolCalls} tool calls] ---\n`);
+        console.log(`\n${renderer.renderSeparator()} [${result.turns} turns, ${result.toolCalls} tool calls]${renderer.renderSeparator()}\n`);
       } catch (error: unknown) {
         console.error(`\n[Fatal Error] ${error instanceof Error ? error.message : String(error)}\n`);
       }
