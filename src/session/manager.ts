@@ -9,6 +9,7 @@
  * - toLLMMessages() 方法：StoredMessage[] → Message[]（去掉 timestamp）
  *
  * v2.1: 初始实现
+ * v3.3: append 时自动更新搜索索引
  */
 
 import crypto from 'node:crypto';
@@ -17,12 +18,14 @@ import os from 'node:os';
 import type { Message } from '../llm/client.js';
 import type { SessionMeta, StoredMessage, SessionConfig } from './types.js';
 import { SessionStore } from './store.js';
+import type { SearchEngine } from './search-engine.js';
 
 export class SessionManager {
   private store: SessionStore;
   private currentSessionId: string | null;
   private metaCache: Map<string, SessionMeta>;
   private enabled: boolean;
+  private searchEngine?: SearchEngine;
 
   constructor(config: SessionConfig = {}) {
     this.enabled = config.enabled ?? true;
@@ -31,6 +34,11 @@ export class SessionManager {
     );
     this.currentSessionId = null;
     this.metaCache = new Map();
+  }
+
+  /** 设置搜索引擎（v3.3: append 时自动更新索引） */
+  setSearchEngine(engine: SearchEngine): void {
+    this.searchEngine = engine;
   }
 
   /** 是否启用会话持久化 */
@@ -103,6 +111,19 @@ export class SessionManager {
     }
 
     await this.store.appendBatch(this.currentSessionId, messages);
+
+    // v3.3: 自动更新搜索索引
+    if (this.searchEngine) {
+      for (const msg of messages) {
+        this.searchEngine.addDocument({
+          id: `${this.currentSessionId}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
+          source: 'session',
+          content: msg.content,
+          sessionId: this.currentSessionId,
+          timestamp: msg.timestamp,
+        });
+      }
+    }
 
     // 更新缓存中的元数据
     const cached = this.metaCache.get(this.currentSessionId);

@@ -7,9 +7,12 @@
  * 1. 加载工作区文件（SOUL.md / AGENTS.md / MEMORY.md）
  * 2. 注入工具定义
  * 3. 注入会话信息
- * 4. 通过模板引擎组装最终提示词
+ * 4. 注入记忆内容（v3.2: 从 MemoryManager 获取）
+ * 5. 通过模板引擎组装最终提示词
  *
  * v2.2: 完整实现
+ * v3.2: 集成 MemoryManager，支持记忆注入
+ * v3.3: 集成 SearchEngine，支持相关记忆搜索
  */
 
 import fs from 'node:fs/promises';
@@ -17,6 +20,8 @@ import path from 'node:path';
 import type { ToolRegistry } from '../tools/registry.js';
 import type { SessionMeta } from './types.js';
 import { renderTemplate } from '../utils/prompt-template.js';
+import type { MemoryManager } from './memory-manager.js';
+import type { SearchEngine } from './search-engine.js';
 
 /** ContextBuilder 配置 */
 export interface ContextBuilderConfig {
@@ -73,9 +78,21 @@ const DEFAULT_TEMPLATE = `{{#soul}}{{soul}}
 
 export class ContextBuilder {
   private config: ContextBuilderConfig;
+  private memoryManager?: MemoryManager;
+  private searchEngine?: SearchEngine;
 
   constructor(config: ContextBuilderConfig) {
     this.config = config;
+  }
+
+  /** 设置记忆管理器（v3.2） */
+  setMemoryManager(manager: MemoryManager): void {
+    this.memoryManager = manager;
+  }
+
+  /** 设置搜索引擎（v3.3） */
+  setSearchEngine(engine: SearchEngine): void {
+    this.searchEngine = engine;
   }
 
   /**
@@ -83,15 +100,35 @@ export class ContextBuilder {
    *
    * @param tools - 工具注册表（用于注入工具定义）
    * @param sessionMeta - 当前会话元数据（可选）
+   * @param query - 用户查询（v3.3: 用于搜索相关记忆）
    */
-  async build(tools: ToolRegistry, sessionMeta?: SessionMeta): Promise<string> {
+  async build(tools: ToolRegistry, sessionMeta?: SessionMeta, query?: string): Promise<string> {
     // 加载模板
     const template = await this.loadTemplate();
 
     // 加载工作区文件
     const soul = await this.loadWorkspaceFile('SOUL.md');
     const agents = await this.loadWorkspaceFile('AGENTS.md');
-    const memory = await this.loadWorkspaceFile('MEMORY.md');
+
+    // v3.2/v3.3: 获取记忆内容
+    let memoryContent: string | null = null;
+    if (this.memoryManager) {
+      await this.memoryManager.load();
+      const queryForMemory = query || sessionMeta?.title || '';
+      if (this.searchEngine && queryForMemory) {
+        const allMemory = this.memoryManager.getAll();
+        const relevantIds = this.searchEngine.searchMemory(queryForMemory, allMemory, 5);
+        const relevant = allMemory.filter(m => relevantIds.includes(m.id));
+        memoryContent = relevant.length > 0
+          ? relevant.map(e => `- [${e.id}] ${e.content}`).join('\n')
+          : null;
+      } else {
+        const formatted = this.memoryManager.getFormatted();
+        memoryContent = formatted || null;
+      }
+    } else {
+      memoryContent = await this.loadWorkspaceFile('MEMORY.md');
+    }
 
     // 构建工具描述段
     const toolsSection = this.buildToolsSection(tools);
@@ -103,7 +140,7 @@ export class ContextBuilder {
     const context: Record<string, unknown> = {
       soul: soul || undefined,
       agents: agents || undefined,
-      memory: memory || undefined,
+      memory: memoryContent || undefined,
       tools: toolsSection,
       // 条件块变量
       session: sessionMeta ? 'active' : undefined,

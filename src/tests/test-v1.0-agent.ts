@@ -17,9 +17,9 @@ import { AgentLoop } from '../agent/agent-loop.js';
 async function testAgent() {
   console.log('=== Test 3: Full Agent Loop (ReAct) ===\n');
 
-  const apiKey = process.env.LLM_API_KEY!;
-  const baseURL = process.env.LLM_BASE_URL || 'https://api.minimax.chat/v1';
-  const model = process.env.LLM_MODEL || 'MiniMax-M2.7';
+  const apiKey = process.env.LLM_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN;
+  const baseURL = process.env.LLM_BASE_URL || process.env.ANTHROPIC_BASE_URL || 'https://api.minimax.chat/v1';
+  const model = process.env.LLM_MODEL || process.env.ANTHROPIC_MODEL || 'MiniMax-M2.7';
 
   const llm = new LLMClient(apiKey, baseURL, model);
   const tools = new ToolRegistry();

@@ -326,7 +326,7 @@ MEMORY.md 采用结构化 Markdown 格式：
 
 ## 知识
 - [K001] FirmClaw 使用 ReAct 架构 (2026-03-28)
-- [K002] MiniMax API 兼容 OpenAI 格式 (2026-03-28)
+- [K002] MiniMax M2.7 API 兼容 OpenAI 格式 (2026-03-29)
 ```
 
 每条记忆包含：

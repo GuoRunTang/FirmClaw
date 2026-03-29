@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirmClaw v3.0 技术手册</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   全局变量与重置
+   ═══════════════════════════════════════════════════════ */
+:root {
+  --sidebar-w: 280px;
+  --bg: #0d1117;
+  --bg-sidebar: #010409;
+  --bg-card: #161b22;
+  --bg-code: #0d1117;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  --accent: #58a6ff;
+  --accent-hover: #79c0ff;
+  --green: #3fb950;
+  --yellow: #d29922;
+  --red: #f85149;
+  --purple: #bc8cff;
+  --cyan: #39d2c0;
+  --tag-p1: #238636;
+  --tag-p2: #1f6feb;
+  --tag-p3: #8957e5;
+  --radius: 8px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════════════
+   侧边栏
+   ═══════════════════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-header h1 .logo {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.sidebar-header .version {
+  font-size: 11px;
+  color: var(--purple);
+  background: rgba(188,140,255,0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+.sidebar-nav { flex: 1; padding: 12px 0; }
+
+.nav-group { margin-bottom: 4px; }
+
+.nav-group-title {
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px 7px 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+}
+
+.nav-item:hover {
+  color: var(--text);
+  background: rgba(88,166,255,0.06);
+}
+
+.nav-item.active {
+  color: var(--accent);
+  background: rgba(88,166,255,0.1);
+  border-left-color: var(--accent);
+}
+
+.nav-item .nav-icon { width: 16px; text-align: center; flex-shrink: 0; }
+.nav-item .nav-ver {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.nav-ver.p1 { background: rgba(35,134,54,0.15); color: var(--green); }
+.nav-ver.p2 { background: rgba(31,111,235,0.15); color: var(--accent); }
+.nav-ver.p3 { background: rgba(137,87,229,0.15); color: var(--purple); }
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════
+   主内容区
+   ═══════════════════════════════════════════════════════ */
+.main {
+  flex: 1;
+  margin-left: var(--sidebar-w);
+  min-width: 0;
+}
+
+.content {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 40px 48px 80px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   横向 Tab 导航
+   ═══════════════════════════════════════════════════════ */
+.top-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(13,17,23,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0;
+  padding: 0 48px;
+  max-width: 920px;
+  margin: 0 auto;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.tab-btn {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  font-family: var(--font);
+}
+
+.tab-btn:hover { color: var(--text); }
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Section 通用样式
+   ═══════════════════════════════════════════════════════ */
+.section { display: none; animation: fadeIn 0.25s ease; }
+.section.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.section h2 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding-top: 20px;
+}
+
+.section > h2::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  border-radius: 2px;
+  margin-top: 8px;
+  margin-bottom: 24px;
+}
+
+.section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 32px 0 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+  color: var(--accent);
+}
+
+.section p { margin-bottom: 12px; color: var(--text-secondary); }
+
+/* ═══════════════════════════════════════════════════════
+   特殊组件
+   ═══════════════════════════════════════════════════════ */
+
+/* 版本标签 */
+.ver-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 6px;
+  letter-spacing: 0.02em;
+}
+.ver-tag.phase1 { background: rgba(35,134,54,0.15); color: var(--green); }
+.ver-tag.phase2 { background: rgba(31,111,235,0.15); color: var(--accent); }
+.ver-tag.phase3 { background: rgba(137,87,229,0.15); color: var(--purple); }
+.ver-tag.new { background: rgba(137,87,229,0.2); color: var(--purple); border: 1px solid rgba(137,87,229,0.4); }
+
+/* 提示框 */
+.callout {
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  margin: 16px 0;
+  border-left: 3px solid;
+  font-size: 13px;
+}
+.callout.info { background: rgba(88,166,255,0.08); border-color: var(--accent); color: var(--text-secondary); }
+.callout.warn { background: rgba(210,153,34,0.08); border-color: var(--yellow); color: var(--text-secondary); }
+.callout.danger { background: rgba(248,81,73,0.08); border-color: var(--red); color: var(--text-secondary); }
+.callout.tip { background: rgba(137,87,229,0.08); border-color: var(--purple); color: var(--text-secondary); }
+.callout strong { color: var(--text); }
+.callout code { background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+/* 代码块 */
+pre {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  overflow-x: auto;
+  margin: 12px 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+pre code {
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  background: rgba(255,255,255,0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent);
+}
+
+/* 表格 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 13px;
+}
+th {
+  text-align: left;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 2px solid var(--border);
+  font-weight: 600;
+  color: var(--text);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* 列表 */
+ul, ol { margin: 8px 0 12px 20px; color: var(--text-secondary); }
+li { margin-bottom: 4px; }
+
+/* 文件树 */
+.file-tree {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin: 16px 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.8;
+  overflow-x: auto;
+}
+.file-tree .comment { color: var(--text-muted); }
+.file-tree .dir { color: var(--accent); }
+.file-tree .file { color: var(--text); }
+.file-tree .new { color: var(--green); }
+
+/* 流程图 */
+.flow-diagram {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin: 16px 0;
+  text-align: center;
+  overflow-x: auto;
+}
+.flow-diagram svg { max-width: 100%; height: auto; }
+
+/* 接口定义 */
+.interface-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 12px 0;
+  overflow: hidden;
+}
+.interface-header {
+  padding: 10px 16px;
+  background: rgba(88,166,255,0.06);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.interface-body {
+  padding: 12px 16px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.8;
+}
+.interface-body .field { color: var(--text-secondary); }
+.interface-body .type { color: var(--purple); }
+.interface-body .comment-inline { color: var(--text-muted); }
+
+/* Badge 列表 */
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+.badge {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.badge.dep { background: rgba(188,140,255,0.12); color: var(--purple); }
+.badge.runtime { background: rgba(63,185,80,0.12); color: var(--green); }
+.badge.dev { background: rgba(210,153,34,0.12); color: var(--yellow); }
+
+/* 参数卡片 */
+.param-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin: 6px 0;
+  display: grid;
+  grid-template-columns: 130px 80px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+}
+.param-card .pname { font-family: var(--font-mono); color: var(--accent); font-weight: 600; }
+.param-card .ptype { font-family: var(--font-mono); color: var(--purple); font-size: 12px; }
+.param-card .pdesc { color: var(--text-secondary); }
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* 响应式 */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .top-tabs { padding: 0 16px; }
+  .content { padding: 24px 16px 60px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     侧边栏
+     ═══════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1><span class="logo">FC</span> FirmClaw <span class="version">v3.0</span></h1>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-group-title">概述</div>
+      <a class="nav-item active" data-section="overview" onclick="showSection('overview')">
+        <span class="nav-icon">📖</span> 项目简介
+      </a>
+      <a class="nav-item" data-section="architecture" onclick="showSection('architecture')">
+        <span class="nav-icon">🏗️</span> 系统架构
+      </a>
+      <a class="nav-item" data-section="quickstart" onclick="showSection('quickstart')">
+        <span class="nav-icon">🚀</span> 快速开始
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">核心模块</div>
+      <a class="nav-item" data-section="agent-loop" onclick="showSection('agent-loop')">
+        <span class="nav-icon">🧠</span> Agent Loop
+        <span class="nav-ver p1">P1</span><span class="nav-ver p3">P3</span>
+      </a>
+      <a class="nav-item" data-section="llm" onclick="showSection('llm')">
+        <span class="nav-icon">💬</span> LLM Client
+        <span class="nav-ver p1">P1</span>
+      </a>
+      <a class="nav-item" data-section="event-stream" onclick="showSection('event-stream')">
+        <span class="nav-icon">📡</span> EventStream
+        <span class="nav-ver p1">P1</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">工具系统</div>
+      <a class="nav-item" data-section="tool-foundation" onclick="showSection('tool-foundation')">
+        <span class="nav-icon">🔧</span> 基础设施
+        <span class="nav-ver p1">P1</span>
+      </a>
+      <a class="nav-item" data-section="tool-bash" onclick="showSection('tool-bash')">
+        <span class="nav-icon">⚡</span> bash 工具
+        <span class="nav-ver p1">P1</span>
+      </a>
+      <a class="nav-item" data-section="tool-read" onclick="showSection('tool-read')">
+        <span class="nav-icon">📄</span> read_file 工具
+        <span class="nav-ver p2">P2</span>
+      </a>
+      <a class="nav-item" data-section="tool-write" onclick="showSection('tool-write')">
+        <span class="nav-icon">✏️</span> write_file 工具
+        <span class="nav-ver p2">P2</span>
+      </a>
+      <a class="nav-item" data-section="tool-edit" onclick="showSection('tool-edit')">
+        <span class="nav-icon">✂️</span> edit_file 工具
+        <span class="nav-ver p2">P2</span>
+      </a>
+      <a class="nav-item" data-section="permissions" onclick="showSection('permissions')">
+        <span class="nav-icon">🔒</span> 权限策略
+        <span class="nav-ver p2">P2</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 3 新增</div>
+      <a class="nav-item" data-section="session-store" onclick="showSection('session-store')">
+        <span class="nav-icon">💾</span> SessionStore
+        <span class="nav-ver p3">P3</span>
+      </a>
+      <a class="nav-item" data-section="session-manager" onclick="showSection('session-manager')">
+        <span class="nav-icon">📂</span> SessionManager
+        <span class="nav-ver p3">P3</span>
+      </a>
+      <a class="nav-item" data-section="context-builder" onclick="showSection('context-builder')">
+        <span class="nav-icon">🧩</span> ContextBuilder
+        <span class="nav-ver p3">P3</span>
+      </a>
+      <a class="nav-item" data-section="token-counter" onclick="showSection('token-counter')">
+        <span class="nav-icon">✂️</span> TokenCounter
+        <span class="nav-ver p3">P3</span>
+      </a>
+      <a class="nav-item" data-section="slash-commands" onclick="showSection('slash-commands')">
+        <span class="nav-icon">⌨️</span> 斜杠命令
+        <span class="nav-ver p3">P3</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">参考</div>
+      <a class="nav-item" data-section="file-structure" onclick="showSection('file-structure')">
+        <span class="nav-icon">📁</span> 文件结构
+      </a>
+      <a class="nav-item" data-section="version-history" onclick="showSection('version-history')">
+        <span class="nav-icon">📋</span> 版本历史
+      </a>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="margin-bottom:8px">
+      <a href="manual-v2.0.html" style="color:var(--accent);text-decoration:none;font-size:11px;">← v2.0 技术手册</a>
+      <span style="color:var(--text-muted);margin:0 4px">|</span>
+      <a href="manual-v1.0.html" style="color:var(--accent);text-decoration:none;font-size:11px;">v1.0</a>
+    </div>
+    TypeScript + Node.js &middot; ReAct Architecture
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════
+     主内容区
+     ═══════════════════════════════════════════════════════ -->
+<div class="main">
+  <!-- 横向 Tab -->
+  <div class="top-tabs">
+    <button class="tab-btn active" data-section="overview" onclick="showSection('overview')">概述</button>
+    <button class="tab-btn" data-section="architecture" onclick="showSection('architecture')">架构</button>
+    <button class="tab-btn" data-section="quickstart" onclick="showSection('quickstart')">快速开始</button>
+    <button class="tab-btn" data-section="agent-loop" onclick="showSection('agent-loop')">Agent Loop</button>
+    <button class="tab-btn" data-section="llm" onclick="showSection('llm')">LLM</button>
+    <button class="tab-btn" data-section="event-stream" onclick="showSection('event-stream')">事件</button>
+    <button class="tab-btn" data-section="tool-foundation" onclick="showSection('tool-foundation')">工具基础</button>
+    <button class="tab-btn" data-section="tool-bash" onclick="showSection('tool-bash')">bash</button>
+    <button class="tab-btn" data-section="tool-read" onclick="showSection('tool-read')">read</button>
+    <button class="tab-btn" data-section="tool-write" onclick="showSection('tool-write')">write</button>
+    <button class="tab-btn" data-section="tool-edit" onclick="showSection('tool-edit')">edit</button>
+    <button class="tab-btn" data-section="permissions" onclick="showSection('permissions')">权限</button>
+    <button class="tab-btn" data-section="session-store" onclick="showSection('session-store')">Store</button>
+    <button class="tab-btn" data-section="session-manager" onclick="showSection('session-manager')">Manager</button>
+    <button class="tab-btn" data-section="context-builder" onclick="showSection('context-builder')">CtxBuilder</button>
+    <button class="tab-btn" data-section="token-counter" onclick="showSection('token-counter')">Token</button>
+    <button class="tab-btn" data-section="slash-commands" onclick="showSection('slash-commands')">命令</button>
+    <button class="tab-btn" data-section="file-structure" onclick="showSection('file-structure')">文件</button>
+    <button class="tab-btn" data-section="version-history" onclick="showSection('version-history')">版本</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 项目简介
+         ═══════════════════════════════════════════════════ -->
+    <div class="section active" id="sec-overview">
+      <h2>项目简介</h2>
+      <p>FirmClaw 是一个从零搭建的 <strong>本地优先 AI 智能体框架</strong>，核心采用 ReAct（Reasoning + Acting）架构。v3.0 整合了 Phase 1（ReAct 循环）、Phase 2（工具系统）和 Phase 3（会话管理与上下文管理）的全部能力。</p>
+
+      <h3>一句话理解 FirmClaw</h3>
+      <p>你在命令行输入一句自然语言，FirmClaw 会自动理解意图、调用工具完成任务，并<strong>记住之前的对话</strong>。它不是聊天机器人——它是<strong>有记忆、能动手干活的 AI 助手</strong>。</p>
+
+      <h3>v3.0 核心能力</h3>
+      <table>
+        <thead><tr><th>能力</th><th>涉及模块</th><th>阶段</th></tr></thead>
+        <tbody>
+          <tr><td>理解自然语言指令并自主规划执行步骤</td><td>Agent Loop + LLM Client</td><td><span class="ver-tag phase1">Phase 1</span></td></tr>
+          <tr><td>执行任意终端命令并获取输出</td><td>bash 工具</td><td><span class="ver-tag phase1">Phase 1</span></td></tr>
+          <tr><td>读取/创建/编辑文件</td><td>read / write / edit 工具</td><td><span class="ver-tag phase2">Phase 2</span></td></tr>
+          <tr><td>三层安全防护（路径白名单+命令黑名单+敏感文件保护）</td><td>PermissionPolicy</td><td><span class="ver-tag phase2">Phase 2</span></td></tr>
+          <tr><td><strong style="color:var(--text)">多轮对话持久化（JSONL 存储，跨重启恢复）</strong></td><td>SessionManager + SessionStore</td><td><span class="ver-tag phase3">Phase 3</span></td></tr>
+          <tr><td><strong style="color:var(--text)">动态系统提示词（SOUL.md / AGENTS.md / MEMORY.md）</strong></td><td>ContextBuilder + PromptTemplate</td><td><span class="ver-tag phase3">Phase 3</span></td></tr>
+          <tr><td><strong style="color:var(--text)">上下文窗口管理（tool 截断 + 整体裁剪）</strong></td><td>TokenCounter</td><td><span class="ver-tag phase3">Phase 3</span></td></tr>
+          <tr><td><strong style="color:var(--text)">斜杠命令（/new /resume /sessions /soul /memory）</strong></td><td>CLI (index.ts)</td><td><span class="ver-tag phase3">Phase 3</span></td></tr>
+          <tr><td>实时流式输出</td><td>EventStream</td><td><span class="ver-tag phase1">Phase 1</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>会话管理的典型工作流</h3>
+      <pre><code># 第一次启动 → 自动创建会话
+> 帮我分析 package.json 的依赖
+🧠 让我读取这个文件...
+>>> [read_file] {"path":"package.json"}
+<<< 读取成功...
+当前项目有 3 个依赖：openai、ajv、dotenv
+
+# 继续对话（同一会话，LLM 记得上下文）
+> 上面的 openai 是什么版本的？
+openai 的版本是 ^6.32.0
+
+# 创建新会话
+> /new
+New session created: a1b2c3d4-...
+
+# 恢复上次会话
+> /resume
+Resumed session: a1b2c3d4-... (帮我分析 package.json 的依赖, 5 msgs)</code></pre>
+
+      <h3>技术选型</h3>
+      <table>
+        <thead><tr><th>组件</th><th>选型</th><th>理由</th></tr></thead>
+        <tbody>
+          <tr><td>语言</td><td>TypeScript + Node.js</td><td>生态丰富，类型安全</td></tr>
+          <tr><td>LLM</td><td>OpenAI 兼容 API</td><td>MiniMax / DeepSeek / Kimi 等通用</td></tr>
+          <tr><td>参数校验</td><td>ajv</td><td>JSON Schema 标准，高效</td></tr>
+          <tr><td>会话存储</td><td>JSONL 文件</td><td>Append-only，原子写入，无需数据库</td></tr>
+          <tr><td>模板引擎</td><td>自研 {{}} 引擎（40 行）</td><td>零依赖，够用即可</td></tr>
+          <tr><td>Token 估算</td><td>4字符/token 启发式</td><td>粗略但足够裁剪判断</td></tr>
+          <tr><td>模块系统</td><td>ESM</td><td>现代标准，tree-shaking 友好</td></tr>
+        </tbody>
+      </table>
+
+      <h3>依赖一览</h3>
+      <div class="badge-row">
+        <span class="badge dep">openai ^6.32</span>
+        <span class="badge dep">ajv ^8.18</span>
+        <span class="badge dep">dotenv ^17.3</span>
+        <span class="badge dev">typescript ^6.0</span>
+        <span class="badge dev">tsx ^4.21</span>
+        <span class="badge runtime">Node.js >= 18</span>
+      </div>
+
+      <h3>Phase 路线图</h3>
+      <table>
+        <thead><tr><th>阶段</th><th>目标</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td>Phase 1</td><td>最小可用的 ReAct 循环</td><td style="color:var(--green)">✅ 完成 (v1.0)</td></tr>
+          <tr><td>Phase 2</td><td>完善工具系统</td><td style="color:var(--green)">✅ 完成 (v1.6)</td></tr>
+          <tr><td>Phase 3</td><td>会话管理与上下文管理</td><td style="color:var(--green)">✅ 完成 (v2.4)</td></tr>
+          <tr><td>Phase 4</td><td>上下文压缩与记忆系统</td><td style="color:var(--text-muted)">⬜ 设计中</td></tr>
+          <tr><td>Phase 5</td><td>安全与进阶特性</td><td style="color:var(--text-muted)">⬜ 待开始</td></tr>
+          <tr><td>Phase 6</td><td>网关与多平台适配</td><td style="color:var(--text-muted)">⬜ 待开始</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 系统架构
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-architecture">
+      <h2>系统架构</h2>
+      <p>v3.0 在 v2.0 的基础上新增了会话管理层（紫色）和上下文管理层，Agent Loop 成为核心调度枢纽。</p>
+
+      <h3>架构总览</h3>
+      <div class="flow-diagram">
+        <svg viewBox="0 0 820 520" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-mono)" font-size="12">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 3 L 0 6 z" fill="#58a6ff"/>
+            </marker>
+            <marker id="arrow-purple" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 3 L 0 6 z" fill="#bc8cff"/>
+            </marker>
+          </defs>
+          <!-- User -->
+          <rect x="320" y="10" width="180" height="40" rx="8" fill="#238636" opacity="0.9"/>
+          <text x="410" y="35" text-anchor="middle" fill="#fff" font-weight="600">User (CLI + 斜杠命令)</text>
+          <!-- Agent Loop -->
+          <rect x="280" y="85" width="260" height="50" rx="8" fill="#1f6feb" opacity="0.9"/>
+          <text x="410" y="115" text-anchor="middle" fill="#fff" font-weight="600">AgentLoop (ReAct + Session)</text>
+          <!-- LLM Client -->
+          <rect x="40" y="185" width="180" height="50" rx="8" fill="#6e40c9" opacity="0.9"/>
+          <text x="130" y="215" text-anchor="middle" fill="#fff" font-weight="600">LLMClient</text>
+          <!-- SessionManager -->
+          <rect x="580" y="185" width="220" height="50" rx="8" fill="#8957e5" opacity="0.9"/>
+          <text x="690" y="205" text-anchor="middle" fill="#fff" font-weight="600">SessionManager</text>
+          <text x="690" y="222" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">多轮对话持久化</text>
+          <!-- ContextBuilder -->
+          <rect x="580" y="260" width="220" height="50" rx="8" fill="#8957e5" opacity="0.7"/>
+          <text x="690" y="280" text-anchor="middle" fill="#fff" font-weight="600">ContextBuilder</text>
+          <text x="690" y="297" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">动态系统提示词</text>
+          <!-- TokenCounter -->
+          <rect x="580" y="335" width="220" height="50" rx="8" fill="#8957e5" opacity="0.5"/>
+          <text x="690" y="355" text-anchor="middle" fill="#fff" font-weight="600">TokenCounter</text>
+          <text x="690" y="372" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">上下文裁剪</text>
+          <!-- SessionStore -->
+          <rect x="580" y="410" width="220" height="40" rx="8" fill="rgba(137,87,229,0.15)" stroke="#8957e5" stroke-width="1"/>
+          <text x="690" y="435" text-anchor="middle" fill="#bc8cff" font-size="11">SessionStore (JSONL 磁盘存储)</text>
+          <!-- Registry -->
+          <rect x="40" y="280" width="180" height="50" rx="8" fill="#da3633" opacity="0.85"/>
+          <text x="130" y="310" text-anchor="middle" fill="#fff" font-weight="600">ToolRegistry</text>
+          <!-- Tools -->
+          <rect x="40" y="355" width="80" height="28" rx="6" fill="#30363d"/>
+          <text x="80" y="374" text-anchor="middle" fill="#e6edf3" font-size="11">bash</text>
+          <rect x="130" y="355" width="80" height="28" rx="6" fill="#30363d"/>
+          <text x="170" y="374" text-anchor="middle" fill="#e6edf3" font-size="11">read</text>
+          <rect x="40" y="392" width="80" height="28" rx="6" fill="#30363d"/>
+          <text x="80" y="411" text-anchor="middle" fill="#e6edf3" font-size="11">write</text>
+          <rect x="130" y="392" width="80" height="28" rx="6" fill="#30363d"/>
+          <text x="170" y="411" text-anchor="middle" fill="#e6edf3" font-size="11">edit</text>
+          <!-- Permission -->
+          <rect x="40" y="440" width="180" height="28" rx="6" fill="rgba(210,153,34,0.15)" stroke="#d29922" stroke-width="1"/>
+          <text x="130" y="459" text-anchor="middle" fill="#d29922" font-size="11">PermissionPolicy</text>
+          <!-- EventStream -->
+          <rect x="250" y="440" width="160" height="28" rx="6" fill="rgba(57,210,192,0.15)" stroke="#39d2c0" stroke-width="1"/>
+          <text x="330" y="459" text-anchor="middle" fill="#39d2c0" font-size="11">EventStream</text>
+          <!-- Workspace files -->
+          <rect x="250" y="280" width="160" height="60" rx="8" fill="rgba(137,87,229,0.1)" stroke="rgba(137,87,229,0.3)" stroke-width="1"/>
+          <text x="330" y="305" text-anchor="middle" fill="#bc8cff" font-size="11">工作区文件</text>
+          <text x="330" y="325" text-anchor="middle" fill="var(--text-muted)" font-size="10">SOUL.md / AGENTS.md / MEMORY.md</text>
+          <!-- Arrows -->
+          <line x1="410" y1="50" x2="410" y2="85" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow)"/>
+          <line x1="330" y1="135" x2="170" y2="185" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <line x1="490" y1="135" x2="640" y2="185" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+          <line x1="690" y1="235" x2="690" y2="260" stroke="#bc8cff" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="690" y1="310" x2="690" y2="335" stroke="#bc8cff" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="690" y1="385" x2="690" y2="410" stroke="#bc8cff" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="330" y1="145" x2="170" y2="280" stroke="#58a6ff" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="130" y1="330" x2="130" y2="355" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="130" y1="413" x2="130" y2="440" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="330" y1="340" x2="330" y2="440" stroke="#8b949e" stroke-width="1" stroke-dasharray="4 3"/>
+          <!-- Labels -->
+          <text x="220" y="170" fill="#58a6ff" font-size="10">chat()</text>
+          <text x="550" y="170" fill="#bc8cff" font-size="10">create/append/resume</text>
+          <text x="220" y="260" fill="#58a6ff" font-size="10">execute()</text>
+        </svg>
+      </div>
+
+      <h3>模块职责一览</h3>
+      <table>
+        <thead><tr><th>模块</th><th>文件</th><th>职责</th><th>阶段</th></tr></thead>
+        <tbody>
+          <tr><td>AgentLoop</td><td><code>agent/agent-loop.ts</code></td><td>ReAct 循环、会话持久化集成、上下文裁剪</td><td><span class="ver-tag phase1">P1</span> <span class="ver-tag phase3">P3</span></td></tr>
+          <tr><td>LLMClient</td><td><code>llm/client.ts</code></td><td>LLM API 通信、流式输出</td><td><span class="ver-tag phase1">P1</span></td></tr>
+          <tr><td>EventStream</td><td><code>utils/event-stream.ts</code></td><td>发布/订阅事件广播</td><td><span class="ver-tag phase1">P1</span></td></tr>
+          <tr><td>ToolRegistry</td><td><code>tools/registry.ts</code></td><td>工具注册、参数校验、权限中间件</td><td><span class="ver-tag phase1">P1</span> <span class="ver-tag phase2">P2</span></td></tr>
+          <tr><td>PermissionPolicy</td><td><code>tools/permissions.ts</code></td><td>三层安全防护</td><td><span class="ver-tag phase2">P2</span></td></tr>
+          <tr><td><strong style="color:var(--text)">SessionStore</strong></td><td><code>session/store.ts</code></td><td>JSONL 存储层（append-only 读写）</td><td><span class="ver-tag phase3">P3</span></td></tr>
+          <tr><td><strong style="color:var(--text)">SessionManager</strong></td><td><code>session/manager.ts</code></td><td>会话管理（create/resume/gc）</td><td><span class="ver-tag phase3">P3</span></td></tr>
+          <tr><td><strong style="color:var(--text)">ContextBuilder</strong></td><td><code>session/context-builder.ts</code></td><td>动态系统提示词组装</td><td><span class="ver-tag phase3">P3</span></td></tr>
+          <tr><td><strong style="color:var(--text)">TokenCounter</strong></td><td><code>utils/token-counter.ts</code></td><td>Token 估算与消息裁剪</td><td><span class="ver-tag phase3">P3</span></td></tr>
+          <tr><td><strong style="color:var(--text)">PromptTemplate</strong></td><td><code>utils/prompt-template.ts</code></td><td>{{}} 模板替换引擎</td><td><span class="ver-tag phase3">P3</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 快速开始
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-quickstart">
+      <h2>快速开始</h2>
+
+      <h3>1. 环境要求</h3>
+      <div class="badge-row">
+        <span class="badge runtime">Node.js >= 18</span>
+        <span class="badge dep">npm / pnpm</span>
+        <span class="badge dep">Git</span>
+      </div>
+
+      <h3>2. 安装</h3>
+      <pre><code>git clone &lt;repo-url&gt;
+cd FirmClaw
+npm install</code></pre>
+
+      <h3>3. 配置 .env</h3>
+      <pre><code># 必填：LLM API 密钥
+LLM_API_KEY=sk-your-api-key-here
+
+# 可选：API 地址和模型（默认 MiniMax M2.7）
+LLM_BASE_URL=https://api.minimax.chat/v1
+LLM_MODEL=MiniMax-M2.7</code></pre>
+
+      <h3>4. 运行</h3>
+      <pre><code># 开发模式
+npm run dev
+
+# 编译后运行
+npm run build
+node dist/index.js</code></pre>
+
+      <h3>5. 运行全部测试</h3>
+      <pre><code># Phase 1 测试
+npx tsx src/tests/test-v1.0-bash.ts
+npx tsx src/tests/test-v1.0-llm.ts       # 需要 API Key
+npx tsx src/tests/test-v1.0-agent.ts     # 需要 API Key
+
+# Phase 2 测试
+npx tsx src/tests/test-v1.2-read.ts
+npx tsx src/tests/test-v1.3-write.ts
+npx tsx src/tests/test-v1.4-edit.ts
+npx tsx src/tests/test-v1.5-bash.ts
+npx tsx src/tests/test-v1.6-permissions.ts
+
+# Phase 3 测试
+npx tsx src/tests/test-v2.1-session-store.ts
+npx tsx src/tests/test-v2.1-session-manager.ts
+npx tsx src/tests/test-v2.2-context-builder.ts
+npx tsx src/tests/test-v2.3-token-counter.ts</code></pre>
+
+      <h3>6. 工作区配置文件</h3>
+      <p>Phase 3 支持在工作目录下创建 <code>.firmclaw/</code> 目录，放置配置文件：</p>
+      <pre><code>.firmclaw/
+├── SOUL.md        # 定义智能体人格和行为准则
+├── AGENTS.md      # 多智能体协作规则（预留）
+└── MEMORY.md      # 长期记忆（预留 Phase 4 自动管理）</code></pre>
+      <div class="callout tip">
+        <strong>SOUL.md 示例</strong>：创建 <code>.firmclaw/SOUL.md</code>，写入 "你是一个严谨的代码审查专家，只关注代码质量和安全问题。"，重启后 FirmClaw 就会自动加载这个人格设定。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: Agent Loop
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-agent-loop">
+      <h2>Agent Loop <span class="ver-tag phase1">Phase 1</span> + <span class="ver-tag phase3">Phase 3</span></h2>
+      <p>AgentLoop 是 FirmClaw 的心脏。v2.3 集成了会话管理、动态提示词和上下文裁剪，但保持了向后兼容——所有 Phase 3 组件均为可选。</p>
+      <p><strong>源文件</strong>：<code>src/agent/agent-loop.ts</code></p>
+
+      <h3>核心接口（v2.3 更新）</h3>
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">interface</span> AgentConfig
+          <span class="ver-tag phase3" style="margin-left:auto">v2.3 新增字段</span>
+        </div>
+        <div class="interface-body">
+          <span class="field">systemPrompt</span>: <span class="type">string</span> <span class="comment-inline">// 固定提示词（contextBuilder 未设置时使用）</span><br>
+          <span class="field">maxTurns</span>: <span class="type">number</span> <span class="comment-inline">// 最大循环轮次</span><br>
+          <span class="field">workDir</span><span class="type">?</span>: <span class="type">string</span> <span class="comment-inline">// 工作目录</span><br>
+          <span class="field">sessionManager</span><span class="type">?</span>: <span class="type">SessionManager</span> <span class="comment-inline">// 会话管理器（v2.1）</span><br>
+          <span class="field">contextBuilder</span><span class="type">?</span>: <span class="type">ContextBuilder</span> <span class="comment-inline">// 提示词组装器（v2.2）</span><br>
+          <span class="field">tokenCounter</span><span class="type">?</span>: <span class="type">TokenCounter</span> <span class="comment-inline">// Token 计数器（v2.3）</span><br>
+          <span class="field">trimConfig</span><span class="type">?</span>: <span class="type">TrimConfig</span> <span class="comment-inline">// 裁剪配置（v2.3）</span>
+        </div>
+      </div>
+
+      <h3>v2.3 循环流程</h3>
+      <pre><code>async run(userMessage: string): Promise&lt;AgentResult&gt; {
+  // ① 自动创建会话（如果未启用）
+  if (sessionManager &amp;&amp; !currentSession) {
+    meta = await sessionManager.create(workDir, userMessage)
+  }
+
+  // ② 动态生成系统提示词
+  if (contextBuilder) {
+    systemPrompt = await contextBuilder.build(tools, sessionMeta)
+  }
+
+  // ③ 恢复历史消息
+  history = await sessionManager.getMessages()
+  messages = [system, ...history, user]
+
+  while (turns &lt; maxTurns) {
+    // ④ 上下文裁剪（token 超限时）
+    if (tokenCounter) tokenCounter.trimMessages(messages, trimConfig)
+
+    // ⑤ 调用 LLM（ReAct 核心不变）
+    response = await llm.chat(messages, tools, onDelta)
+
+    // ⑥ 无工具调用 → 保存会话 → 返回
+    if (!response.tool_calls) {
+      await persistRound(userMessage, roundMessages)
+      return result
+    }
+
+    // ⑦ 执行工具（v1.0 逻辑不变）
+    for (toolCall of response.tool_calls) {
+      result = await registry.execute(name, args, toolContext)
+      messages.push({ role: 'tool', content: result })
+      roundMessages.push(toolMsg)  // 收集本轮消息
+    }
+  }
+}</code></pre>
+
+      <h3>会话持久化策略</h3>
+      <ul>
+        <li><strong>自动创建</strong>：首次发送消息时自动创建会话（标题 = 用户第一条消息的前 50 字）</li>
+        <li><strong>批量保存</strong>：一轮循环结束后，一次性 <code>appendBatch</code> 保存所有消息（user + assistant + tool）</li>
+        <li><strong>异步元数据更新</strong>：消息计数和更新时间异步写入磁盘，不阻塞主流程</li>
+        <li><strong>恢复机制</strong>：启动时 <code>resumeLatest()</code> 自动恢复上次会话</li>
+      </ul>
+
+      <h3>新增事件类型</h3>
+      <table>
+        <thead><tr><th>事件</th><th>触发时机</th><th>data 内容</th><th>阶段</th></tr></thead>
+        <tbody>
+          <tr><td><code>thinking_delta</code></td><td>LLM 生成文本时</td><td>文本片段 string</td><td>P1</td></tr>
+          <tr><td><code>tool_start</code></td><td>工具开始执行</td><td><code>{toolName, args}</code></td><td>P1</td></tr>
+          <tr><td><code>tool_end</code></td><td>工具执行完成</td><td><code>{toolName, result, isError}</code></td><td>P1</td></tr>
+          <tr><td><code>message_end</code></td><td>最终回复完成</td><td>完整文本</td><td>P1</td></tr>
+          <tr><td><code>error</code></td><td>发生错误</td><td>错误信息 string</td><td>P1</td></tr>
+          <tr><td><code>session_start</code></td><td>新会话创建</td><td><code>{id, title, createdAt}</code></td><td><span class="ver-tag phase3">P3</span></td></tr>
+          <tr><td><code>context_trimmed</code></td><td>上下文被裁剪</td><td><code>{originalTokens, trimmedTokens, removedCount, truncatedCount}</code></td><td><span class="ver-tag phase3">P3</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: LLM Client
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-llm">
+      <h2>LLM Client <span class="ver-tag phase1">Phase 1</span></h2>
+      <p>封装与 LLM API 的通信层，使用 OpenAI 兼容格式。</p>
+      <p><strong>源文件</strong>：<code>src/llm/client.ts</code></p>
+
+      <h3>核心消息格式</h3>
+      <div class="interface-box">
+        <div class="interface-header"><span style="color:var(--text-muted)">interface</span> Message</div>
+        <div class="interface-body">
+          <span class="field">role</span>: <span class="type">'system' | 'user' | 'assistant' | 'tool'</span><br>
+          <span class="field">content</span>: <span class="type">string</span><br>
+          <span class="field">tool_call_id</span><span class="type">?</span>: <span class="type">string</span> <span class="comment-inline">// tool 消息关联 ID</span><br>
+          <span class="field">tool_calls</span><span class="type">?</span>: <span class="type">ToolCall[]</span> <span class="comment-inline">// assistant 消息的工具调用</span>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <strong>模型无关设计</strong>：Agent Loop 不直接依赖 OpenAI SDK，只依赖 <code>Message</code> 接口。切换模型只需改 <code>.env</code> 配置。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: EventStream
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-event-stream">
+      <h2>EventStream <span class="ver-tag phase1">Phase 1</span></h2>
+      <p>基于 Node.js <code>EventEmitter</code> 的发布/订阅广播系统。</p>
+      <p><strong>源文件</strong>：<code>src/utils/event-stream.ts</code></p>
+      <p>Agent Loop 通过 EventStream 与 CLI / Web UI / 测试框架解耦。Phase 3 新增了 <code>session_start</code> 和 <code>context_trimmed</code> 两个事件（详见 Agent Loop 章节）。</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 工具基础设施
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-tool-foundation">
+      <h2>工具基础设施 <span class="ver-tag phase1">Phase 1</span> + <span class="ver-tag phase2">Phase 2</span></h2>
+
+      <h3>Tool 接口</h3>
+      <p><strong>源文件</strong>：<code>src/tools/types.ts</code></p>
+      <div class="interface-box">
+        <div class="interface-header"><span style="color:var(--text-muted)">interface</span> Tool</div>
+        <div class="interface-body">
+          <span class="field">name</span>: <span class="type">string</span> <span class="comment-inline">// 工具名称（LLM 调用标识）</span><br>
+          <span class="field">description</span>: <span class="type">string</span> <span class="comment-inline">// 描述（告诉 LLM 功能）</span><br>
+          <span class="field">parameters</span>: <span class="type">ToolDefinition</span> <span class="comment-inline">// JSON Schema 参数定义</span><br>
+          <span class="field">execute</span>: <span class="type">ToolExecuteFn</span> <span class="comment-inline">// 执行函数</span>
+        </div>
+      </div>
+
+      <h3>ToolRegistry 执行流水线</h3>
+      <p><strong>源文件</strong>：<code>src/tools/registry.ts</code></p>
+      <div class="flow-diagram">
+        <svg viewBox="0 0 700 100" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-mono)" font-size="12">
+          <rect x="10" y="20" width="130" height="50" rx="8" fill="#1f6feb" opacity="0.2" stroke="#1f6feb"/>
+          <text x="75" y="50" text-anchor="middle" fill="#58a6ff">1. 参数校验</text>
+          <text x="75" y="65" text-anchor="middle" fill="#8b949e" font-size="10">ajv validate</text>
+          <text x="155" y="50" fill="#58a6ff" font-size="18">→</text>
+          <rect x="175" y="20" width="130" height="50" rx="8" fill="#da3633" opacity="0.2" stroke="#da3633"/>
+          <text x="240" y="50" text-anchor="middle" fill="#f85149">2. 权限检查</text>
+          <text x="240" y="65" text-anchor="middle" fill="#8b949e" font-size="10">PermissionPolicy</text>
+          <text x="320" y="50" fill="#58a6ff" font-size="18">→</text>
+          <rect x="340" y="20" width="130" height="50" rx="8" fill="#238636" opacity="0.2" stroke="#238636"/>
+          <text x="405" y="50" text-anchor="middle" fill="#3fb950">3. 工具执行</text>
+          <text x="405" y="65" text-anchor="middle" fill="#8b949e" font-size="10">tool.execute()</text>
+          <text x="485" y="50" fill="#58a6ff" font-size="18">→</text>
+          <rect x="505" y="20" width="170" height="50" rx="8" fill="#30363d" stroke="#484f58"/>
+          <text x="590" y="50" text-anchor="middle" fill="#e6edf3">4. ToolResult</text>
+          <text x="590" y="65" text-anchor="middle" fill="#8b949e" font-size="10">{content, isError}</text>
+        </svg>
+      </div>
+
+      <h3>ToolContext</h3>
+      <p><strong>源文件</strong>：<code>src/tools/context.ts</code></p>
+      <div class="interface-box">
+        <div class="interface-header"><span style="color:var(--text-muted)">interface</span> ToolContext</div>
+        <div class="interface-body">
+          <span class="field">workDir</span>: <span class="type">string</span> <span class="comment-inline">// 工作目录</span><br>
+          <span class="field">sessionId</span><span class="type">?</span>: <span class="type">string</span> <span class="comment-inline">// 当前会话 ID（Phase 3 注入）</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: bash 工具
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-tool-bash">
+      <h2>bash 工具 <span class="ver-tag phase1">Phase 1</span></h2>
+      <p>智能体与操作系统交互的桥梁。使用 <code>spawn()</code> 实现，支持流式输出和可配超时。</p>
+      <p><strong>源文件</strong>：<code>src/tools/bash.ts</code></p>
+
+      <h3>参数</h3>
+      <div class="param-card">
+        <span class="pname">command</span>
+        <span class="ptype">string</span>
+        <span class="pdesc">要执行的 Shell 命令（必填）</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">timeout</span>
+        <span class="ptype">number</span>
+        <span class="pdesc">超时秒数，默认 30s，先 SIGTERM 再 SIGKILL</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">cwd</span>
+        <span class="ptype">string</span>
+        <span class="pdesc">工作目录，默认 context.workDir</span>
+      </div>
+
+      <div class="callout warn">
+        <strong>安全提示</strong>：bash 工具受 PermissionPolicy 保护。危险命令会被黑名单拦截。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: read_file 工具
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-tool-read">
+      <h2>read_file 工具 <span class="ver-tag phase2">Phase 2</span></h2>
+      <p>让智能体读取文件内容，支持分段读取和行号输出。</p>
+      <p><strong>源文件</strong>：<code>src/tools/read.ts</code></p>
+
+      <h3>参数</h3>
+      <div class="param-card">
+        <span class="pname">path</span>
+        <span class="ptype">string</span>
+        <span class="pdesc">文件路径（支持相对路径）</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">offset</span>
+        <span class="ptype">number</span>
+        <span class="pdesc">起始行号（1-based），默认 1</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">limit</span>
+        <span class="ptype">number</span>
+        <span class="pdesc">读取行数，默认读到文件末尾</span>
+      </div>
+
+      <h3>安全限制</h3>
+      <ul>
+        <li>文件大小最大 10MB，超出拒绝</li>
+        <li>二进制检测：前 8KB 含 null byte 则拒绝</li>
+        <li>路径解析基于 <code>context.workDir</code>，经权限策略校验</li>
+      </ul>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: write_file 工具
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-tool-write">
+      <h2>write_file 工具 <span class="ver-tag phase2">Phase 2</span></h2>
+      <p>让智能体创建和覆写文件，支持自动创建父目录。</p>
+      <p><strong>源文件</strong>：<code>src/tools/write.ts</code></p>
+
+      <h3>参数</h3>
+      <div class="param-card">
+        <span class="pname">path</span>
+        <span class="ptype">string</span>
+        <span class="pdesc">文件路径（必填）</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">content</span>
+        <span class="ptype">string</span>
+        <span class="pdesc">写入内容（必填）</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">createDirs</span>
+        <span class="ptype">boolean</span>
+        <span class="pdesc">自动创建父目录，默认 true</span>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: edit_file 工具
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-tool-edit">
+      <h2>edit_file 工具 <span class="ver-tag phase2">Phase 2</span></h2>
+      <p>精确的查找替换编辑，核心是<strong>唯一性校验</strong>。</p>
+      <p><strong>源文件</strong>：<code>src/tools/edit.ts</code></p>
+
+      <h3>参数</h3>
+      <div class="param-card">
+        <span class="pname">path</span>
+        <span class="ptype">string</span>
+        <span class="pdesc">文件路径（必填）</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">old_str</span>
+        <span class="ptype">string</span>
+        <span class="pdesc">要被替换的文本（必须唯一出现）</span>
+      </div>
+      <div class="param-card">
+        <span class="pname">new_str</span>
+        <span class="ptype">string</span>
+        <span class="pdesc">替换后的文本</span>
+      </div>
+
+      <h3>唯一性校验逻辑</h3>
+      <table>
+        <thead><tr><th>出现次数</th><th>结果</th><th>LLM 应对策略</th></tr></thead>
+        <tbody>
+          <tr><td>0 次</td><td><code>Error: old_str not found</code></td><td>重新 read_file 确认文件内容</td></tr>
+          <tr><td>1 次</td><td>替换成功</td><td>—</td></tr>
+          <tr><td>>1 次</td><td><code>Error: must be unique</code></td><td>扩大 old_str 范围（增加上下文）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 权限策略
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-permissions">
+      <h2>权限策略系统 <span class="ver-tag phase2">Phase 2</span></h2>
+      <p>三层安全防护，作为中间件层不侵入工具实现。</p>
+      <p><strong>源文件</strong>：<code>src/tools/permissions.ts</code></p>
+
+      <h3>三层防护架构</h3>
+      <div class="flow-diagram">
+        <svg viewBox="0 0 660 130" xmlns="http://www.w3.org/2000/svg" font-family="var(--font)" font-size="13">
+          <rect x="10" y="10" width="200" height="50" rx="10" fill="rgba(88,166,255,0.08)" stroke="#1f6feb" stroke-width="1.5"/>
+          <text x="110" y="33" text-anchor="middle" fill="#58a6ff" font-weight="700">1. 路径白名单</text>
+          <text x="110" y="50" text-anchor="middle" fill="#8b949e" font-size="11">文件操作只在允许的目录内</text>
+          <rect x="230" y="10" width="200" height="50" rx="10" fill="rgba(248,81,73,0.08)" stroke="#f85149" stroke-width="1.5"/>
+          <text x="330" y="33" text-anchor="middle" fill="#f85149" font-weight="700">2. 命令黑名单</text>
+          <text x="330" y="50" text-anchor="middle" fill="#8b949e" font-size="11">bash 不能执行危险命令</text>
+          <rect x="450" y="10" width="200" height="50" rx="10" fill="rgba(210,153,34,0.08)" stroke="#d29922" stroke-width="1.5"/>
+          <text x="550" y="33" text-anchor="middle" fill="#d29922" font-weight="700">3. 敏感文件保护</text>
+          <text x="550" y="50" text-anchor="middle" fill="#8b949e" font-size="11">禁止写入 .env / credentials</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: SessionStore
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-session-store">
+      <h2>SessionStore <span class="ver-tag phase3">Phase 3</span></h2>
+      <p>JSONL 存储层，负责会话消息的磁盘读写。设计为 append-only，不修改历史行。</p>
+      <p><strong>源文件</strong>：<code>src/session/store.ts</code></p>
+
+      <h3>JSONL 文件格式</h3>
+      <pre><code>#META {"id":"a1b2c3d4","createdAt":"2026-03-29T...","title":"帮我分析代码","messageCount":5}
+{"role":"user","content":"帮我分析代码","timestamp":"2026-03-29T10:00:01.000Z"}
+{"role":"assistant","content":"好的，让我来读取文件...","timestamp":"2026-03-29T10:00:05.000Z"}
+{"role":"tool","content":"File: src/index.ts (lines 1-50 of 100)...","tool_call_id":"call_abc","timestamp":"..."}</code></pre>
+
+      <h3>设计要点</h3>
+      <ul>
+        <li><strong>Append-only</strong>：新消息只追加到文件末尾，不修改历史行</li>
+        <li><strong>原子写入</strong>：使用 <code>fs.appendFile</code>，操作系统保证追加的原子性</li>
+        <li><strong>懒加载</strong>：<code>readMessages()</code> 时才读取文件，不在内存中缓存全量</li>
+        <li><strong>路径安全</strong>：sessionId 使用正则 <code>/^[a-zA-Z0-9_-]+$/</code> 校验，防止路径遍历攻击</li>
+        <li><strong>容错读取</strong>：无法解析的 JSON 行会被跳过（不中断整个读取）</li>
+      </ul>
+
+      <h3>核心方法</h3>
+      <table>
+        <thead><tr><th>方法</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>create(meta)</code></td><td>创建新会话文件，写入 #META 首行</td></tr>
+          <tr><td><code>append(sessionId, message)</code></td><td>追加单条消息</td></tr>
+          <tr><td><code>appendBatch(sessionId, messages)</code></td><td>批量追加（一轮循环的多条消息）</td></tr>
+          <tr><td><code>readMessages(sessionId)</code></td><td>读取全部消息（跳过 #META）</td></tr>
+          <tr><td><code>readMeta(sessionId)</code></td><td>读取会话元数据</td></tr>
+          <tr><td><code>updateMeta(sessionId, meta)</code></td><td>更新元数据（替换首行，保留消息）</td></tr>
+          <tr><td><code>listAll()</code></td><td>列出所有会话（按 updatedAt 降序）</td></tr>
+          <tr><td><code>delete(sessionId)</code></td><td>删除会话文件</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: SessionManager
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-session-manager">
+      <h2>SessionManager <span class="ver-tag phase3">Phase 3</span></h2>
+      <p>会话管理器，封装 SessionStore，对外提供面向业务的 API。Agent Loop 和 CLI 都通过它与会话系统交互。</p>
+      <p><strong>源文件</strong>：<code>src/session/manager.ts</code></p>
+
+      <h3>核心接口</h3>
+      <div class="interface-box">
+        <div class="interface-header"><span style="color:var(--text-muted)">interface</span> SessionMeta</div>
+        <div class="interface-body">
+          <span class="field">id</span>: <span class="type">string</span> <span class="comment-inline">// crypto.randomUUID() 格式</span><br>
+          <span class="field">createdAt</span>: <span class="type">string</span> <span class="comment-inline">// ISO 8601</span><br>
+          <span class="field">updatedAt</span>: <span class="type">string</span> <span class="comment-inline">// ISO 8601</span><br>
+          <span class="field">workDir</span>: <span class="type">string</span> <span class="comment-inline">// 关联的工作目录</span><br>
+          <span class="field">title</span>: <span class="type">string</span> <span class="comment-inline">// 用户第一条消息的前 50 字</span><br>
+          <span class="field">messageCount</span>: <span class="type">number</span> <span class="comment-inline">// 消息条数</span>
+        </div>
+      </div>
+      <div class="interface-box">
+        <div class="interface-header"><span style="color:var(--text-muted)">interface</span> StoredMessage</div>
+        <div class="interface-body">
+          <span class="field">role</span>: <span class="type">'system' | 'user' | 'assistant' | 'tool'</span><br>
+          <span class="field">content</span>: <span class="type">string</span><br>
+          <span class="field">tool_call_id</span><span class="type">?</span>: <span class="type">string</span><br>
+          <span class="field">tool_calls</span><span class="type">?</span>: <span class="type">ToolCall[]</span><br>
+          <span class="field">timestamp</span>: <span class="type">string</span> <span class="comment-inline">// ISO 8601（FirmClaw 内部字段，不传给 LLM）</span>
+        </div>
+      </div>
+
+      <h3>核心方法</h3>
+      <table>
+        <thead><tr><th>方法</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>create(workDir, firstMessage?)</code></td><td>创建新会话（自动生成 ID 和标题）</td></tr>
+          <tr><td><code>resume(sessionId)</code></td><td>恢复指定会话（读取元数据并设为当前）</td></tr>
+          <tr><td><code>resumeLatest()</code></td><td>恢复最近一次会话（按 updatedAt 排序）</td></tr>
+          <tr><td><code>append(messages)</code></td><td>向当前会话追加消息（异步更新 meta）</td></tr>
+          <tr><td><code>getMessages()</code></td><td>获取当前会话的 LLM 消息数组（StoredMessage → Message）</td></tr>
+          <tr><td><code>listSessions()</code></td><td>列出所有会话（按 updatedAt 降序）</td></tr>
+          <tr><td><code>gc(maxAgeDays?)</code></td><td>清理过期会话（默认 30 天）</td></tr>
+          <tr><td><code>switchSession(sessionId)</code></td><td>切换到指定会话（不读取历史）</td></tr>
+        </tbody>
+      </table>
+
+      <h3>关键设计</h3>
+      <ul>
+        <li><strong>metaCache</strong>：内存中缓存元数据，避免频繁读文件。<code>append()</code> 时异步更新磁盘，不阻塞主流程</li>
+        <li><strong>toLLMMessage</strong>：内部函数将 <code>StoredMessage</code> 转为 <code>Message</code>（剥离 timestamp），因为 LLM 不需要时间戳</li>
+        <li><strong>禁用模式</strong>：<code>config.enabled = false</code> 时所有操作变为 no-op，便于测试</li>
+      </ul>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: ContextBuilder
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-context-builder">
+      <h2>ContextBuilder <span class="ver-tag phase3">Phase 3</span></h2>
+      <p>系统提示词组装器——运行时动态生成 system prompt。每次 Agent Loop 调用 LLM 前，ContextBuilder 会加载最新的工作区文件和会话信息。</p>
+      <p><strong>源文件</strong>：<code>src/session/context-builder.ts</code></p>
+
+      <h3>工作区文件体系</h3>
+      <pre><code>.firmclaw/
+├── SOUL.md        # 智能体人格和行为准则（核心定制点）
+├── AGENTS.md      # 多智能体协作规则（预留）
+└── MEMORY.md      # 长期记忆（预留 Phase 4 自动管理）</code></pre>
+
+      <h3>模板变量</h3>
+      <table>
+        <thead><tr><th>变量</th><th>来源</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>{{soul}}</code></td><td>SOUL.md</td><td>智能体人格定义</td></tr>
+          <tr><td><code>{{agents}}</code></td><td>AGENTS.md</td><td>协作规则</td></tr>
+          <tr><td><code>{{memory}}</code></td><td>MEMORY.md</td><td>长期记忆</td></tr>
+          <tr><td><code>{{tools}}</code></td><td>ToolRegistry.getAll()</td><td>当前可用工具的描述和参数</td></tr>
+          <tr><td><code>{{sessionId}}</code></td><td>SessionMeta</td><td>当前会话 ID</td></tr>
+          <tr><td><code>{{messageCount}}</code></td><td>SessionMeta</td><td>历史消息数</td></tr>
+        </tbody>
+      </table>
+
+      <h3>条件渲染</h3>
+      <p>模板支持条件块语法。如果文件不存在，对应区块不会输出：</p>
+      <pre><code>{{#soul}}    ← 如果 soul 变量为 truthy
+{{soul}}     ← 输出 SOUL.md 内容
+---
+{{/soul}}    ← 条件结束
+
+{{#memory}}  ← 如果 MEMORY.md 存在
+## 长期记忆
+{{memory}}
+{{/memory}} ← MEMORY.md 不存在时此整块消失</code></pre>
+
+      <h3>自定义模板</h3>
+      <div class="callout tip">
+        <strong>高级用法</strong>：通过 <code>config.customTemplate</code> 指定自定义模板文件路径。如果文件不存在，会自动回退到内置模板。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: TokenCounter
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-token-counter">
+      <h2>TokenCounter <span class="ver-tag phase3">Phase 3</span></h2>
+      <p>Token 估算与消息裁剪器。当对话过长可能超出 LLM 上下文窗口时，TokenCounter 会自动裁剪消息。</p>
+      <p><strong>源文件</strong>：<code>src/utils/token-counter.ts</code></p>
+
+      <h3>估算策略</h3>
+      <p>约 <strong>4 字符 ≈ 1 token</strong>（中英文混合场景的粗略估计）。这不是精确计数，但足以做裁剪判断。Phase 4 可升级为 tiktoken。</p>
+
+      <h3>两级裁剪策略</h3>
+      <div class="flow-diagram">
+        <svg viewBox="0 0 700 160" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-mono)" font-size="12">
+          <rect x="10" y="10" width="200" height="60" rx="8" fill="rgba(137,87,229,0.15)" stroke="#8957e5"/>
+          <text x="110" y="35" text-anchor="middle" fill="#bc8cff" font-weight="600">Level 1: 单条截断</text>
+          <text x="110" y="52" text-anchor="middle" fill="#8b949e" font-size="10">tool 消息超过 maxToolResultTokens 时</text>
+          <text x="110" y="65" text-anchor="middle" fill="#8b949e" font-size="10">截断并附加 ...(truncated)</text>
+          <text x="225" y="40" fill="#bc8cff" font-size="18">→</text>
+          <rect x="245" y="10" width="200" height="60" rx="8" fill="rgba(248,81,73,0.15)" stroke="#f85149"/>
+          <text x="345" y="35" text-anchor="middle" fill="#f85149" font-weight="600">Level 2: 整体裁剪</text>
+          <text x="345" y="52" text-anchor="middle" fill="#8b949e" font-size="10">总 token 仍超限时</text>
+          <text x="345" y="65" text-anchor="middle" fill="#8b949e" font-size="10">从最早的消息开始移除</text>
+          <text x="460" y="40" fill="#f85149" font-size="18">→</text>
+          <rect x="480" y="10" width="200" height="60" rx="8" fill="rgba(63,185,80,0.15)" stroke="#3fb950"/>
+          <text x="580" y="35" text-anchor="middle" fill="#3fb950" font-weight="600">保护规则</text>
+          <text x="580" y="52" text-anchor="middle" fill="#8b949e" font-size="10">system 消息 → 永不移除</text>
+          <text x="580" y="65" text-anchor="middle" fill="#8b949e" font-size="10">第一条 user 消息 → 永不移除</text>
+        </svg>
+      </div>
+
+      <h3>裁剪配置</h3>
+      <div class="interface-box">
+        <div class="interface-header"><span style="color:var(--text-muted)">interface</span> TrimConfig</div>
+        <div class="interface-body">
+          <span class="field">maxTokens</span>: <span class="type">number</span> <span class="comment-inline">// 最大 token 数（默认 128000）</span><br>
+          <span class="field">maxToolResultTokens</span>: <span class="type">number</span> <span class="comment-inline">// 单条 tool 消息最大 token（默认 500）</span><br>
+          <span class="field">verbose</span>: <span class="type">boolean</span> <span class="comment-inline">// 是否输出裁剪统计</span>
+        </div>
+      </div>
+
+      <h3>裁剪结果</h3>
+      <div class="interface-box">
+        <div class="interface-header"><span style="color:var(--text-muted)">interface</span> TrimResult</div>
+        <div class="interface-body">
+          <span class="field">messages</span>: <span class="type">Message[]</span> <span class="comment-inline">// 裁剪后的消息数组</span><br>
+          <span class="field">originalTokens</span>: <span class="type">number</span> <span class="comment-inline">// 裁剪前总 token 数</span><br>
+          <span class="field">trimmedTokens</span>: <span class="type">number</span> <span class="comment-inline">// 裁剪后总 token 数</span><br>
+          <span class="field">removedCount</span>: <span class="type">number</span> <span class="comment-inline">// 被移除的消息数量</span><br>
+          <span class="field">truncatedCount</span>: <span class="type">number</span> <span class="comment-inline">// 被截断的 tool 消息数量</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 斜杠命令
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-slash-commands">
+      <h2>斜杠命令 <span class="ver-tag phase3">Phase 3</span></h2>
+      <p>CLI 中以 <code>/</code> 开头的命令，用于会话管理和信息查看。</p>
+      <p><strong>源文件</strong>：<code>src/index.ts</code></p>
+
+      <table>
+        <thead><tr><th>命令</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>/new</code></td><td>创建新会话，重置对话历史</td></tr>
+          <tr><td><code>/resume [id]</code></td><td>恢复指定会话或最近一次会话</td></tr>
+          <tr><td><code>/sessions</code></td><td>列出所有会话（显示 ID、标题、消息数、时间）</td></tr>
+          <tr><td><code>/session</code></td><td>显示当前会话详情</td></tr>
+          <tr><td><code>/soul</code></td><td>显示 SOUL.md 内容</td></tr>
+          <tr><td><code>/memory</code></td><td>显示 MEMORY.md 内容</td></tr>
+          <tr><td><code>/help</code></td><td>显示帮助信息</td></tr>
+          <tr><td><code>/exit</code> / <code>/quit</code></td><td>退出 CLI</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout info">
+        <strong>自动恢复</strong>：每次启动 FirmClaw 时，会自动调用 <code>resumeLatest()</code> 恢复上次会话，实现跨重启的连续对话。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 文件结构
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-file-structure">
+      <h2>文件结构</h2>
+      <div class="file-tree">
+<span class="dir">src/</span>
+├── <span class="dir">agent/</span>
+│   ├── <span class="file">agent-loop.ts</span>    <span class="comment">// ReAct 循环 + 会话集成 [P1, P3]</span>
+│   └── <span class="file">types.ts</span>         <span class="comment">// AgentConfig / AgentResult [P1, P3]</span>
+├── <span class="dir">llm/</span>
+│   └── <span class="file">client.ts</span>        <span class="comment">// LLM API 通信层 [P1]</span>
+├── <span class="dir">session/</span>
+│   ├── <span class="file">types.ts</span>         <span class="comment">// SessionMeta / StoredMessage [P3]</span>
+│   ├── <span class="file">store.ts</span>          <span class="comment">// JSONL 存储层 [P3]</span>
+│   ├── <span class="file">manager.ts</span>        <span class="comment">// 会话管理器 [P3]</span>
+│   └── <span class="file">context-builder.ts</span> <span class="comment">// 动态系统提示词 [P3]</span>
+├── <span class="dir">tools/</span>
+│   ├── <span class="file">context.ts</span>       <span class="comment">// ToolContext [P1]</span>
+│   ├── <span class="file">types.ts</span>         <span class="comment">// Tool / ToolResult [P1]</span>
+│   ├── <span class="file">registry.ts</span>      <span class="comment">// 工具注册中心 + ajv + 权限 [P1, P2]</span>
+│   ├── <span class="file">bash.ts</span>          <span class="comment">// bash 工具 [P1]</span>
+│   ├── <span class="file">read.ts</span>          <span class="comment">// read_file 工具 [P2]</span>
+│   ├── <span class="file">write.ts</span>         <span class="comment">// write_file 工具 [P2]</span>
+│   ├── <span class="file">edit.ts</span>          <span class="comment">// edit_file 工具 [P2]</span>
+│   └── <span class="file">permissions.ts</span>   <span class="comment">// 权限策略 [P2]</span>
+├── <span class="dir">utils/</span>
+│   ├── <span class="file">event-stream.ts</span>  <span class="comment">// 事件广播 [P1]</span>
+│   ├── <span class="file">prompt-template.ts</span> <span class="comment">// {{}} 模板引擎 [P3]</span>
+│   └── <span class="file">token-counter.ts</span>  <span class="comment">// Token 估算 + 裁剪 [P3]</span>
+├── <span class="dir">tests/</span>
+│   ├── <span class="file">test-v1.0-bash.ts</span>     <span class="comment">// bash 基础测试 [P1]</span>
+│   ├── <span class="file">test-v1.0-llm.ts</span>      <span class="comment">// LLM 连接测试 [P1, 需 API]</span>
+│   ├── <span class="file">test-v1.0-agent.ts</span>    <span class="comment">// Agent 端到端测试 [P1, 需 API]</span>
+│   ├── <span class="file">test-v1.2-read.ts</span>     <span class="comment">// read_file 测试 [P2]</span>
+│   ├── <span class="file">test-v1.3-write.ts</span>    <span class="comment">// write_file 测试 [P2]</span>
+│   ├── <span class="file">test-v1.4-edit.ts</span>     <span class="comment">// edit_file 测试 [P2]</span>
+│   ├── <span class="file">test-v1.5-bash.ts</span>     <span class="comment">// spawn 升级测试 [P2]</span>
+│   ├── <span class="file">test-v1.6-permissions.ts</span> <span class="comment">// 权限系统测试 [P2]</span>
+│   ├── <span class="file">test-v2.1-session-store.ts</span>  <span class="comment">// JSONL 存储层测试 [P3]</span>
+│   ├── <span class="file">test-v2.1-session-manager.ts</span> <span class="comment">// 会话管理器测试 [P3]</span>
+│   ├── <span class="file">test-v2.2-context-builder.ts</span> <span class="comment">// 提示词组装测试 [P3]</span>
+│   └── <span class="file">test-v2.3-token-counter.ts</span>  <span class="comment">// Token 裁剪测试 [P3]</span>
+├── <span class="file">index.ts</span>            <span class="comment">// CLI 入口 [P1, P2, P3]</span>
+<span class="dir">docs/</span>
+├── <span class="file">manual-v1.0.html</span>        <span class="comment">// v1.0 技术手册</span>
+├── <span class="file">manual-v2.0.html</span>        <span class="comment">// v2.0 技术手册</span>
+├── <span class="file">manual-v3.0.html</span>        <span class="comment">// v3.0 技术手册（本文件）</span>
+├── <span class="file">roadmap-phase4.md</span>       <span class="comment">// Phase 4 设计文档</span>
+└── <span class="file">...</span>                     <span class="comment">// 其他文档</span>
+<span class="file">.env</span>                      <span class="comment">// 环境变量配置</span>
+<span class="file">package.json</span>              <span class="comment">// 项目配置与依赖</span>
+<span class="file">tsconfig.json</span>             <span class="comment">// TypeScript 配置（ESM）</span>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 版本历史
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-version-history">
+      <h2>版本历史</h2>
+      <table>
+        <thead><tr><th>Tag</th><th>阶段</th><th>内容</th><th>测试</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>v1.0.0</strong></td>
+            <td>Phase 1</td>
+            <td>ReAct 循环、LLM Client、EventStream、bash 基础版、CLI</td>
+            <td>4 PASS</td>
+          </tr>
+          <tr>
+            <td><strong>v1.1.0</strong></td>
+            <td>Phase 2</td>
+            <td>ToolContext、ajv 参数校验、registry.execute() 流水线</td>
+            <td>4 PASS</td>
+          </tr>
+          <tr>
+            <td><strong>v1.2.0</strong></td>
+            <td>Phase 2</td>
+            <td>read_file 工具（行号、二进制检测、10MB 限制）</td>
+            <td>6 PASS</td>
+          </tr>
+          <tr>
+            <td><strong>v1.3.0</strong></td>
+            <td>Phase 2</td>
+            <td>write_file 工具（自动创建目录）</td>
+            <td>8 PASS</td>
+          </tr>
+          <tr>
+            <td><strong>v1.4.0</strong></td>
+            <td>Phase 2</td>
+            <td>edit_file 工具（唯一性校验）</td>
+            <td>9 PASS</td>
+          </tr>
+          <tr>
+            <td><strong>v1.5.0</strong></td>
+            <td>Phase 2</td>
+            <td>bash 升级 spawn()（流式输出、超时可配、cwd）</td>
+            <td>7 PASS</td>
+          </tr>
+          <tr>
+            <td><strong>v1.6.0</strong></td>
+            <td>Phase 2</td>
+            <td>权限策略系统（路径白名单+命令黑名单+敏感文件保护）</td>
+            <td>15 PASS</td>
+          </tr>
+          <tr>
+            <td><strong>v2.1.0</strong></td>
+            <td>Phase 3</td>
+            <td>SessionStore (JSONL 存储) + SessionManager (会话管理)</td>
+            <td>20 PASS</td>
+          </tr>
+          <tr>
+            <td><strong>v2.2.0</strong></td>
+            <td>Phase 3</td>
+            <td>ContextBuilder (动态提示词) + PromptTemplate (模板引擎)</td>
+            <td>37 PASS</td>
+          </tr>
+          <tr>
+            <td><strong>v2.3.0</strong></td>
+            <td>Phase 3</td>
+            <td>TokenCounter (估算+裁剪) + Agent Loop 集成裁剪</td>
+            <td>49 PASS</td>
+          </tr>
+          <tr>
+            <td><strong>v2.4.0</strong></td>
+            <td>Phase 3</td>
+            <td>斜杠命令、启动自动恢复会话、CLI 集成</td>
+            <td>49 PASS</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout info">
+        <strong>累计测试</strong>：Phase 1+2+3 共 49 个测试用例（离线 47 + 联网 2），全部通过，零回退。其中 Phase 3 新增 34 个离线测试，全面覆盖会话存储、会话管理、提示词组装和 Token 裁剪。
+      </div>
+
+      <h3>Phase 路线图</h3>
+      <table>
+        <thead><tr><th>阶段</th><th>目标</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td>Phase 1</td><td>最小可用的 ReAct 循环</td><td style="color:var(--green)">✅ 完成 (v1.0)</td></tr>
+          <tr><td>Phase 2</td><td>完善工具系统</td><td style="color:var(--green)">✅ 完成 (v1.6)</td></tr>
+          <tr><td>Phase 3</td><td>会话管理与上下文管理</td><td style="color:var(--green)">✅ 完成 (v2.4)</td></tr>
+          <tr><td>Phase 4</td><td>LLM 摘要压缩 + 记忆系统 + BM25 搜索</td><td style="color:var(--text-muted)">⬜ 设计中</td></tr>
+          <tr><td>Phase 5</td><td>安全与进阶特性（人工审批等）</td><td style="color:var(--text-muted)">⬜ 待开始</td></tr>
+          <tr><td>Phase 6</td><td>网关与多平台适配</td><td style="color:var(--text-muted)">⬜ 待开始</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /.content -->
+</div><!-- /.main -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+// 导航逻辑
+// ═══════════════════════════════════════════════════════
+
+const sectionIds = [
+  'overview', 'architecture', 'quickstart',
+  'agent-loop', 'llm', 'event-stream',
+  'tool-foundation', 'tool-bash', 'tool-read', 'tool-write', 'tool-edit',
+  'permissions',
+  'session-store', 'session-manager', 'context-builder', 'token-counter',
+  'slash-commands',
+  'file-structure', 'version-history'
+];
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('sec-' + id);
+  if (target) target.classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.section === id);
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.section === id);
+  });
+
+  window.scrollTo({ top: 0 });
+}
+
+// Keyboard shortcut: press 1-9 to navigate
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const num = parseInt(e.key);
+  if (num >= 1 && num <= sectionIds.length) {
+    showSection(sectionIds[num - 1]);
+  }
+});
+</script>
+</body>
+</html>

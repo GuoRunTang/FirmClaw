@@ -242,7 +242,7 @@
 <div class="hero">
   <h1>FirmClaw v1.0.0 部署指南</h1>
   <p class="subtitle">Windows 环境从零搭建到运行的全部流程</p>
-  <span class="tag">Windows 10/11 &bull; Node.js &ge; 18 &bull; MiniMax API</span>
+  <span class="tag">Windows 10/11 &bull; Node.js &ge; 18 &bull; MiniMax M2.7 API</span>
 </div>
 
 <div class="nav">
@@ -270,7 +270,7 @@
       <tr><td>操作系统</td><td>Windows 10 或 Windows 11</td><td>—</td></tr>
       <tr><td>Node.js</td><td>&ge; 18.0.0 (推荐 LTS 20.x)</td><td><a href="https://nodejs.org" style="color:var(--accent)">nodejs.org</a></td></tr>
       <tr><td>npm</td><td>随 Node.js 自动安装</td><td>—</td></tr>
-      <tr><td>MiniMax API Key</td><td>有效密钥 (sk-cp-...)</td><td><a href="https://platform.minimax.chat" style="color:var(--accent)">platform.minimax.chat</a></td></tr>
+      <tr><td>MiniMax API Key</td><td>有效密钥 (eyJ...)</td><td><a href="https://platform.minimax.chat" style="color:var(--accent)">platform.minimax.chat</a></td></tr>
       <tr><td>网络</td><td>能访问 api.minimax.chat</td><td>—</td></tr>
       <tr><td>磁盘空间</td><td>~200 MB (含 node_modules)</td><td>—</td></tr>
     </table>
@@ -373,7 +373,7 @@
       <p><code>npm install</code> 会读取 <code>package-lock.json</code>，安装以下 5 个依赖包：</p>
       <table>
         <tr><th>包名</th><th>版本</th><th>作用</th></tr>
-        <tr><td><code>openai</code></td><td>^6.32.0</td><td>OpenAI SDK（MiniMax 兼容格式）</td></tr>
+        <tr><td><code>openai</code></td><td>^6.32.0</td><td>OpenAI SDK（OpenAI 兼容格式）</td></tr>
         <tr><td><code>dotenv</code></td><td>^17.3.1</td><td>加载 .env 环境变量</td></tr>
         <tr><td><code>tsx</code></td><td>^4.21.0</td><td>TypeScript 直接运行器（无需编译）</td></tr>
         <tr><td><code>typescript</code></td><td>^6.0.2</td><td>TypeScript 编译器</td></tr>
@@ -412,8 +412,9 @@
       <div class="env-visual">
         <span class="env-comment"># ═══ FirmClaw 环境变量配置 ═══</span><br>
         <br>
-        <span class="env-comment"># LLM 提供商配置（MiniMax）</span><br>
-        <span class="env-key">LLM_API_KEY</span><span class="env-eq">=</span><span class="env-val">sk-cp-你的MiniMax密钥</span><br>
+        <span class="env-comment"># LLM 提供商配置（默认 MiniMax M2.7）</span><br>
+        <span class="env-comment"># 也支持 ANTHROPIC_AUTH_TOKEN / ANTHROPIC_BASE_URL / ANTHROPIC_MODEL 环境变量</span><br>
+        <span class="env-key">LLM_API_KEY</span><span class="env-eq">=</span><span class="env-val">你的MiniMax密钥</span><br>
         <span class="env-key">LLM_BASE_URL</span><span class="env-eq">=</span><span class="env-val">https://api.minimax.chat/v1</span><br>
         <span class="env-key">LLM_MODEL</span><span class="env-eq">=</span><span class="env-val">MiniMax-M2.7</span>
       </div>
@@ -599,7 +600,7 @@
           <rect x="30" y="455" width="520" height="55" rx="10" fill="rgba(26,29,46,0.8)" stroke="#2a2d3e" stroke-width="1"/>
           <text x="50" y="478" fill="#a78bfa" font-size="12" font-weight="600">核心依赖</text>
           <text x="50" y="498" fill="#8b8fa3" font-size="11" font-family="Consolas, monospace">
-            openai (MiniMax SDK) · dotenv (.env加载) · tsx (TS运行器) · typescript (编译器)
+            openai (OpenAI 兼容 SDK) · dotenv (.env加载) · tsx (TS运行器) · typescript (编译器)
           </text>
         </svg>
       </div>
@@ -645,7 +646,7 @@
 
       <h3>Q4: 测试 LLM 超时或 401 错误</h3>
       <ul>
-        <li><strong>401 Unauthorized</strong>：API Key 无效或过期，去 MiniMax 平台重新生成</li>
+        <li><strong>401 Unauthorized</strong>：API Key 无效或过期，去对应平台重新生成</li>
         <li><strong>超时</strong>：检查网络是否能访问 <code>api.minimax.chat</code></li>
         <li><strong>429 Too Many Requests</strong>：请求频率过高，等几秒重试</li>
       </ul>
@@ -656,7 +657,7 @@
         <span class="env-comment"># 示例：切换到 Kimi</span><br>
         <span class="env-key">LLM_API_KEY</span><span class="env-eq">=</span><span class="env-val">你的Kimi密钥</span><br>
         <span class="env-key">LLM_BASE_URL</span><span class="env-eq">=</span><span class="env-val">https://api.moonshot.ai/v1</span><br>
-        <span class="env-key">LLM_MODEL</span><span class="env-eq">=</span><span class="env-val">kimi-k2.5</span><br><br>
+        <span class="env-key">LLM_MODEL</span><span class="env-eq">=</span><span class="env-val">moonshot-v1-8k</span><br><br>
         <span class="env-comment"># 示例：切换到 DeepSeek</span><br>
         <span class="env-key">LLM_API_KEY</span><span class="env-eq">=</span><span class="env-val">你的DeepSeek密钥</span><br>
         <span class="env-key">LLM_BASE_URL</span><span class="env-eq">=</span><span class="env-val">https://api.deepseek.com/v1</span><br>

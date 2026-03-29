@@ -4,9 +4,9 @@
  * 【讲解】
  * LLMClient 是与 LLM API 通信的封装层。
  *
- * 当前适配：MiniMax API（OpenAI 兼容格式）
+ * 当前默认适配：MiniMax M2.7 API（OpenAI 兼容格式）
  *   baseURL = https://api.minimax.chat/v1
- *   认证方式 = Authorization: Bearer sk-xxx
+ *   认证方式 = Authorization: Bearer eyJ...
  *   SDK = openai (官方 OpenAI SDK)
  *
  * 使用 OpenAI 兼容格式的好处：
@@ -15,9 +15,9 @@
  * - function calling 格式统一，工具调用解析逻辑一致
  *
  * MiniMax M2.7 的特性：
- * - 支持高达 1M token 上下文窗口
- * - 支持标准 function calling（工具调用）
+ * - 支持 function calling（工具调用）
  * - 兼容 OpenAI Chat Completions API
+ * - 环境变量支持 LLM_* 和 ANTHROPIC_* 两套命名
  *
  * 本文件的核心价值：
  * - 对外暴露统一的 Message 接口

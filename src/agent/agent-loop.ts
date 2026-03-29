@@ -10,10 +10,12 @@
  *        - 动态系统提示词（SOUL.md / AGENTS.md / MEMORY.md）
  *        - 上下文窗口管理（token 裁剪）
  *        - 渐进增强：sessionManager/contextBuilder/tokenCounter 为可选
+ * v3.1: 集成 Summarizer
+ *        - LLM 摘要压缩优先于简单裁剪
+ *        - 摘要保留关键决策和语义信息
  */
 
 import type { Message } from '../llm/client.js';
-import type { LLMClient } from '../llm/client.js';
 import type { ToolRegistry } from '../tools/registry.js';
 import type { ToolContext } from '../tools/context.js';
 import { EventStream } from '../utils/event-stream.js';
@@ -21,6 +23,7 @@ import type { AgentConfig, AgentResult } from './types.js';
 import type { SessionManager } from '../session/manager.js';
 import type { ContextBuilder } from '../session/context-builder.js';
 import type { TokenCounter } from '../utils/token-counter.js';
+import type { Summarizer } from '../session/summarizer.js';
 
 export class AgentLoop {
   private llm: LLMClient;
@@ -32,6 +35,8 @@ export class AgentLoop {
   private sessionManager?: SessionManager;
   private contextBuilder?: ContextBuilder;
   private tokenCounter?: TokenCounter;
+  // Phase 4 可选组件
+  private summarizer?: Summarizer;
 
   constructor(llm: LLMClient, tools: ToolRegistry, config: AgentConfig) {
     this.llm = llm;
@@ -43,6 +48,8 @@ export class AgentLoop {
     this.sessionManager = config.sessionManager;
     this.contextBuilder = config.contextBuilder;
     this.tokenCounter = config.tokenCounter;
+    // Phase 4: 摘要压缩器
+    this.summarizer = config.summarizer;
   }
 
   /** 获取事件流（供 CLI 等外部模块订阅） */
@@ -75,7 +82,7 @@ export class AgentLoop {
     let systemPrompt: string;
     if (this.contextBuilder && this.sessionManager) {
       const sessionMeta = this.sessionManager.getCurrentMeta() ?? undefined;
-      systemPrompt = await this.contextBuilder.build(this.tools, sessionMeta);
+      systemPrompt = await this.contextBuilder.build(this.tools, sessionMeta, userMessage);
     } else {
       systemPrompt = this.config.systemPrompt;
     }
@@ -84,9 +91,24 @@ export class AgentLoop {
     // 恢复历史消息
     // ═══════════════════════════════════════════════════════
 
-    const historyMessages = this.sessionManager
+    let historyMessages = this.sessionManager
       ? await this.sessionManager.getMessages()
       : [];
+
+    // ═══════════════════════════════════════════════════════
+    // Phase 4: LLM 摘要压缩（优先于简单裁剪）
+    // ═══════════════════════════════════════════════════════
+    if (this.summarizer && this.summarizer.shouldSummarize(historyMessages)) {
+      const summaryResult = await this.summarizer.summarize(historyMessages);
+      if (summaryResult.summarized) {
+        historyMessages = summaryResult.messages;
+        this.events.emit('summary_generated', {
+          compressedCount: summaryResult.compressedCount,
+          originalTokens: summaryResult.originalTokens,
+          newTokens: summaryResult.newTokens,
+        });
+      }
+    }
 
     // 构建完整的消息列表
     const allMessages: Message[] = [

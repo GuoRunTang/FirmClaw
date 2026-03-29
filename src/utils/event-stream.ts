@@ -10,11 +10,17 @@
  * - 发生了什么错误（error）
  * - 会话何时开始（session_start）— v2.3
  * - 上下文何时被裁剪（context_trimmed）— v2.3
+ * - 摘要何时生成（summary_generated）— v3.1
+ * - 记忆何时保存（memory_saved）— v3.2
  *
  * 解决方案：用事件发布/订阅模式。
  * - Agent Loop 通过 events.emit('xxx', data) 发布事件
  * - CLI 通过 events.on('xxx', callback) 订阅事件
  * - 两者完全解耦，Agent Loop 不需要知道谁在监听
+ *
+ * v2.3: 新增 session_start / context_trimmed
+ * v3.1: 新增 summary_generated
+ * v3.2: 新增 memory_saved
  */
 
 import { EventEmitter } from 'node:events';
@@ -27,7 +33,9 @@ export type AgentEventType =
   | 'message_end'        // 最终文本回复完成
   | 'error'              // 出错了
   | 'session_start'      // v2.3: 会话开始 { id, title, createdAt }
-  | 'context_trimmed';   // v2.3: 上下文被裁剪 { originalTokens, trimmedTokens }
+  | 'context_trimmed'    // v2.3: 上下文被裁剪 { originalTokens, trimmedTokens }
+  | 'summary_generated'  // v3.1: 摘要生成 { compressedCount, originalTokens, newTokens }
+  | 'memory_saved';      // v3.2: 记忆保存 { id, tag }
 
 /** 事件对象 */
 export interface AgentEvent {
