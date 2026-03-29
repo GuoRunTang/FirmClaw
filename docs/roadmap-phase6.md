@@ -1,8 +1,8 @@
 # FirmClaw Phase 6 设计文档
 
-> **状态**: 设计中
+> **状态**: 完成
 > **基于**: v5.0.0 (Phase 1 ~ Phase 5 完成)
-> **目标版本**: v6.0.0
+> **目标版本**: v6.0.0 ✅
 > **前置版本**: v5.1.0 → v5.2.0 → v5.3.0 → v5.4.0 → v6.0.0
 
 ---
@@ -1567,4 +1567,4 @@ $ npx tsx src/index.ts --serve --port 3000 --web
 | v5.2.0 | CLI 交互界面增强（Renderer + ProgressIndicator） | ✅ 完成 |
 | v5.3.0 | 子智能体（SubagentManager + subagent 工具） | ✅ 完成 |
 | v5.4.0 | Web UI（静态文件 + HTTP 服务） | ✅ 完成 |
-| v6.0.0 | 全量整合 + 版本发布 | ⏳ 待开发 |
+| v6.0.0 | 全量整合 + 版本发布 | ✅ 完成 |
