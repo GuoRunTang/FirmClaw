@@ -8,6 +8,7 @@
  * v2.1: AgentConfig 新增 session 相关字段
  * v2.3: AgentConfig 新增 contextBuilder / tokenCounter / trimConfig
  * v3.1: AgentConfig 新增 summarizer / summarizerConfig
+ * v4.1: AgentConfig 新增 approvalGateway
  */
 
 import type { SessionManager } from '../session/manager.js';
@@ -16,6 +17,7 @@ import type { TokenCounter } from '../utils/token-counter.js';
 import type { TrimConfig } from '../utils/token-counter.js';
 import type { Summarizer } from '../session/summarizer.js';
 import type { SummarizerConfig } from '../session/summarizer.js';
+import type { ApprovalGateway } from './approval-gateway.js';
 
 /** Agent 循环的配置 */
 export interface AgentConfig {
@@ -37,6 +39,8 @@ export interface AgentConfig {
   summarizer?: Summarizer;
   /** 摘要配置（v3.1: 仅在 summarizer 设置时生效） */
   summarizerConfig?: SummarizerConfig;
+  /** 人工审批网关（v4.1: 可选，设置后启用人工审批） */
+  approvalGateway?: ApprovalGateway;
 }
 
 /** Agent 循环的返回结果 */

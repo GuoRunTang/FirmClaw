@@ -12,6 +12,7 @@
  * - 上下文何时被裁剪（context_trimmed）— v2.3
  * - 摘要何时生成（summary_generated）— v3.1
  * - 记忆何时保存（memory_saved）— v3.2
+ * - 审批何时请求/解决（approval_*）— v4.1
  *
  * 解决方案：用事件发布/订阅模式。
  * - Agent Loop 通过 events.emit('xxx', data) 发布事件
@@ -21,6 +22,7 @@
  * v2.3: 新增 session_start / context_trimmed
  * v3.1: 新增 summary_generated
  * v3.2: 新增 memory_saved
+ * v4.1: 新增 approval_requested / approval_granted / approval_denied
  */
 
 import { EventEmitter } from 'node:events';
@@ -35,7 +37,10 @@ export type AgentEventType =
   | 'session_start'      // v2.3: 会话开始 { id, title, createdAt }
   | 'context_trimmed'    // v2.3: 上下文被裁剪 { originalTokens, trimmedTokens }
   | 'summary_generated'  // v3.1: 摘要生成 { compressedCount, originalTokens, newTokens }
-  | 'memory_saved';      // v3.2: 记忆保存 { id, tag }
+  | 'memory_saved'       // v3.2: 记忆保存 { id, tag }
+  | 'approval_requested' // v4.1: 审批请求 { id, toolName, args, riskLevel }
+  | 'approval_granted'   // v4.1: 审批通过 { toolName, args }
+  | 'approval_denied';   // v4.1: 审批拒绝 { toolName, args, reason }
 
 /** 事件对象 */
 export interface AgentEvent {

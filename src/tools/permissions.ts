@@ -12,6 +12,9 @@
  * 1. 路径白名单：文件操作只能在允许的目录内
  * 2. 命令黑名单：bash 不能执行危险命令
  * 3. 敏感文件保护：不能写入 .env 等敏感文件
+ *
+ * v4.1: PermissionResult 新增 riskLevel 字段
+ *        DefaultPermissionPolicy 新增风险等级判定逻辑
  */
 
 import path from 'node:path';
@@ -20,10 +23,15 @@ import path from 'node:path';
 // 类型定义
 // ═══════════════════════════════════════════════════════════════
 
+/** 风险等级 */
+export type RiskLevel = 'low' | 'medium' | 'high';
+
 /** 权限检查结果 */
 export interface PermissionResult {
   allowed: boolean;
   reason?: string;
+  /** v4.1: 风险等级（供审批网关判断是否需要人工确认） */
+  riskLevel?: RiskLevel;
 }
 
 /** 权限策略接口 — 工具在 execute 前会经过策略检查 */
@@ -131,12 +139,18 @@ export class DefaultPermissionPolicy implements PermissionPolicy {
           return {
             allowed: false,
             reason: `Access denied: cannot write/edit protected file "${fileName}"`,
+            riskLevel: 'high',
           };
         }
       }
     }
 
-    return { allowed: true };
+    // v4.1: 风险等级判定
+    if (operation === 'read') {
+      return { allowed: true, riskLevel: 'low' };
+    }
+    // write / edit → medium
+    return { allowed: true, riskLevel: 'medium' };
   }
 
   /** 校验 bash 命令权限 */
@@ -148,11 +162,38 @@ export class DefaultPermissionPolicy implements PermissionPolicy {
         return {
           allowed: false,
           reason: `Command blocked: matches blacklist pattern "${blocked}"`,
+          riskLevel: 'high',
         };
       }
     }
 
-    return { allowed: true };
+    // v4.1: 风险等级判定
+    return { allowed: true, riskLevel: this.assessCommandRisk(normalized) };
+  }
+
+  /**
+   * v4.1: 评估 bash 命令的风险等级
+   *
+   * 判定规则：
+   * - high: 删除/强制推送/格式化等破坏性操作
+   * - medium: 安装/构建/提交等有副作用的操作
+   * - low: 查询/状态/查看等只读操作
+   */
+  private assessCommandRisk(command: string): RiskLevel {
+    // 删除/强制操作 → high
+    if (/^\s*rm\s|^del\s|^rmdir\s/.test(command)) return 'high';
+    if (/git\s+(reset\s+(--hard|--mixed)|push\s+.*--force|clean\s+-f)/.test(command)) return 'high';
+    if (/--force\b/.test(command)) return 'high';
+    if (/sudo\b/.test(command)) return 'high';
+
+    // 安装/构建/提交 → medium
+    if (/\b(npm|yarn|pnpm|pip|cargo|go\s+(install|build)|make|cmake|npm\s+run)\b/.test(command)) return 'medium';
+    if (/git\s+(commit|checkout|switch|merge|rebase|branch)\b/.test(command)) return 'medium';
+    if (/\b(mv|move|copy|cp|xcopy)\b/.test(command)) return 'medium';
+    if (/\b(write|echo\s*>|tee\s)/.test(command)) return 'medium';
+
+    // 其他 → low
+    return 'low';
   }
 }
 

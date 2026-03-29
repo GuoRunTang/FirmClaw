@@ -5,6 +5,7 @@
  *
  * v1.1: ajv 参数校验 + execute() 方法
  * v1.6: 集成权限策略，execute() 中在校验和调用之间插入权限检查
+ * v4.1: 新增 checkPermissionForRisk() 公开方法
  */
 
 import Ajv from 'ajv';
@@ -96,6 +97,22 @@ export class ToolRegistry {
 
     // 4. 执行
     return tool.execute(params, context);
+  }
+
+  /**
+   * v4.1: 获取工具调用的权限检查结果（含风险等级）
+   *
+   * 供 AgentLoop 在审批流程中使用，不执行实际工具。
+   */
+  checkPermissionForRisk(
+    toolName: string,
+    params: Record<string, unknown>,
+    context: ToolContext,
+  ): PermissionResult {
+    if (!this.policy) {
+      return { allowed: true, riskLevel: 'low' };
+    }
+    return this.checkPermission(toolName, params, context);
   }
 
   /**

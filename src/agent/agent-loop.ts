@@ -13,6 +13,9 @@
  * v3.1: 集成 Summarizer
  *        - LLM 摘要压缩优先于简单裁剪
  *        - 摘要保留关键决策和语义信息
+ * v4.1: 集成 ApprovalGateway
+ *        - 工具执行前可暂停等待人工审批
+ *        - 审批事件通过 EventStream 通知 CLI
  */
 
 import type { Message } from '../llm/client.js';
@@ -24,6 +27,8 @@ import type { SessionManager } from '../session/manager.js';
 import type { ContextBuilder } from '../session/context-builder.js';
 import type { TokenCounter } from '../utils/token-counter.js';
 import type { Summarizer } from '../session/summarizer.js';
+import type { ApprovalGateway } from './approval-gateway.js';
+import type { RiskLevel } from '../tools/permissions.js';
 
 export class AgentLoop {
   private llm: LLMClient;
@@ -37,6 +42,8 @@ export class AgentLoop {
   private tokenCounter?: TokenCounter;
   // Phase 4 可选组件
   private summarizer?: Summarizer;
+  // Phase 5 可选组件
+  private approvalGateway?: ApprovalGateway;
 
   constructor(llm: LLMClient, tools: ToolRegistry, config: AgentConfig) {
     this.llm = llm;
@@ -50,6 +57,8 @@ export class AgentLoop {
     this.tokenCounter = config.tokenCounter;
     // Phase 4: 摘要压缩器
     this.summarizer = config.summarizer;
+    // Phase 5: 人工审批网关
+    this.approvalGateway = config.approvalGateway;
   }
 
   /** 获取事件流（供 CLI 等外部模块订阅） */
@@ -214,6 +223,38 @@ export class AgentLoop {
           continue;
         }
 
+        // ──── v4.1: 人工审批 ────
+        if (this.approvalGateway) {
+          const riskLevel = this.assessRiskLevel(toolName, toolArgs, toolContext);
+          this.events.emit('approval_requested', {
+            toolName,
+            args: toolArgs,
+            riskLevel,
+          });
+
+          const approvalResult = await this.approvalGateway.request(toolName, toolArgs, riskLevel);
+
+          if (approvalResult === 'denied' || approvalResult === 'timeout') {
+            const reason = approvalResult === 'timeout'
+              ? `Tool "${toolName}" approval timed out (${this.approvalGateway.getTimeoutMs()}ms)`
+              : `Tool "${toolName}" denied by user`;
+
+            this.events.emit('approval_denied', { toolName, args: toolArgs, reason });
+            this.events.emit('error', reason);
+
+            const denyMsg = {
+              role: 'tool' as const,
+              content: `Error: ${reason}`,
+              tool_call_id: toolCall.id,
+            };
+            allMessages.push(denyMsg);
+            roundMessages.push(denyMsg);
+            continue;
+          }
+
+          this.events.emit('approval_granted', { toolName, args: toolArgs });
+        }
+
         // 执行工具（通过 registry.execute，自动做参数校验）
         try {
           const result = await this.tools.execute(toolName, toolArgs, toolContext);
@@ -294,5 +335,26 @@ export class AgentLoop {
   /** 获取会话管理器引用（供 CLI 使用） */
   getSessionManager(): SessionManager | null {
     return this.sessionManager ?? null;
+  }
+
+  /** 获取审批网关引用（供 CLI 使用） — v4.1 */
+  getApprovalGateway(): ApprovalGateway | null {
+    return this.approvalGateway ?? null;
+  }
+
+  /**
+   * v4.1: 评估工具调用的风险等级
+   *
+   * 优先从权限策略获取 riskLevel；
+   * 如果没有设置权限策略，使用默认判定规则。
+   */
+  private assessRiskLevel(
+    toolName: string,
+    args: Record<string, unknown>,
+    _context: ToolContext,
+  ): RiskLevel {
+    // 利用 registry 的内部权限检查获取 riskLevel
+    const permResult = this.tools.checkPermissionForRisk(toolName, args, _context);
+    return permResult.riskLevel ?? 'low';
   }
 }
