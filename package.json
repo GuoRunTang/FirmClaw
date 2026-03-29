@@ -1,6 +1,6 @@
 {
   "name": "firmclaw",
-  "version": "1.0.0",
+  "version": "5.0.0",
   "description": "A local-first AI agent framework based on ReAct architecture",
   "type": "module",
   "main": "dist/index.js",
@@ -9,7 +9,15 @@
     "build": "tsc",
     "test:bash": "tsx src/tests/test-bash.ts",
     "test:llm": "tsx src/tests/test-llm.ts",
-    "test:agent": "tsx src/tests/test-agent.ts"
+    "test:agent": "tsx src/tests/test-agent.ts",
+    "test:permissions": "tsx src/tests/test-v1.6-permissions.ts",
+    "test:approval": "tsx src/tests/test-approval-gateway.ts",
+    "test:prompt-guard": "tsx src/tests/test-prompt-guard.ts",
+    "test:audit": "tsx src/tests/test-audit-logger.ts",
+    "test:heartbeat": "tsx src/tests/test-heartbeat.ts",
+    "test:hooks": "tsx src/tests/test-hook-manager.ts",
+    "test:branch": "tsx src/tests/test-session-branch.ts",
+    "test:all": "tsx src/tests/test-v1.6-permissions.ts && tsx src/tests/test-approval-gateway.ts && tsx src/tests/test-prompt-guard.ts && tsx src/tests/test-audit-logger.ts && tsx src/tests/test-heartbeat.ts && tsx src/tests/test-hook-manager.ts && tsx src/tests/test-session-branch.ts"
   },
   "engines": {
     "node": ">=18.0.0"
