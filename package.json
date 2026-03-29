@@ -1,6 +1,6 @@
 {
   "name": "firmclaw",
-  "version": "5.2.0",
+  "version": "5.3.0",
   "description": "A local-first AI agent framework based on ReAct architecture",
   "type": "module",
   "main": "dist/index.js",
@@ -19,7 +19,8 @@
     "test:branch": "tsx src/tests/test-session-branch.ts",
     "test:gateway": "tsx src/tests/test-ws-gateway.ts",
     "test:renderer": "tsx src/tests/test-cli-renderer.ts",
-    "test:all": "tsx src/tests/test-v1.6-permissions.ts && tsx src/tests/test-approval-gateway.ts && tsx src/tests/test-prompt-guard.ts && tsx src/tests/test-audit-logger.ts && tsx src/tests/test-heartbeat.ts && tsx src/tests/test-hook-manager.ts && tsx src/tests/test-session-branch.ts && tsx src/tests/test-ws-gateway.ts && tsx src/tests/test-cli-renderer.ts"
+    "test:subagent": "tsx src/tests/test-subagent.ts",
+    "test:all": "tsx src/tests/test-v1.6-permissions.ts && tsx src/tests/test-approval-gateway.ts && tsx src/tests/test-prompt-guard.ts && tsx src/tests/test-audit-logger.ts && tsx src/tests/test-heartbeat.ts && tsx src/tests/test-hook-manager.ts && tsx src/tests/test-session-branch.ts && tsx src/tests/test-ws-gateway.ts && tsx src/tests/test-cli-renderer.ts && tsx src/tests/test-subagent.ts"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -9,6 +9,7 @@
  * v2.3: AgentConfig 新增 contextBuilder / tokenCounter / trimConfig
  * v3.1: AgentConfig 新增 summarizer / summarizerConfig
  * v4.1: AgentConfig 新增 approvalGateway
+ * v5.3: AgentConfig 新增 subagentManager
  */
 
 import type { SessionManager } from '../session/manager.js';
@@ -18,6 +19,7 @@ import type { TrimConfig } from '../utils/token-counter.js';
 import type { Summarizer } from '../session/summarizer.js';
 import type { SummarizerConfig } from '../session/summarizer.js';
 import type { ApprovalGateway } from './approval-gateway.js';
+import type { SubagentManager } from './subagent-manager.js';
 
 /** Agent 循环的配置 */
 export interface AgentConfig {
@@ -41,6 +43,8 @@ export interface AgentConfig {
   summarizerConfig?: SummarizerConfig;
   /** 人工审批网关（v4.1: 可选，设置后启用人工审批） */
   approvalGateway?: ApprovalGateway;
+  /** 子智能体管理器（v5.3: 可选，设置后启用子智能体调用能力） */
+  subagentManager?: SubagentManager;
 }
 
 /** Agent 循环的返回结果 */

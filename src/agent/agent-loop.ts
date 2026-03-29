@@ -29,6 +29,8 @@ import type { TokenCounter } from '../utils/token-counter.js';
 import type { Summarizer } from '../session/summarizer.js';
 import type { ApprovalGateway } from './approval-gateway.js';
 import type { RiskLevel } from '../tools/permissions.js';
+import type { SubagentManager } from './subagent-manager.js';
+import { createSubagentTool } from '../tools/subagent.js';
 
 export class AgentLoop {
   private llm: LLMClient;
@@ -44,6 +46,8 @@ export class AgentLoop {
   private summarizer?: Summarizer;
   // Phase 5 可选组件
   private approvalGateway?: ApprovalGateway;
+  // Phase 6 可选组件
+  private subagentManager?: SubagentManager;
 
   constructor(llm: LLMClient, tools: ToolRegistry, config: AgentConfig) {
     this.llm = llm;
@@ -59,6 +63,11 @@ export class AgentLoop {
     this.summarizer = config.summarizer;
     // Phase 5: 人工审批网关
     this.approvalGateway = config.approvalGateway;
+    // Phase 6: 子智能体管理器
+    this.subagentManager = config.subagentManager;
+    if (this.subagentManager) {
+      this.tools.register(createSubagentTool(this.subagentManager));
+    }
   }
 
   /** 获取事件流（供 CLI 等外部模块订阅） */

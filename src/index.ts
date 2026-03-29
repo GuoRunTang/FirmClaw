@@ -9,6 +9,7 @@
  * v3.4: 集成 Phase 4 全部模块（摘要压缩 + 记忆管理 + 全文搜索 + 新斜杠命令）
  * v5.1: 集成 Phase 6 v5.1 模块（WebSocket Gateway + /serve 命令）
  * v5.2: 集成 CLI 富文本渲染器 + 进度指示器
+ * v5.3: 集成子智能体管理器（SubagentManager）
  */
 
 import 'dotenv/config';
@@ -35,6 +36,7 @@ import { GatewayServer } from './gateway/server.js';
 import { AuthGuard } from './gateway/auth.js';
 import { Renderer } from './cli/renderer.js';
 import { ProgressIndicator } from './cli/progress.js';
+import { SubagentManager } from './agent/subagent-manager.js';
 
 // ═══════════════════════════════════════════════════════════════
 // 主函数
@@ -52,7 +54,7 @@ async function main(): Promise<void> {
 
   const workDir = process.cwd();
 
-  console.log(`FirmClaw v5.2.0`);
+  console.log(`FirmClaw v5.3.0`);
   console.log(`Model: ${model}`);
   console.log(`API: ${baseURL}`);
   console.log(`WorkDir: ${workDir}`);
@@ -99,6 +101,25 @@ async function main(): Promise<void> {
   // Phase 4: 将 SearchEngine 注入 SessionManager
   sessionManager.setSearchEngine(searchEngine);
 
+  // v5.3: 初始化子智能体管理器
+  const subagentManager = new SubagentManager(llm, tools, {
+    systemPrompt: '',
+    maxTurns: 5,
+    workDir,
+    sessionManager,
+    contextBuilder,
+    tokenCounter,
+    trimConfig: {
+      maxTokens: 128000,
+      maxToolResultTokens: 500,
+    },
+    summarizer,
+  }, {
+    maxSubagents: 3,
+    defaultTimeoutMs: 120_000,
+    defaultMaxTurns: 5,
+  });
+
   const agent = new AgentLoop(llm, tools, {
     systemPrompt: '', // 由 ContextBuilder 动态生成
     maxTurns: 10,
@@ -111,6 +132,7 @@ async function main(): Promise<void> {
       maxToolResultTokens: 500,
     },
     summarizer,
+    subagentManager,
   });
 
   // ──── 3. 启动时自动恢复上次会话 ────
