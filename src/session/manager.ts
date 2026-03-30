@@ -47,6 +47,26 @@ export class SessionManager {
     return this.enabled;
   }
 
+  /**
+   * 获取存储目录路径
+   */
+  getStorageDir(): string {
+    return this.store.filePath('').slice(0, -6);
+  }
+
+  /**
+   * 创建一个独立的 SessionManager 实例（共享存储目录）
+   *
+   * Gateway 中为每个 WebSocket 连接 fork 独立的 SessionManager，
+   * 避免多个连接共享同一个 currentSessionId 导致状态冲突。
+   */
+  fork(): SessionManager {
+    return new SessionManager({
+      storageDir: this.getStorageDir(),
+      enabled: this.enabled,
+    });
+  }
+
   /** 生成安全的会话 ID（使用 Node.js 内置 crypto） */
   private generateId(): string {
     return crypto.randomUUID();

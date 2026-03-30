@@ -467,7 +467,6 @@ Available commands:
           if (gateway) {
             await gateway.stop();
             gateway = null;
-            console.log('[Gateway] Server stopped.');
           } else {
             console.log('Gateway is not running.');
           }

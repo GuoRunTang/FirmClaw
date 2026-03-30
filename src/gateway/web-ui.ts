@@ -45,7 +45,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .chat-area { flex: 1; display: flex; flex-direction: column; }
 .messages { flex: 1; overflow-y: auto; padding: 20px; }
 .message { margin-bottom: 16px; max-width: 800px; }
-.message.user { text-align: right; }
+.message.user { text-align: right; margin-left: auto; }
 .message .bubble { display: inline-block; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; text-align: left; }
 .message.user .bubble { background: #1f6feb; color: #fff; }
 .message.assistant .bubble { background: #21262d; border: 1px solid #30363d; }
@@ -125,6 +125,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 let ws = null;
 let requestId = 0;
 let currentSessionId = null;
+let pendingRequests = {};  // id -> method (用于识别响应来源)
 
 // ──── Init ────
 
@@ -132,8 +133,7 @@ let currentSessionId = null;
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token') || '';
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const url = protocol + '//' + location.host + '?token=' + encodeURIComponent(token);
-
+  const url = protocol + '//' + location.host + '/?token=' + encodeURIComponent(token);
   connect(url);
 })();
 
@@ -145,64 +145,111 @@ function connect(url) {
     document.getElementById('statusText').textContent = 'Connected';
     document.getElementById('sendBtn').disabled = false;
     setSystemMsg('Connected to FirmClaw.');
+    refreshSessions();
   };
 
-  ws.onclose = () => {
+  ws.onclose = (ev) => {
     document.getElementById('statusDot').classList.remove('connected');
     document.getElementById('statusText').textContent = 'Disconnected';
     document.getElementById('sendBtn').disabled = true;
-    setSystemMsg('Connection lost. Reconnecting in 3s...');
-    setTimeout(() => connect(url), 3000);
+    var reason = ev.reason || 'Unknown';
+    var code = ev.code || 0;
+    console.warn('[FirmClaw] WebSocket closed:', code, reason);
+    setSystemMsg('Connection lost (code: ' + code + '). Reconnecting in 3s...');
+    setTimeout(function() { connect(url); }, 3000);
   };
 
-  ws.onerror = () => {};
+  ws.onerror = function(ev) {
+    console.error('[FirmClaw] WebSocket error:', ev);
+    setSystemMsg('WebSocket connection error. Check browser console (F12) for details.');
+  };
 
-  ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    handleNotification(msg);
+  ws.onmessage = function(event) {
+    try {
+      var msg = JSON.parse(event.data);
+      handleMessage(msg);
+    } catch (e) {
+      console.error('Failed to parse message:', e);
+    }
   };
 }
 
 // ──── JSON-RPC 2.0 ────
 
 function sendRequest(method, params) {
-  const id = ++requestId;
-  const msg = JSON.stringify({ jsonrpc: '2.0', id, method, params });
-  ws.send(msg);
+  var id = ++requestId;
+  pendingRequests[id] = method;
+  ws.send(JSON.stringify({ jsonrpc: '2.0', id: id, method: method, params: params }));
   return id;
 }
 
-function handleNotification(msg) {
-  // Handle JSON-RPC notification (no id)
-  if (msg.method && !msg.id) {
-    const params = msg.params || {};
+function handleMessage(msg) {
+  // ──── 1. 处理响应（有 id）────
+  if (msg.id !== undefined && msg.id !== null) {
+    var reqMethod = pendingRequests[msg.id] || '';
+    delete pendingRequests[msg.id];
 
+    if (msg.error) {
+      appendSystem('Error: ' + (msg.error.message || JSON.stringify(msg.error)));
+      return;
+    }
+
+    if (reqMethod === 'agent.chat' && msg.result) {
+      // agent.chat 响应包含最终文本
+      if (msg.result.text) {
+        finishThinking(msg.result.text);
+      }
+    } else if (reqMethod === 'session.list' && Array.isArray(msg.result)) {
+      renderSessions(msg.result);
+    } else if (reqMethod === 'session.new' && msg.result && msg.result.id) {
+      currentSessionId = msg.result.id;
+      setSystemMsg('New session: ' + msg.result.id);
+      refreshSessions();
+    } else if (reqMethod === 'session.resume' && msg.result && msg.result.id) {
+      currentSessionId = msg.result.id;
+      setSystemMsg('Session resumed: ' + msg.result.id);
+      refreshSessions();
+    } else if (reqMethod === 'gateway.status' && msg.result) {
+      appendSystem('Gateway: ' + msg.result.connections + ' connections, uptime: ' + Math.round(msg.result.uptime / 1000) + 's');
+    }
+    return;
+  }
+
+  // ──── 2. 处理通知（有 method，无 id）────
+  if (msg.method && msg.params !== undefined) {
     switch (msg.method) {
-      case 'notification':
-        switch (params.type) {
-          case 'thinking':
-            appendThinking(params.data);
-            break;
-          case 'tool_start':
-            appendToolStart(params.data);
-            break;
-          case 'tool_end':
-            appendToolEnd(params.data);
-            break;
-          case 'message_end':
-            finishThinking();
-            break;
-          case 'error':
-            appendSystem(params.data);
-            break;
-          case 'session_start':
-            setSystemMsg('Session started: ' + (params.data.id || ''));
-            if (params.data.id) currentSessionId = params.data.id;
-            refreshSessions();
-            break;
-          case 'sessions':
-            renderSessions(params.data);
-            break;
+      case 'agent.thinking':
+        appendThinking(String(msg.params));
+        break;
+      case 'agent.tool_start':
+        appendToolStart(msg.params);
+        break;
+      case 'agent.tool_end':
+        appendToolEnd(msg.params);
+        break;
+      case 'agent.message_end':
+        finishThinking();
+        break;
+      case 'agent.error':
+        appendSystem(String(msg.params));
+        break;
+      case 'agent.context_trimmed':
+        appendSystem('Context trimmed: ' + msg.params.originalTokens + ' -> ' + msg.params.trimmedTokens + ' tokens');
+        break;
+      case 'agent.summary_generated':
+        appendSystem('Summary: ' + msg.params.compressedCount + ' msgs compressed');
+        break;
+      case 'agent.memory_saved':
+        appendSystem('Memory saved: [' + msg.params.id + ']');
+        break;
+      case 'agent.approval_requested':
+        appendSystem('Approval requested: ' + (msg.params.toolName || ''));
+        break;
+      case 'session.started':
+        if (msg.params && msg.params.id) {
+          currentSessionId = msg.params.id;
+          setSystemMsg('Session started: ' + msg.params.id);
+          refreshSessions();
         }
         break;
     }
@@ -212,26 +259,26 @@ function handleNotification(msg) {
 // ──── UI Helpers ────
 
 function setSystemMsg(text) {
-  const el = document.getElementById('messages');
+  var el = document.getElementById('messages');
   el.innerHTML = '';
   appendSystem(text);
 }
 
 function appendSystem(text) {
-  const el = document.getElementById('messages');
-  const div = document.createElement('div');
+  var el = document.getElementById('messages');
+  var div = document.createElement('div');
   div.className = 'message system';
   div.innerHTML = '<div class="bubble">' + escapeHtml(text) + '</div>';
   el.appendChild(div);
   scrollToBottom();
 }
 
-let thinkingEl = null;
-let thinkingText = '';
+var thinkingEl = null;
+var thinkingText = '';
 
 function appendThinking(text) {
   if (!thinkingEl) {
-    const el = document.getElementById('messages');
+    var el = document.getElementById('messages');
     thinkingEl = document.createElement('div');
     thinkingEl.className = 'message assistant';
     thinkingEl.innerHTML = '<div class="bubble thinking"></div>';
@@ -242,34 +289,39 @@ function appendThinking(text) {
   scrollToBottom();
 }
 
-function finishThinking() {
-  if (thinkingEl && thinkingText) {
-    thinkingEl.querySelector('.bubble').className = 'bubble';
-    thinkingEl.querySelector('.bubble').innerHTML = renderMarkdown(thinkingText);
+function finishThinking(finalText) {
+  if (thinkingEl) {
+    var text = finalText || thinkingText;
+    if (text) {
+      thinkingEl.querySelector('.bubble').className = 'bubble';
+      thinkingEl.querySelector('.bubble').innerHTML = renderMarkdown(text);
+    } else {
+      thinkingEl.remove();
+    }
   }
   thinkingEl = null;
   thinkingText = '';
 }
 
 function appendToolStart(data) {
-  finishThinking();
-  const el = document.getElementById('messages');
-  const div = document.createElement('div');
+  if (thinkingEl) finishThinking();
+  var el = document.getElementById('messages');
+  var div = document.createElement('div');
   div.className = 'message tool';
   div.id = 'tool-' + Date.now();
-  const argsStr = typeof data.args === 'object' ? JSON.stringify(data.args, null, 2) : String(data.args);
-  div.innerHTML = '<div class="bubble"><span class="tool-name">[' + escapeHtml(data.toolName) + ']</span> ' + escapeHtml(argsStr).substring(0, 500) + '<div class="tool-result" id="tool-result-' + div.id + '"></div></div>';
+  var argsStr = typeof data.args === 'object' ? JSON.stringify(data.args, null, 2) : String(data.args || '');
+  div.innerHTML = '<div class="bubble"><span class="tool-name">[' + escapeHtml(data.toolName || '?') + ']</span> ' + escapeHtml(argsStr).substring(0, 500) + '</div>';
   el.appendChild(div);
   scrollToBottom();
 }
 
 function appendToolEnd(data) {
-  // Just log, the result will be part of assistant's next response
+  // tool result is included in assistant's next thinking
 }
 
 function appendUserMsg(text) {
-  const el = document.getElementById('messages');
-  const div = document.createElement('div');
+  var el = document.getElementById('messages');
+  var div = document.createElement('div');
   div.className = 'message user';
   div.innerHTML = '<div class="bubble">' + escapeHtml(text) + '</div>';
   el.appendChild(div);
@@ -281,8 +333,8 @@ function appendUserMsg(text) {
 function renderMarkdown(text) {
   var md = text
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\x60\x60\x60(.+?)\x60\x60\x60/gs, '<pre><code>$1</code></pre>')
-    .replace(/\x60(.+?)\x60/g, '<code>$1</code>')
+    .replace(/\x60\x60\x60([\\s\\S]*?)\x60\x60\x60/g, '<pre><code>$1</code></pre>')
+    .replace(/\x60([^\x60]+?)\x60/g, '<code>$1</code>')
     .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
     .replace(/\\*(.+?)\\*/g, '<em>$1</em>')
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
@@ -290,44 +342,45 @@ function renderMarkdown(text) {
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/^\\d+\\. (.+)$/gm, '<li>$1</li>')
-    .replace(/\\n{2,}/g, '</p><p>')
+    .replace(/\\n\\n+/g, '</p><p>')
     .replace(/\\n/g, '<br>');
+  return md;
 }
 
 function escapeHtml(text) {
-  const div = document.createElement('div');
+  var div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
 function scrollToBottom() {
-  const el = document.getElementById('messages');
+  var el = document.getElementById('messages');
   el.scrollTop = el.scrollHeight;
 }
 
 // ──── User Actions ────
 
 function sendMessage() {
-  const input = document.getElementById('input');
-  const text = input.value.trim();
+  var input = document.getElementById('input');
+  var text = input.value.trim();
   if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
 
   appendUserMsg(text);
-  sendRequest('chat.send', { sessionId: currentSessionId, message: text });
+  sendRequest('agent.chat', { message: text });
   input.value = '';
   input.style.height = 'auto';
 }
 
 function newSession() {
-  sendRequest('session.create', {});
+  sendRequest('session.new', {});
 }
 
 function switchSession(sessionId) {
   currentSessionId = sessionId;
-  setSystemMsg('Switched to session: ' + sessionId);
-  sendRequest('session.switch', { sessionId });
-  document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
-  event.target.classList.add('active');
+  setSystemMsg('Switching to session: ' + sessionId);
+  sendRequest('session.resume', { sessionId: sessionId });
+  document.querySelectorAll('.session-item').forEach(function(el) { el.classList.remove('active'); });
+  if (event && event.target) event.target.classList.add('active');
 }
 
 function refreshSessions() {
@@ -335,14 +388,14 @@ function refreshSessions() {
 }
 
 function renderSessions(sessions) {
-  const list = document.getElementById('sessionList');
+  var list = document.getElementById('sessionList');
   list.innerHTML = '';
   if (!sessions || sessions.length === 0) {
     list.innerHTML = '<div style="padding: 12px; color: #484f58; font-size: 13px;">No sessions</div>';
     return;
   }
-  sessions.forEach(s => {
-    const item = document.createElement('div');
+  sessions.forEach(function(s) {
+    var item = document.createElement('div');
     item.className = 'session-item' + (s.id === currentSessionId ? ' active' : '');
     item.textContent = s.title || s.id;
     item.onclick = function() { switchSession(s.id); };
@@ -357,9 +410,8 @@ function handleKey(e) {
     e.preventDefault();
     sendMessage();
   }
-  // Auto-resize textarea
-  setTimeout(() => {
-    const el = e.target;
+  setTimeout(function() {
+    var el = e.target;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 200) + 'px';
   }, 0);

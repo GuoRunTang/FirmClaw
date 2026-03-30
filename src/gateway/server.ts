@@ -63,7 +63,7 @@ export class GatewayServer {
   private agentConfig: AgentConfig | null = null;
 
   /** 每个连接对应的 AgentLoop 实例（用于事件转发） */
-  private agentLoops: Map<string, { loop: AgentLoop; eventStream: EventStream }> = new Map();
+  private agentLoops: Map<string, { loop: AgentLoop; eventStream: EventStream; sessionManager?: SessionManager }> = new Map();
 
   constructor(config?: GatewayConfig) {
     this.config = {
@@ -225,11 +225,16 @@ export class GatewayServer {
    * 其他路径 → 404
    */
   private handleHttpRequest(req: IncomingMessage, res: ServerResponse): void {
-    if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
+    // 解析 pathname，忽略查询参数（如 ?token=fc_xxx）
+    const pathname = req.url?.split('?')[0] ?? '/';
+    if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
       const html = getWebUIHTML();
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': Buffer.byteLength(html, 'utf-8'),
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       });
       res.end(html);
       return;
@@ -243,6 +248,9 @@ export class GatewayServer {
    * 处理新的 WebSocket 连接
    */
   private handleConnection(ws: WebSocket, request: IncomingMessage): void {
+    const remoteAddr = request.socket.remoteAddress || 'unknown';
+    console.log(`[Gateway] Connection attempt from ${remoteAddr}`);
+
     // 认证检查
     const url = request.url || '';
     if (!this.auth.authenticate(url, request.headers)) {
@@ -267,12 +275,25 @@ export class GatewayServer {
 
     console.log(`[Gateway] Client connected: ${ctx.connectionId} (total: ${this.connections.count()})`);
 
-    // 为连接创建 AgentLoop
-    const { loop, eventStream } = this.createAgentLoopForConnection(ctx);
-    this.agentLoops.set(ctx.connectionId, { loop, eventStream });
+    // 为连接创建 AgentLoop（包裹 try-catch 防止未捕获异常导致连接静默断开）
+    try {
+      const { loop, eventStream, sessionManager: connSm } = this.createAgentLoopForConnection(ctx);
+      this.agentLoops.set(ctx.connectionId, { loop, eventStream, sessionManager: connSm });
 
-    // 将 EventStream 事件转发为 JSON-RPC notification
-    this.forwardEvents(ctx, eventStream);
+      // 将 EventStream 事件转发为 JSON-RPC notification
+      this.forwardEvents(ctx, eventStream);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[Gateway] Failed to create AgentLoop for ${ctx.connectionId}: ${errMsg}`);
+      this.connections.sendTo(ctx.connectionId, JSON.stringify({
+        jsonrpc: '2.0',
+        id: null,
+        error: { code: -32000, message: 'Internal server error: ' + errMsg },
+      }));
+      ws.close(1011, errMsg);
+      this.connections.unregister(ctx.connectionId);
+      return;
+    }
 
     // 处理消息
     ws.on('message', (raw: Buffer) => {
@@ -358,19 +379,22 @@ export class GatewayServer {
     });
 
     // session.list — 列出会话
-    this.router.register('session.list', async () => {
-      if (!this.sessionManager) {
+    this.router.register('session.list', async (_params, ctx) => {
+      // 优先使用连接专属的 SessionManager，fallback 到全局
+      const sm = this.agentLoops.get(ctx.connectionId)?.sessionManager ?? this.sessionManager;
+      if (!sm) {
         throw new RouteError(JsonRpcErrorCode.INTERNAL_ERROR, 'SessionManager not configured');
       }
-      return this.sessionManager.listSessions();
+      return sm.listSessions();
     });
 
     // session.new — 新建会话
     this.router.register('session.new', async (_params, ctx) => {
-      if (!this.sessionManager || !this.agentConfig) {
+      const sm = this.agentLoops.get(ctx.connectionId)?.sessionManager ?? this.sessionManager;
+      if (!sm || !this.agentConfig) {
         throw new RouteError(JsonRpcErrorCode.INTERNAL_ERROR, 'SessionManager or AgentConfig not configured');
       }
-      const meta = await this.sessionManager.create(this.agentConfig.workDir ?? process.cwd());
+      const meta = await sm.create(this.agentConfig.workDir ?? process.cwd());
       this.connections.bindSession(ctx.connectionId, meta.id);
 
       // 重置连接对应的 AgentLoop 的会话
@@ -388,12 +412,13 @@ export class GatewayServer {
       if (!sessionId) {
         throw new RouteError(JsonRpcErrorCode.INVALID_PARAMS, 'sessionId is required');
       }
-      if (!this.sessionManager) {
+      const sm = this.agentLoops.get(ctx.connectionId)?.sessionManager ?? this.sessionManager;
+      if (!sm) {
         throw new RouteError(JsonRpcErrorCode.INTERNAL_ERROR, 'SessionManager not configured');
       }
 
       try {
-        const meta = await this.sessionManager.resume(sessionId);
+        const meta = await sm.resume(sessionId);
         this.connections.bindSession(ctx.connectionId, meta.id);
 
         const entry = this.agentLoops.get(ctx.connectionId);
@@ -451,23 +476,25 @@ export class GatewayServer {
   /**
    * 为连接创建独立的 AgentLoop 实例
    */
-  private createAgentLoopForConnection(ctx: ConnectionContext): { loop: AgentLoop; eventStream: EventStream } {
+  private createAgentLoopForConnection(ctx: ConnectionContext): { loop: AgentLoop; eventStream: EventStream; sessionManager?: SessionManager } {
     if (!this.llm || !this.tools || !this.agentConfig) {
       throw new Error('Missing required dependencies for AgentLoop creation');
     }
 
-    // 为每个连接创建独立的 SessionManager（如果全局有配置的话）
-    // 或者共享全局 SessionManager（不同连接通过不同 sessionId 隔离）
+    // 为每个连接 fork 独立的 SessionManager（共享存储目录，独立会话状态）
+    // 避免 CLI 和 Web UI 共享同一个 currentSessionId 导致会话状态冲突
+    const connSessionManager = this.sessionManager?.fork();
+
     const loop = new AgentLoop(this.llm, this.tools, {
       ...this.agentConfig,
-      sessionManager: this.sessionManager ?? undefined,
+      sessionManager: connSessionManager ?? undefined,
       contextBuilder: this.contextBuilder ?? undefined,
       tokenCounter: this.tokenCounter ?? undefined,
       summarizer: this.summarizer ?? undefined,
     });
 
     const eventStream = loop.getEvents();
-    return { loop, eventStream };
+    return { loop, eventStream, sessionManager: connSessionManager };
   }
 
   /**
