@@ -182,6 +182,11 @@ export class AgentLoop {
 
       // ──── Step 2: 判断是否需要调工具 ────
       if (!response.tool_calls || response.tool_calls.length === 0) {
+        // 将最终 assistant 回复加入 roundMessages 以便持久化
+        roundMessages.push({
+          role: 'assistant',
+          content: response.content,
+        });
         // 保存本轮消息到会话
         await this.persistRound(userMessage, allMessages, roundMessages);
 
