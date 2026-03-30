@@ -170,6 +170,12 @@ export class SessionManager {
     return stored.map(toLLMMessage);
   }
 
+  /** 获取指定会话的完整消息数组（不改变 currentSessionId） */
+  async getMessagesFor(sessionId: string): Promise<Message[]> {
+    const stored = await this.store.readMessages(sessionId);
+    return stored.map(toLLMMessage);
+  }
+
   /** 列出所有会话（按 updatedAt 降序） */
   async listSessions(): Promise<SessionMeta[]> {
     return this.store.listAll();

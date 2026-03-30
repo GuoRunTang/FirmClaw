@@ -433,6 +433,21 @@ export class GatewayServer {
       }
     });
 
+    // session.messages — 获取会话消息历史（用于 Web UI 显示）
+    this.router.register('session.messages', async (params, ctx) => {
+      const sessionId = params.sessionId as string;
+      if (!sessionId) {
+        throw new RouteError(JsonRpcErrorCode.INVALID_PARAMS, 'sessionId is required');
+      }
+      const sm = this.agentLoops.get(ctx.connectionId)?.sessionManager ?? this.sessionManager;
+      if (!sm) {
+        throw new RouteError(JsonRpcErrorCode.INTERNAL_ERROR, 'SessionManager not configured');
+      }
+
+      const messages = await sm.getMessagesFor(sessionId);
+      return { messages };
+    });
+
     // session.branch — 创建分支
     this.router.register('session.branch', async (params) => {
       const fromMessageIndex = params.fromMessageIndex as number;

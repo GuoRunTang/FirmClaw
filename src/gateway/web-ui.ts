@@ -203,12 +203,16 @@ function handleMessage(msg) {
       renderSessions(msg.result);
     } else if (reqMethod === 'session.new' && msg.result && msg.result.id) {
       currentSessionId = msg.result.id;
-      setSystemMsg('New session: ' + msg.result.id);
+      clearMessages();
+      appendSystem('New session created');
       refreshSessions();
     } else if (reqMethod === 'session.resume' && msg.result && msg.result.id) {
       currentSessionId = msg.result.id;
-      setSystemMsg('Session resumed: ' + msg.result.id);
       refreshSessions();
+      // 自动拉取该会话的消息历史
+      loadSessionMessages(msg.result.id);
+    } else if (reqMethod === 'session.messages' && msg.result && Array.isArray(msg.result.messages)) {
+      renderHistoryMessages(msg.result.messages);
     } else if (reqMethod === 'gateway.status' && msg.result) {
       appendSystem('Gateway: ' + msg.result.connections + ' connections, uptime: ' + Math.round(msg.result.uptime / 1000) + 's');
     }
@@ -248,7 +252,6 @@ function handleMessage(msg) {
       case 'session.started':
         if (msg.params && msg.params.id) {
           currentSessionId = msg.params.id;
-          setSystemMsg('Session started: ' + msg.params.id);
           refreshSessions();
         }
         break;
@@ -258,9 +261,13 @@ function handleMessage(msg) {
 
 // ──── UI Helpers ────
 
-function setSystemMsg(text) {
+function clearMessages() {
   var el = document.getElementById('messages');
   el.innerHTML = '';
+}
+
+function setSystemMsg(text) {
+  clearMessages();
   appendSystem(text);
 }
 
@@ -270,6 +277,60 @@ function appendSystem(text) {
   div.className = 'message system';
   div.innerHTML = '<div class="bubble">' + escapeHtml(text) + '</div>';
   el.appendChild(div);
+  scrollToBottom();
+}
+
+/** 向服务端请求指定 session 的消息历史 */
+function loadSessionMessages(sessionId) {
+  sendRequest('session.messages', { sessionId: sessionId });
+}
+
+/** 渲染历史消息列表 */
+function renderHistoryMessages(messages) {
+  clearMessages();
+  if (!messages || messages.length === 0) {
+    appendSystem('No messages in this session');
+    return;
+  }
+  var el = document.getElementById('messages');
+  for (var i = 0; i < messages.length; i++) {
+    var msg = messages[i];
+    var div = document.createElement('div');
+
+    if (msg.role === 'user') {
+      div.className = 'message user';
+      div.innerHTML = '<div class="bubble">' + escapeHtml(msg.content) + '</div>';
+    } else if (msg.role === 'assistant') {
+      // assistant 消息：如果有 tool_calls 则显示为 tool 气泡，否则为普通 assistant 气泡
+      if (msg.tool_calls && msg.tool_calls.length > 0) {
+        div.className = 'message tool';
+        var toolHtml = '';
+        for (var j = 0; j < msg.tool_calls.length; j++) {
+          var tc = msg.tool_calls[j];
+          var argsStr = typeof tc.function.arguments === 'string'
+            ? tc.function.arguments.substring(0, 200)
+            : JSON.stringify(tc.function.arguments || {}).substring(0, 200);
+          toolHtml += '<span class="tool-name">[' + escapeHtml(tc.function.name) + ']</span> ' + escapeHtml(argsStr);
+          if (j < msg.tool_calls.length - 1) toolHtml += '<br>';
+        }
+        div.innerHTML = '<div class="bubble">' + toolHtml + '</div>';
+      } else if (msg.content) {
+        div.className = 'message assistant';
+        div.innerHTML = '<div class="bubble">' + renderMarkdown(msg.content) + '</div>';
+      } else {
+        continue; // 跳过空消息
+      }
+    } else if (msg.role === 'tool') {
+      div.className = 'message tool';
+      div.innerHTML = '<div class="bubble"><span class="tool-result">' + escapeHtml(msg.content || '').substring(0, 300) + '</span></div>';
+    } else if (msg.role === 'system') {
+      continue; // 跳过系统消息（已在 system prompt 中）
+    } else {
+      continue;
+    }
+
+    el.appendChild(div);
+  }
   scrollToBottom();
 }
 
