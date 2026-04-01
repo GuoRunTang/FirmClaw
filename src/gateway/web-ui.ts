@@ -705,9 +705,9 @@ function fillSettingsForm(data) {
   if (!data) return;
   document.getElementById('cfgWorkDir').value = data.workDir || '';
   var perm = data.permissions || {};
-  document.getElementById('cfgAllowedPaths').value = (perm.allowedPaths || []).join('\n');
-  document.getElementById('cfgProtectedFiles').value = (perm.protectedFiles || []).join('\n');
-  document.getElementById('cfgCommandBlacklist').value = (perm.commandBlacklist || []).join('\n');
+  document.getElementById('cfgAllowedPaths').value = (perm.allowedPaths || []).join('\\n');
+  document.getElementById('cfgProtectedFiles').value = (perm.protectedFiles || []).join('\\n');
+  document.getElementById('cfgCommandBlacklist').value = (perm.commandBlacklist || []).join('\\n');
 }
 
 function renderAboutPage(data) {
@@ -743,11 +743,11 @@ function renderAboutPage(data) {
 
 function saveSettings() {
   var allowedPaths = document.getElementById('cfgAllowedPaths').value
-    .split('\n').map(function(s) { return s.trim(); }).filter(Boolean);
+    .split('\\n').map(function(s) { return s.trim(); }).filter(Boolean);
   var protectedFiles = document.getElementById('cfgProtectedFiles').value
-    .split('\n').map(function(s) { return s.trim(); }).filter(Boolean);
+    .split('\\n').map(function(s) { return s.trim(); }).filter(Boolean);
   var commandBlacklist = document.getElementById('cfgCommandBlacklist').value
-    .split('\n').map(function(s) { return s.trim(); }).filter(Boolean);
+    .split('\\n').map(function(s) { return s.trim(); }).filter(Boolean);
 
   sendRequest('settings.update', {
     allowedPaths: allowedPaths,
