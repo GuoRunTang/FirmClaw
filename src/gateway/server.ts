@@ -27,6 +27,7 @@ import type {
   ResolvedGatewayConfig,
   ConnectionContext,
   JsonRpcResponse,
+  SettingsSnapshot,
 } from './types.js';
 import { ConnectionManager } from './connection.js';
 import { MessageRouter } from './router.js';
@@ -214,6 +215,46 @@ export class GatewayServer {
    */
   getRouter(): MessageRouter {
     return this.router;
+  }
+
+  /**
+   * v6.2: 获取设置快照（供 settings.get 路由使用）
+   */
+  private getSettingsSnapshot(): SettingsSnapshot {
+    // 获取权限配置
+    const policy = this.getPolicy();
+    const permSnapshot = policy && 'getConfig' in policy
+      ? (policy as import('../tools/permissions.js').DefaultPermissionPolicy).getConfig()
+      : {
+        allowedPaths: [],
+        extraAllowedPaths: [],
+        commandBlacklist: [],
+        protectedFiles: [],
+      };
+
+    // 获取工具列表
+    const toolsList = this.tools?.getAll().map(t => ({
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters as Record<string, unknown>,
+    })) || [];
+
+    // 获取网关状态
+    const gatewayStatus = this.getStatus();
+
+    // 获取模型信息
+    const modelInfo = {
+      name: this.llm?.getModel() || 'unknown',
+      baseURL: this.llm?.getBaseURL() || 'unknown',
+    };
+
+    return {
+      workDir: this.agentConfig?.workDir || process.cwd(),
+      permissions: permSnapshot,
+      tools: toolsList,
+      gateway: gatewayStatus,
+      model: modelInfo,
+    };
   }
 
   // ──── 连接处理 ────
@@ -448,6 +489,26 @@ export class GatewayServer {
       return { messages };
     });
 
+    // session.delete — 删除会话
+    this.router.register('session.delete', async (params, ctx) => {
+      const sessionId = params.sessionId as string;
+      if (!sessionId) {
+        throw new RouteError(JsonRpcErrorCode.INVALID_PARAMS, 'sessionId is required');
+      }
+      const sm = this.agentLoops.get(ctx.connectionId)?.sessionManager ?? this.sessionManager;
+      if (!sm) {
+        throw new RouteError(JsonRpcErrorCode.INTERNAL_ERROR, 'SessionManager not configured');
+      }
+
+      try {
+        await sm.deleteSession(sessionId);
+        return { success: true, deletedId: sessionId };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new RouteError(JsonRpcErrorCode.INTERNAL_ERROR, message);
+      }
+    });
+
     // session.branch — 创建分支
     this.router.register('session.branch', async (params) => {
       const fromMessageIndex = params.fromMessageIndex as number;
@@ -484,9 +545,39 @@ export class GatewayServer {
     this.router.register('gateway.status', async () => {
       return this.getStatus();
     });
+
+    // v6.2: settings.get — 获取当前配置快照
+    this.router.register('settings.get', async () => {
+      return this.getSettingsSnapshot();
+    });
+
+    // v6.2: settings.update — 更新权限配置
+    this.router.register('settings.update', async (params) => {
+      const { allowedPaths, extraAllowedPaths, protectedFiles, commandBlacklist } = params as Record<string, unknown>;
+
+      // 获取当前 policy 并更新
+      const policy = this.getPolicy();
+      if (policy) {
+        policy.updateConfig({
+          allowedPaths: allowedPaths as string[] | undefined,
+          extraAllowedPaths: extraAllowedPaths as string[] | undefined,
+          protectedFiles: protectedFiles as string[] | undefined,
+          commandBlacklist: commandBlacklist as string[] | undefined,
+        });
+      }
+
+      return { success: true };
+    });
   }
 
   // ──── 私有方法 ────
+
+  /**
+   * v6.2: 获取权限策略（供路由使用）
+   */
+  private getPolicy(): import('../tools/permissions.js').PermissionPolicy | null {
+    return this.tools?.getPolicy() ?? null;
+  }
 
   /**
    * 为连接创建独立的 AgentLoop 实例

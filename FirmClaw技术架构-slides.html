@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirmClaw 技术架构介绍</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0F172A;--bg2:#1E293B;--accent:#0EA5E9;--accent2:#38BDF8;--text:#F1F5F9;--muted:#94A3B8;--danger:#EF4444;--warn:#F59E0B;--safe:#22C55E;--white:#FFF}
+html,body{width:100%;height:100%;overflow:hidden;background:#070B14;font-family:'Noto Sans SC',sans-serif;color:var(--text)}
+.presentation{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+.slide-container{width:960px;height:540px;position:relative;overflow:hidden;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.slide{position:absolute;top:0;left:0;width:100%;height:100%;background:var(--bg);padding:0;opacity:0;transform:translateX(60px);transition:all .5s cubic-bezier(.4,0,.2,1);pointer-events:none;display:flex;flex-direction:column}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:auto}
+.slide.prev{opacity:0;transform:translateX(-60px)}
+.slide .accent-bar{width:100%;height:4px;background:var(--accent);flex-shrink:0}
+.slide .content{flex:1;padding:28px 40px 12px;overflow:hidden;display:flex;flex-direction:column}
+.slide h2{font-family:'Noto Serif SC',serif;font-size:26px;font-weight:700;margin-bottom:14px;color:var(--text)}
+.slide .subtitle{font-size:14px;color:var(--muted);margin-bottom:18px;line-height:1.6}
+.slide .page-num{position:absolute;bottom:8px;right:20px;font-size:11px;color:var(--muted)}
+/* Cards */
+.card{background:var(--bg2);border-radius:6px;padding:16px;position:relative;overflow:hidden}
+.card .card-top{position:absolute;top:0;left:0;width:100%;height:4px}
+/* Grid layouts */
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cols{display:flex;gap:16px}
+.col{flex:1}
+/* Flow items */
+.flow-item{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.flow-step{width:32px;height:32px;background:var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif;font-weight:700;font-size:14px;color:var(--white);flex-shrink:0}
+.flow-title{font-size:13px;font-weight:600;color:var(--text)}
+.flow-desc{font-size:11px;color:var(--muted)}
+/* Tags */
+.tag{display:inline-block;padding:2px 10px;border-radius:3px;font-size:10px;font-weight:600}
+.tag-safe{background:rgba(34,197,94,.15);color:var(--safe)}
+.tag-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.tag-danger{background:rgba(239,68,68,.15);color:var(--danger)}
+.tag-accent{background:rgba(14,165,233,.15);color:var(--accent2)}
+/* Code block */
+.code-block{background:#000;border-radius:6px;padding:12px 16px;font-family:Consolas,'Courier New',monospace;font-size:11px;color:var(--accent2);line-height:1.5;overflow:hidden}
+/* Badge */
+.badge{display:inline-block;padding:4px 14px;border-radius:4px;font-size:11px;font-weight:700;color:var(--white)}
+/* Table */
+.info-table{width:100%;border-collapse:collapse}
+.info-table tr:nth-child(even){background:rgba(30,41,59,.5)}
+.info-table td{padding:5px 8px;font-size:11px;vertical-align:middle}
+.info-table .label{font-family:Consolas,monospace;font-size:10px;color:var(--accent2);font-weight:700;width:50px}
+.info-table .name{font-weight:600;color:var(--text);width:100px}
+.info-table .desc{color:var(--muted)}
+/* Layers */
+.layer-box{padding:14px 20px;border-radius:6px;margin-bottom:6px;position:relative}
+.layer-box h4{font-family:'Noto Serif SC',serif;font-size:14px;font-weight:700;margin-bottom:4px}
+.layer-box p{font-size:12px;opacity:.85}
+/* Navigation */
+.nav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;z-index:100}
+.nav-btn{width:36px;height:36px;border-radius:50%;background:rgba(14,165,233,.2);border:1px solid rgba(14,165,233,.4);color:var(--accent2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.nav-btn:hover{background:var(--accent);color:var(--white);border-color:var(--accent)}
+.dots{display:flex;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(148,163,184,.3);cursor:pointer;transition:all .3s}
+.dot.active{background:var(--accent);transform:scale(1.3)}
+/* Animations */
+.slide.active .anim{animation:fadeUp .5s ease both}
+.slide.active .anim-d1{animation-delay:.1s}
+.slide.active .anim-d2{animation-delay:.2s}
+.slide.active .anim-d3{animation-delay:.3s}
+.slide.active .anim-d4{animation-delay:.4s}
+.slide.active .anim-d5{animation-delay:.5s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+/* Arrows */
+.arrow-down{text-align:center;color:var(--muted);font-size:16px;margin:2px 0;line-height:1}
+/* Cover special */
+.cover-slide{align-items:center;justify-content:center;text-align:center}
+.cover-slide h1{font-family:'Noto Serif SC',serif;font-size:42px;font-weight:900;color:var(--accent2);margin-bottom:4px}
+.cover-slide h2{font-family:'Noto Serif SC',serif;font-size:28px;font-weight:600;color:var(--text);margin-bottom:20px}
+.cover-line{width:80px;height:3px;background:var(--accent);margin:0 auto 16px}
+.cover-slide .cover-sub{font-size:16px;color:var(--muted);margin-bottom:30px}
+.cover-slide .cover-meta{font-size:11px;color:var(--muted)}
+/* React cycle */
+.react-box{background:var(--bg2);border-radius:6px;padding:16px;text-align:center;position:relative;flex:1}
+.react-box .top-line{position:absolute;top:0;left:0;width:100%;height:4px}
+.react-box h4{font-family:'Noto Serif SC',serif;font-size:16px;font-weight:700;margin-bottom:8px}
+.react-box p{font-size:11px;color:var(--muted);line-height:1.5}
+.react-arrow{display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:24px;flex-shrink:0;padding:0 4px}
+/* Pipe */
+.pipeline{display:flex;gap:4px;align-items:stretch}
+.pipe-step{flex:1;background:var(--bg2);border-radius:6px;padding:10px 6px;text-align:center;position:relative}
+.pipe-step .pipe-num{font-family:'Noto Serif SC',serif;font-size:18px;font-weight:700;color:var(--accent2);margin-bottom:4px}
+.pipe-step .pipe-label{font-size:10px;font-weight:600;color:var(--text);margin-bottom:2px}
+.pipe-step .pipe-desc{font-size:9px;color:var(--muted)}
+.pipe-step .pipe-top{position:absolute;top:0;left:0;width:100%;height:3px;background:var(--accent);border-radius:6px 6px 0 0}
+.pipe-arrow{display:flex;align-items:center;color:var(--accent);font-size:12px;flex-shrink:0}
+/* Strategy row */
+.strat-row{display:flex;gap:12px;margin-bottom:10px}
+.strat-level{width:60px;border-radius:6px;padding:8px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.strat-level span{font-family:'Noto Serif SC',serif;font-size:20px;font-weight:700;color:var(--white)}
+.strat-level small{font-size:9px;color:rgba(255,255,255,.8);margin-top:2px}
+.strat-info{flex:1;background:var(--bg2);border-radius:6px;padding:10px 14px}
+.strat-info h5{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.strat-info .effect{font-size:11px;color:var(--accent2);margin-bottom:2px}
+.strat-info .detail{font-size:10px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="presentation">
+<div class="slide-container" id="slides">
+
+<!-- SLIDE 1: Cover -->
+<div class="slide active" data-index="0">
+  <div class="accent-bar"></div>
+  <div class="content cover-slide">
+    <h1 class="anim">FirmClaw</h1>
+    <h2 class="anim anim-d1">技术架构介绍</h2>
+    <div class="cover-line anim anim-d2"></div>
+    <p class="cover-sub anim anim-d3">本地优先的 AI 智能体框架</p>
+    <p class="cover-meta anim anim-d4">v6.0.0 &nbsp;|&nbsp; ReAct Architecture &nbsp;|&nbsp; TypeScript + Node.js</p>
+  </div>
+  <span class="page-num">1 / 15</span>
+</div>
+
+<!-- SLIDE 2: TOC -->
+<div class="slide" data-index="1">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">目录</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 30px">
+      <div class="flow-item anim anim-d1"><div class="flow-step">01</div><div><div class="flow-title">项目概述</div><div class="flow-desc">核心定位与组件优先级</div></div></div>
+      <div class="flow-item anim anim-d2"><div class="flow-step">02</div><div><div class="flow-title">架构概览</div><div class="flow-desc">AI 生态位置与整体架构</div></div></div>
+      <div class="flow-item anim anim-d3"><div class="flow-step">03</div><div><div class="flow-title">Agent Loop</div><div class="flow-desc">ReAct 循环核心解析</div></div></div>
+      <div class="flow-item anim anim-d4"><div class="flow-step">04</div><div><div class="flow-title">工具与模型层</div><div class="flow-desc">工具系统与大模型适配</div></div></div>
+      <div class="flow-item anim anim-d5"><div class="flow-step">05</div><div><div class="flow-title">记忆与安全</div><div class="flow-desc">记忆系统、安全审计、上下文管理</div></div></div>
+      <div class="flow-item anim anim-d5"><div class="flow-step">06</div><div><div class="flow-title">网关与总结</div><div class="flow-desc">WebSocket 网关、技术选型、开发历程</div></div></div>
+    </div>
+  </div>
+  <span class="page-num">2 / 15</span>
+</div>
+
+<!-- SLIDE 3: Project Overview -->
+<div class="slide" data-index="2">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">项目概述</h2>
+    <p class="subtitle anim anim-d1">FirmClaw 是一个从零搭建的本地优先 AI 智能体框架，核心采用 ReAct（Reasoning + Acting）架构。</p>
+    <div style="flex:1;overflow:hidden">
+      <table class="info-table anim anim-d2">
+        <tr><td class="label">P1</td><td class="name">Agent Loop</td><td class="desc">ReAct 循环：LLM 思考 → 调工具 → 观察 → 继续思考</td></tr>
+        <tr><td class="label">P2</td><td class="name">工具系统</td><td class="desc">极简设计：read / write / edit / bash</td></tr>
+        <tr><td class="label">P3</td><td class="name">会话管理</td><td class="desc">JSONL 持久化存储，记忆的骨架</td></tr>
+        <tr><td class="label">P4</td><td class="name">系统提示词</td><td class="desc">动态组装 SOUL.md + 工具定义 + 记忆</td></tr>
+        <tr><td class="label">P5</td><td class="name">上下文压缩</td><td class="desc">LLM 摘要 + token 裁剪，生存机制</td></tr>
+        <tr><td class="label">P6</td><td class="name">记忆系统</td><td class="desc">结构化记忆 + BM25 全文搜索</td></tr>
+        <tr><td class="label">P7</td><td class="name">网关层</td><td class="desc">WebSocket + 多客户端 + 子智能体编排</td></tr>
+      </table>
+    </div>
+  </div>
+  <span class="page-num">3 / 15</span>
+</div>
+
+<!-- SLIDE 4: AI Ecosystem -->
+<div class="slide" data-index="3">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">在 AI 生态中的位置</h2>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:0">
+      <div class="layer-box anim anim-d1" style="background:#0EA5E9;color:#0F172A">
+        <h4>应用 / 接口层</h4>
+        <p>CLI &nbsp;|&nbsp; Web UI &nbsp;|&nbsp; VS Code 插件 &nbsp;|&nbsp; 第三方客户端</p>
+      </div>
+      <div class="arrow-down anim anim-d2">▼</div>
+      <div class="layer-box anim anim-d2" style="background:#38BDF8;color:#0F172A">
+        <h4>执行 / 框架层 — FirmClaw Agent Runtime</h4>
+        <p>任务规划 · 工具调度 · 会话管理 · 事件分发 · 多渠道接入</p>
+      </div>
+      <div class="arrow-down anim anim-d3">▼</div>
+      <div class="layer-box anim anim-d3" style="background:#7DD3FC;color:#0F172A">
+        <h4>模型层 — 大语言模型 (LLM)</h4>
+        <p>Claude · GPT · DeepSeek · MiniMax · 通义千问 · 本地模型</p>
+      </div>
+    </div>
+  </div>
+  <span class="page-num">4 / 15</span>
+</div>
+
+<!-- SLIDE 5: Architecture Overview -->
+<div class="slide" data-index="4">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">整体架构概览</h2>
+    <p class="subtitle anim anim-d1">FirmClaw = 本地网关 + ReAct 循环 + 工具系统 + 持久化记忆</p>
+    <div class="cols anim anim-d2" style="flex:1;align-items:stretch;gap:20px">
+      <div class="col" style="display:flex;flex-direction:column;gap:8px">
+        <div class="card" style="border-left:3px solid #0EA5E9;padding:10px 14px"><strong style="font-size:12px">多客户端接入</strong><br><span style="font-size:10px;color:var(--muted)">CLI / Web / VS Code</span></div>
+        <div class="card" style="border-left:3px solid #0284C7;padding:10px 14px"><strong style="font-size:12px">Gateway 网关层</strong><br><span style="font-size:10px;color:var(--muted)">Auth + Router + ConnMgr</span></div>
+        <div class="card" style="border-left:3px solid #0369A1;padding:10px 14px"><strong style="font-size:12px">AgentLoop (ReAct)</strong><br><span style="font-size:10px;color:var(--muted)">思考 → 行动 → 观察</span></div>
+        <div class="card" style="border-left:3px solid #075985;padding:10px 14px"><strong style="font-size:12px">工具 + 记忆 + 安全</strong><br><span style="font-size:10px;color:var(--muted)">ToolRegistry / Memory / Audit</span></div>
+      </div>
+      <div class="col" style="display:flex;flex-direction:column;gap:8px;justify-content:center">
+        <div class="card" style="padding:10px 14px;border:1px solid rgba(14,165,233,.3)"><span class="tag tag-accent" style="margin-right:6px">Core</span><strong style="font-size:11px">LLM Client</strong></div>
+        <div class="card" style="padding:10px 14px;border:1px solid rgba(14,165,233,.3)"><span class="tag tag-accent" style="margin-right:6px">Core</span><strong style="font-size:11px">SubagentManager</strong></div>
+        <div class="card" style="padding:10px 14px;border:1px solid rgba(14,165,233,.3)"><span class="tag tag-accent" style="margin-right:6px">Core</span><strong style="font-size:11px">SessionManager</strong></div>
+        <div class="card" style="padding:10px 14px;border:1px solid rgba(14,165,233,.3)"><span class="tag tag-accent" style="margin-right:6px">Core</span><strong style="font-size:11px">SearchEngine</strong></div>
+        <div class="card" style="padding:10px 14px;border:1px solid rgba(14,165,233,.3)"><span class="tag tag-accent" style="margin-right:6px">Core</span><strong style="font-size:11px">ContextBuilder</strong></div>
+      </div>
+    </div>
+  </div>
+  <span class="page-num">5 / 15</span>
+</div>
+
+<!-- SLIDE 6: Agent Loop -->
+<div class="slide" data-index="5">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">Agent Loop — ReAct 核心解析</h2>
+    <p class="subtitle anim anim-d1">Agent Loop 是整个系统的心脏，实现经典的 ReAct 模式</p>
+    <div class="anim anim-d2" style="display:flex;gap:0;align-items:stretch;margin-bottom:12px">
+      <div class="react-box"><div class="top-line" style="background:#0EA5E9"></div><h4 style="color:#0EA5E9">Reason<br>(思考)</h4><p>LLM 分析任务<br>制定行动计划</p></div>
+      <div class="react-arrow">→</div>
+      <div class="react-box"><div class="top-line" style="background:#0369A1"></div><h4 style="color:#0369A1">Act<br>(行动)</h4><p>调用工具执行<br>搜索/读文件/命令</p></div>
+      <div class="react-arrow">→</div>
+      <div class="react-box"><div class="top-line" style="background:#0284C7"></div><h4 style="color:#0284C7">Observe<br>(观察)</h4><p>接收工具结果<br>作为新上下文</p></div>
+    </div>
+    <div class="anim anim-d3" style="text-align:center;color:var(--muted);font-size:10px;margin-bottom:8px">← 循环直到任务完成 →</div>
+    <div class="anim anim-d4" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:10px;color:var(--muted)">
+      <div>▸ 自主循环：不断迭代处理不确定性任务</div>
+      <div>▸ 可解释性：思考过程实时输出</div>
+      <div>▸ 错误自我修正：根据结果主动调整策略</div>
+      <div>▸ 安全控制：危险操作需人工审批</div>
+    </div>
+  </div>
+  <span class="page-num">6 / 15</span>
+</div>
+
+<!-- SLIDE 7: Execution Flow -->
+<div class="slide" data-index="6">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">典型执行流程</h2>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+      <div class="flow-item anim anim-d1"><div class="flow-step">1</div><div class="flow-title">接收输入</div><div style="flex:1"></div><div class="flow-desc">readline 读取用户输入</div></div>
+      <div style="text-align:center;color:var(--accent);font-size:10px">▼</div>
+      <div class="flow-item anim anim-d2"><div class="flow-step">2</div><div class="flow-title">构建系统提示词</div><div style="flex:1"></div><div class="flow-desc">SOUL.md + 工具定义 + 记忆</div></div>
+      <div style="text-align:center;color:var(--accent);font-size:10px">▼</div>
+      <div class="flow-item anim anim-d3"><div class="flow-step">3</div><div class="flow-title">恢复历史消息</div><div style="flex:1"></div><div class="flow-desc">从 JSONL 加载会话历史</div></div>
+      <div style="text-align:center;color:var(--accent);font-size:10px">▼</div>
+      <div class="flow-item anim anim-d4"><div class="flow-step">4</div><div class="flow-title">上下文压缩</div><div style="flex:1"></div><div class="flow-desc">LLM 摘要 + token 裁剪</div></div>
+      <div style="text-align:center;color:var(--accent);font-size:10px">▼</div>
+      <div class="flow-item anim anim-d5" style="background:rgba(14,165,233,.1);border-radius:4px;padding:4px 8px"><div class="flow-step">5</div><div class="flow-title">ReAct 循环</div><div style="flex:1"></div><div class="flow-desc">LLM 推理 → 工具调用 → 观察</div></div>
+      <div style="text-align:center;color:var(--accent);font-size:10px">▼</div>
+      <div class="flow-item anim anim-d5"><div class="flow-step" style="background:var(--safe)">6</div><div class="flow-title">最终回复</div><div style="flex:1"></div><div class="flow-desc">输出结果给用户</div></div>
+    </div>
+  </div>
+  <span class="page-num">7 / 15</span>
+</div>
+
+<!-- SLIDE 8: Tool System -->
+<div class="slide" data-index="7">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">工具系统 — Agent 的手脚</h2>
+    <div class="grid-4 anim anim-d1" style="margin-bottom:14px;flex:0 0 auto">
+      <div class="card" style="text-align:center"><div class="card-top" style="background:#0EA5E9"></div><div style="font-family:Consolas;font-size:15px;font-weight:700;color:#0EA5E9;margin-top:8px">bash</div><div style="font-size:11px;color:var(--text);margin:4px 0">执行终端命令</div><div style="font-size:9px;color:var(--muted)">spawn() 流式输出<br>cwd/timeout</div></div>
+      <div class="card" style="text-align:center"><div class="card-top" style="background:#0284C7"></div><div style="font-family:Consolas;font-size:14px;font-weight:700;color:#0284C7;margin-top:8px">read_file</div><div style="font-size:11px;color:var(--text);margin:4px 0">读取文件内容</div><div style="font-size:9px;color:var(--muted)">offset/limit<br>二进制检测</div></div>
+      <div class="card" style="text-align:center"><div class="card-top" style="background:#0369A1"></div><div style="font-family:Consolas;font-size:14px;font-weight:700;color:#0369A1;margin-top:8px">write_file</div><div style="font-size:11px;color:var(--text);margin:4px 0">创建/覆写文件</div><div style="font-size:9px;color:var(--muted)">自动创建父目录<br>输出写入字节数</div></div>
+      <div class="card" style="text-align:center"><div class="card-top" style="background:#075985"></div><div style="font-family:Consolas;font-size:14px;font-weight:700;color:#075985;margin-top:8px">edit_file</div><div style="font-size:11px;color:var(--text);margin:4px 0">精确编辑文件</div><div style="font-size:9px;color:var(--muted)">查找替换<br>唯一性校验</div></div>
+    </div>
+    <div class="anim anim-d2" style="display:flex;gap:16px;align-items:center;background:var(--bg2);border-radius:6px;padding:12px 16px">
+      <strong style="font-size:13px;color:var(--accent2);flex-shrink:0">权限策略</strong>
+      <span class="tag tag-safe">LOW &nbsp;read / ls / git status</span>
+      <span class="tag tag-warn">MED &nbsp;write / edit / npm install</span>
+      <span class="tag tag-danger">HIGH &nbsp;rm / del — 需人工审批</span>
+    </div>
+  </div>
+  <span class="page-num">8 / 15</span>
+</div>
+
+<!-- SLIDE 9: Tool Pipeline -->
+<div class="slide" data-index="8">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">工具执行流水线</h2>
+    <p class="subtitle anim anim-d1">ToolRegistry.execute() — 统一执行入口，所有工具调用都经过这 7 个步骤</p>
+    <div class="pipeline anim anim-d2" style="margin-top:20px">
+      <div class="pipe-step"><div class="pipe-top"></div><div class="pipe-num">1</div><div class="pipe-label">参数校验</div><div class="pipe-desc">ajv JSON Schema</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-top"></div><div class="pipe-num">2</div><div class="pipe-label">Before Hooks</div><div class="pipe-desc">可修改/拒绝</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-top"></div><div class="pipe-num">3</div><div class="pipe-label">权限检查</div><div class="pipe-desc">白名单+黑名单</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-top"></div><div class="pipe-num">4</div><div class="pipe-label">人工审批</div><div class="pipe-desc">高风险暂停</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-top"></div><div class="pipe-num">5</div><div class="pipe-label">工具执行</div><div class="pipe-desc">实际操作</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-top"></div><div class="pipe-num">6</div><div class="pipe-label">After Hooks</div><div class="pipe-desc">审计+处理</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-top"></div><div class="pipe-num">7</div><div class="pipe-label">注入防护</div><div class="pipe-desc">REDACTED</div></div>
+    </div>
+    <div class="anim anim-d3" style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="card" style="padding:10px 14px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--accent2);font-family:'Noto Serif SC',serif">7 步</div><div style="font-size:10px;color:var(--muted)">完整执行链路</div></div>
+      <div class="card" style="padding:10px 14px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--safe);font-family:'Noto Serif SC',serif">2 道钩子</div><div style="font-size:10px;color:var(--muted)">Before + After</div></div>
+      <div class="card" style="padding:10px 14px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--warn);font-family:'Noto Serif SC',serif">3 级权限</div><div style="font-size:10px;color:var(--muted)">LOW / MED / HIGH</div></div>
+    </div>
+  </div>
+  <span class="page-num">9 / 15</span>
+</div>
+
+<!-- SLIDE 10: LLM Layer -->
+<div class="slide" data-index="9">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">大模型层 — 统一适配</h2>
+    <p class="subtitle anim anim-d1">采用 OpenAI 兼容格式，一套代码适配所有模型提供商</p>
+    <div class="grid-3 anim anim-d2" style="margin-bottom:14px">
+      <div class="card" style="text-align:center"><div class="card-top" style="background:#0EA5E9"></div><div style="font-size:14px;font-weight:700;color:#0EA5E9;margin-top:6px;font-family:'Noto Serif SC',serif">云端 API</div><div style="font-size:10px;color:var(--muted);margin:6px 0;line-height:1.5">MiniMax M2.7 / DeepSeek / Kimi<br>Claude / GPT / 通义千问</div><span class="tag tag-accent">性能强，即开即用</span></div>
+      <div class="card" style="text-align:center"><div class="card-top" style="background:#0369A1"></div><div style="font-size:14px;font-weight:700;color:#0369A1;margin-top:6px;font-family:'Noto Serif SC',serif">本地私有</div><div style="font-size:10px;color:var(--muted);margin:6px 0;line-height:1.5">Ollama + Qwen3.5-32B<br>DeepSeek 本地部署</div><span class="tag tag-safe">数据隐私，零成本</span></div>
+      <div class="card" style="text-align:center"><div class="card-top" style="background:#0284C7"></div><div style="font-size:14px;font-weight:700;color:#0284C7;margin-top:6px;font-family:'Noto Serif SC',serif">混合调度</div><div style="font-size:10px;color:var(--muted);margin:6px 0;line-height:1.5">简单任务 → 本地<br>复杂任务 → 云端</div><span class="tag tag-warn">智能路由</span></div>
+    </div>
+    <div class="code-block anim anim-d3">LLMClient.chat(messages, tools, onDelta?)  —  切换模型只需改配置，不需要改代码</div>
+  </div>
+  <span class="page-num">10 / 15</span>
+</div>
+
+<!-- SLIDE 11: Memory System -->
+<div class="slide" data-index="10">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">记忆系统</h2>
+    <div class="cols anim anim-d1" style="flex:1;gap:16px">
+      <div class="col">
+        <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px">MEMORY.md 结构化记忆</div>
+        <div class="code-block" style="height:calc(100% - 30px);font-size:10px;line-height:1.6;overflow:auto"><span style="color:var(--muted)"># 长期记忆</span>
+<span style="color:var(--text)">## 偏好</span>
+<span style="color:var(--accent2)">[P001] 用户偏好 pnpm (2026-03-28)</span>
+<span style="color:var(--text)">## 技术决策</span>
+<span style="color:var(--accent2)">[T001] TypeScript strict 模式</span>
+<span style="color:var(--text)">## 待办</span>
+<span style="color:var(--accent2)">[D001] 实现向量搜索模块</span>
+<span style="color:var(--text)">## 知识</span>
+<span style="color:var(--accent2)">[K001] FirmClaw 使用 ReAct 架构</span></div>
+      </div>
+      <div class="col">
+        <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px">BM25 全文搜索</div>
+        <div class="card" style="margin-bottom:8px;padding:10px 14px;font-size:10px;color:var(--muted);line-height:1.8">
+          ▸ 纯 JS 实现，零原生依赖<br>
+          ▸ 中文 bigram 分词<br>
+          ▸ 索引覆盖会话 + 记忆<br>
+          ▸ 搜索结果动态注入提示词<br>
+          ▸ 支持跨会话信息引用
+        </div>
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px">检索流程</div>
+        <div style="font-size:10px;color:var(--muted);background:var(--bg2);padding:8px 12px;border-radius:4px">用户输入 → SearchEngine.search() → 注入 {{memory}}</div>
+      </div>
+    </div>
+  </div>
+  <span class="page-num">11 / 15</span>
+</div>
+
+<!-- SLIDE 12: Security -->
+<div class="slide" data-index="11">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">安全与审计</h2>
+    <div class="grid-3 anim anim-d1" style="flex:1">
+      <div class="card"><div class="card-top" style="background:#EF4444"></div><div style="text-align:center;margin:8px 0"><span class="badge" style="background:#EF4444;font-size:10px">HITL</span></div><div style="font-size:13px;font-weight:700;text-align:center;margin-bottom:8px">人工审批</div><div style="font-size:10px;color:var(--muted);line-height:1.8;padding:0 4px">▸ Promise + 回调异步等待<br>▸ Agent Loop 暂停<br>▸ CLI 用户输入恢复<br>▸ 风险分级审批</div></div>
+      <div class="card"><div class="card-top" style="background:#F59E0B"></div><div style="text-align:center;margin:8px 0"><span class="badge" style="background:#F59E0B;font-size:10px">GUARD</span></div><div style="font-size:13px;font-weight:700;text-align:center;margin-bottom:8px">Injection 防护</div><div style="font-size:10px;color:var(--muted);line-height:1.8;padding:0 4px">▸ 正则匹配扫描结果<br>▸ 系统提示词劫持检测<br>▸ 角色扮演攻击拦截<br>▸ 标记净化 [REDACTED]</div></div>
+      <div class="card"><div class="card-top" style="background:#0EA5E9"></div><div style="text-align:center;margin:8px 0"><span class="badge" style="background:#0EA5E9;font-size:10px">AUDIT</span></div><div style="font-size:13px;font-weight:700;text-align:center;margin-bottom:8px">审计日志</div><div style="font-size:10px;color:var(--muted);line-height:1.8;padding:0 4px">▸ 全量操作 append-only<br>▸ ~/.firmclaw/audit.jsonl<br>▸ 支持查询与 CSV 导出<br>▸ 记录参数/风险/耗时</div></div>
+    </div>
+  </div>
+  <span class="page-num">12 / 15</span>
+</div>
+
+<!-- SLIDE 13: Context Management -->
+<div class="slide" data-index="12">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">上下文管理 — 三级压缩策略</h2>
+    <p class="subtitle anim anim-d1">长对话场景下的生存机制</p>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px">
+      <div class="strat-row anim anim-d2"><div class="strat-level" style="background:#0EA5E9"><span>L1</span><small>优先级</small></div><div class="strat-info"><h5>LLM 摘要压缩</h5><div class="effect">50条消息 → ~2000 token</div><div class="detail">保留语义和关键决策，压缩比 93%</div></div></div>
+      <div class="strat-row anim anim-d3"><div class="strat-level" style="background:#0369A1"><span>L2</span><small>优先级</small></div><div class="strat-info"><h5>工具结果截断</h5><div class="effect">单条 > 500 token 截断</div><div class="detail">减少冗余输出，保留关键信息</div></div></div>
+      <div class="strat-row anim anim-d4"><div class="strat-level" style="background:#075985"><span>L3</span><small>优先级</small></div><div class="strat-info"><h5>旧消息移除</h5><div class="effect">整体超限时移除</div><div class="detail">从最早消息开始，确保窗口不溢出</div></div></div>
+    </div>
+  </div>
+  <span class="page-num">13 / 15</span>
+</div>
+
+<!-- SLIDE 14: Gateway -->
+<div class="slide" data-index="13">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">网关层与子智能体</h2>
+    <div class="cols anim anim-d1" style="flex:1;gap:16px">
+      <div class="col">
+        <div style="font-size:14px;font-weight:700;color:var(--accent2);font-family:'Noto Serif SC',serif;margin-bottom:4px">WebSocket 服务器</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:10px">JSON-RPC 2.0 协议 | ws 库 | 事件推送</div>
+        <div class="code-block" style="font-size:10px;line-height:1.8">agent.chat &nbsp;&nbsp;&nbsp;&nbsp;— 发送消息<br>session.list &nbsp;— 列出会话<br>session.new &nbsp;&nbsp;— 创建会话<br>session.resume — 恢复会话<br>approval.respond — 响应审批<br>agent.cancel &nbsp; — 取消执行</div>
+      </div>
+      <div class="col">
+        <div class="card" style="height:100%">
+          <div class="card-top" style="background:var(--accent)"></div>
+          <div style="font-size:14px;font-weight:700;color:var(--accent2);font-family:'Noto Serif SC',serif;margin-bottom:8px;margin-top:6px">子智能体 (Subagent)</div>
+          <div style="font-size:10px;color:var(--muted);line-height:2">▸ 复杂任务拆分并行执行<br>▸ 独立 AgentLoop 实例<br>▸ 默认只读（工具白名单）<br>▸ maxSubagents + timeoutMs 限制<br>▸ 不共享父会话审批状态</div>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(14,165,233,.2);font-size:10px;color:var(--accent2)"><strong>事件推送：</strong><br><span style="color:var(--muted)">thinking_delta / tool_start / tool_end / approval_requested</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="page-num">14 / 15</span>
+</div>
+
+<!-- SLIDE 15: Summary -->
+<div class="slide" data-index="14">
+  <div class="accent-bar"></div>
+  <div class="content">
+    <h2 class="anim">技术选型与总结</h2>
+    <div class="cols anim anim-d1" style="flex:0 0 auto;margin-bottom:10px">
+      <div class="col">
+        <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:8px">仅 6 个外部依赖</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div style="background:var(--bg2);padding:6px 8px;border-radius:4px;border:1px solid rgba(14,165,233,.3);text-align:center"><div style="font-family:Consolas;font-size:10px;color:var(--accent2);font-weight:700">openai</div><div style="font-size:8px;color:var(--muted)">LLM 接入</div></div>
+          <div style="background:var(--bg2);padding:6px 8px;border-radius:4px;border:1px solid rgba(14,165,233,.3);text-align:center"><div style="font-family:Consolas;font-size:10px;color:var(--accent2);font-weight:700">ajv</div><div style="font-size:8px;color:var(--muted)">参数校验</div></div>
+          <div style="background:var(--bg2);padding:6px 8px;border-radius:4px;border:1px solid rgba(14,165,233,.3);text-align:center"><div style="font-family:Consolas;font-size:10px;color:var(--accent2);font-weight:700">ws</div><div style="font-size:8px;color:var(--muted)">WebSocket</div></div>
+          <div style="background:var(--bg2);padding:6px 8px;border-radius:4px;border:1px solid rgba(14,165,233,.3);text-align:center"><div style="font-family:Consolas;font-size:10px;color:var(--accent2);font-weight:700">dotenv</div><div style="font-size:8px;color:var(--muted)">环境变量</div></div>
+          <div style="background:var(--bg2);padding:6px 8px;border-radius:4px;border:1px solid rgba(14,165,233,.3);text-align:center"><div style="font-family:Consolas;font-size:10px;color:var(--accent2);font-weight:700">tsx</div><div style="font-size:8px;color:var(--muted)">TS 运行</div></div>
+          <div style="background:var(--bg2);padding:6px 8px;border-radius:4px;border:1px solid rgba(14,165,233,.3);text-align:center"><div style="font-family:Consolas;font-size:10px;color:var(--accent2);font-weight:700">typescript</div><div style="font-size:8px;color:var(--muted)">类型系统</div></div>
+        </div>
+      </div>
+      <div class="col">
+        <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:8px">6 阶段渐进演进</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:10px">
+          <div><span class="tag tag-safe" style="margin-right:4px">✓</span><strong style="color:var(--accent2)">P1 v1.0</strong> <span style="color:var(--muted)">最小 ReAct</span></div>
+          <div><span class="tag tag-safe" style="margin-right:4px">✓</span><strong style="color:var(--accent2)">P2 v1.6</strong> <span style="color:var(--muted)">4 工具+权限</span></div>
+          <div><span class="tag tag-safe" style="margin-right:4px">✓</span><strong style="color:var(--accent2)">P3 v2.4</strong> <span style="color:var(--muted)">会话+上下文</span></div>
+          <div><span class="tag tag-safe" style="margin-right:4px">✓</span><strong style="color:var(--accent2)">P4 v3.4</strong> <span style="color:var(--muted)">记忆+搜索</span></div>
+          <div><span class="tag tag-safe" style="margin-right:4px">✓</span><strong style="color:var(--accent2)">P5 v5.0</strong> <span style="color:var(--muted)">安全+审计</span></div>
+          <div><span class="tag tag-safe" style="margin-right:4px">✓</span><strong style="color:var(--accent2)">P6 v6.0</strong> <span style="color:var(--muted)">网关+Web UI</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="anim anim-d2" style="border-top:1px solid rgba(14,165,233,.2);padding-top:10px;margin-top:4px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;font-family:'Noto Serif SC',serif">核心架构</div>
+      <div style="font-size:12px;color:var(--muted);font-style:italic;margin-bottom:10px">一个基于 ReAct 循环的 LLM 工具调用引擎，以本地网关 + 工具系统 + 持久化记忆的组合作为标准蓝图。</div>
+      <div style="display:flex;gap:10px">
+        <span class="badge" style="background:var(--accent);font-size:10px">渐进式架构</span>
+        <span class="badge" style="background:var(--accent);font-size:10px">零外部依赖策略</span>
+        <span class="badge" style="background:var(--accent);font-size:10px">全面安全机制</span>
+        <span class="badge" style="background:var(--accent);font-size:10px">生产级可靠性</span>
+      </div>
+    </div>
+  </div>
+  <span class="page-num">15 / 15</span>
+</div>
+
+</div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn" id="prevBtn">‹</button>
+  <div class="dots" id="dots"></div>
+  <button class="nav-btn" id="nextBtn">›</button>
+</div>
+
+<script>
+const slides=document.querySelectorAll('.slide');
+const dotsEl=document.getElementById('dots');
+const total=slides.length;
+let current=0;
+
+// Create dots
+for(let i=0;i<total;i++){
+  const d=document.createElement('div');
+  d.className='dot'+(i===0?' active':'');
+  d.addEventListener('click',()=>goTo(i));
+  dotsEl.appendChild(d);
+}
+
+function updateDots(){
+  document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===current));
+}
+
+function goTo(idx){
+  if(idx<0||idx>=total||idx===current)return;
+  slides[current].classList.remove('active');
+  slides[current].classList.add(idx>current?'prev':'');
+  setTimeout(()=>slides[idx>current?current:idx].classList.remove('prev'),500);
+  current=idx;
+  slides[current].classList.add('active');
+  updateDots();
+}
+
+document.getElementById('prevBtn').addEventListener('click',()=>goTo(current-1));
+document.getElementById('nextBtn').addEventListener('click',()=>goTo(current+1));
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' ')goTo(current+1);
+  if(e.key==='ArrowLeft')goTo(current-1);
+});
+</script>
+</body>
+</html>

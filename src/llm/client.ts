@@ -89,6 +89,16 @@ export class LLMClient {
     this.model = model;
   }
 
+  /** v6.2: 获取当前模型名称 */
+  getModel(): string {
+    return this.model;
+  }
+
+  /** v6.2: 获取 API 基础 URL */
+  getBaseURL(): string {
+    return this.client.baseURL;
+  }
+
   /**
    * 将工具注册表转换为 OpenAI API 的 tools 格式
    *

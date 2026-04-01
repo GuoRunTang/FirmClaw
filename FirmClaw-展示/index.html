@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirmClaw 项目展示</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0F172A;--bg2:#1E293B;--accent:#0EA5E9;--accent2:#38BDF8;--text:#F1F5F9;--muted:#94A3B8;--white:#FFF;--danger:#EF4444;--warn:#F59E0B;--safe:#22C55E}
+body{min-height:100vh;background:var(--bg);font-family:'Noto Sans SC',sans-serif;color:var(--text)}
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 50% 50%,rgba(14,165,233,.08) 0%,transparent 50%);animation:pulse 8s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.1);opacity:1}}
+.hero h1{font-family:'Noto Serif SC',serif;font-size:52px;font-weight:900;color:var(--accent2);margin-bottom:8px;position:relative;z-index:1}
+.hero h2{font-family:'Noto Serif SC',serif;font-size:24px;font-weight:600;color:var(--text);margin-bottom:16px;position:relative;z-index:1}
+.hero-line{width:80px;height:3px;background:var(--accent);margin:0 auto 16px;position:relative;z-index:1}
+.hero p{font-size:15px;color:var(--muted);max-width:600px;line-height:1.7;position:relative;z-index:1}
+.hero .meta{margin-top:32px;font-size:12px;color:var(--muted);position:relative;z-index:1}
+.nav-grid{max-width:1000px;margin:0 auto;padding:0 20px 80px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative;z-index:1}
+.nav-card{background:var(--bg2);border-radius:10px;padding:28px 24px;border:1px solid rgba(14,165,233,.15);transition:all .3s ease;cursor:pointer;text-decoration:none;color:var(--text);display:flex;flex-direction:column}
+.nav-card:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 12px 40px rgba(14,165,233,.15)}
+.nav-card .num{font-family:'Noto Serif SC',serif;font-size:32px;font-weight:900;color:var(--accent);opacity:.3;margin-bottom:8px}
+.nav-card h3{font-family:'Noto Serif SC',serif;font-size:17px;font-weight:700;margin-bottom:10px;color:var(--text)}
+.nav-card p{font-size:12px;color:var(--muted);line-height:1.7;flex:1}
+.nav-card .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.nav-card .tag{padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(14,165,233,.1);color:var(--accent2)}
+.nav-card.featured{grid-column:span 2;background:linear-gradient(135deg,var(--bg2) 0%,rgba(14,165,233,.1) 100%);border-color:rgba(14,165,233,.3)}
+.footer{text-align:center;padding:30px;font-size:11px;color:var(--muted);border-top:1px solid rgba(14,165,233,.1)}
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>FirmClaw</h1>
+  <h2>从原理到实践的 AI 智能体框架</h2>
+  <div class="hero-line"></div>
+  <p>基于 OpenClaw 底层原理自主开发的本地优先 AI Agent 框架。本展示将帮助你——即使不熟悉 TypeScript——也能全面了解 FirmClaw 的技术原理、实现细节、单位应用前景与未来发展规划。</p>
+  <div class="meta">v6.1.1 &nbsp;|&nbsp; ReAct Architecture &nbsp;|&nbsp; TypeScript + Node.js &nbsp;|&nbsp; 15 页核心幻灯片</div>
+</div>
+
+<div class="nav-grid">
+  <a class="nav-card featured" href="01-openclaw-principles.html">
+    <div class="num">01</div>
+    <h3>OpenClaw 技术原理与开发方法</h3>
+    <p>从 ReAct 架构原理到实际开发方法论。理解 Agent Loop、工具系统、会话管理、上下文压缩、记忆系统的底层实现逻辑，以及"为什么这样设计"的工程决策。</p>
+    <div class="tags"><span class="tag">ReAct 循环</span><span class="tag">工具系统</span><span class="tag">记忆管理</span><span class="tag">开发方法论</span></div>
+  </a>
+
+  <a class="nav-card" href="02-firmclaw-detail.html">
+    <div class="num">02</div>
+    <h3>FirmClaw 实现详解</h3>
+    <p>面向 Python 开发者的 FirmClaw 技术解读。用 Python 思维理解 TypeScript 代码，涵盖 6 大模块、65 个源文件的具体实现。</p>
+    <div class="tags"><span class="tag">Python 视角</span><span class="tag">源码解读</span></div>
+  </a>
+
+  <a class="nav-card" href="03-enterprise-outlook.html">
+    <div class="num">03</div>
+    <h3>单位软件支撑展望</h3>
+    <p>FirmClaw 如何赋能单位现有软件体系：内部文档智能检索、自动化运维、知识库问答、流程自动化等具体场景的落地方案。</p>
+    <div class="tags"><span class="tag">场景规划</span><span class="tag">落地方案</span></div>
+  </a>
+
+  <a class="nav-card featured" href="04-comparison-roadmap.html">
+    <div class="num">04</div>
+    <h3>竞品对比与未来研发路线</h3>
+    <p>与 OpenClaw、Claude Code、Cursor、Aider 等主流工具的功能对比。分析差距、发现机遇，规划 FirmClaw 未来 3-6 个版本的功能路线图。</p>
+    <div class="tags"><span class="tag">竞品分析</span><span class="tag">功能对比</span><span class="tag">路线规划</span><span class="tag">MCP 协议</span><span class="tag">Skills 系统</span></div>
+  </a>
+
+  <a class="nav-card" href="05-tech-choices.html">
+    <div class="num">05</div>
+    <h3>技术选型决策说明</h3>
+    <p>为什么选 TypeScript 而非 Python？为什么用 JSONL 而非 SQLite？逐一解释每个技术决策的考量、权衡与替代方案。</p>
+    <div class="tags"><span class="tag">技术决策</span><span class="tag">权衡分析</span></div>
+  </a>
+
+  <a class="nav-card" href="../FirmClaw技术架构-slides.html" style="background:linear-gradient(135deg,rgba(14,165,233,.15) 0%,var(--bg2) 100%)">
+    <div class="num" style="opacity:.5">★</div>
+    <h3>技术架构幻灯片</h3>
+    <p>15 页交互式幻灯片，快速浏览 FirmClaw 的核心架构、各模块功能与数据流向。支持键盘和点击导航。</p>
+    <div class="tags"><span class="tag">15 页</span><span class="tag">交互式</span></div>
+  </a>
+</div>
+
+<div class="footer">FirmClaw — 本地优先的 AI 智能体框架 &nbsp;|&nbsp; 灵感来自 OpenClaw &nbsp;|&nbsp; 2026</div>
+</body>
+</html>

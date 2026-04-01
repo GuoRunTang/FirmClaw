@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>05 - 技术选型决策说明 | FirmClaw</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0F172A;--bg2:#1E293B;--accent:#0EA5E9;--accent2:#38BDF8;--text:#F1F5F9;--muted:#94A3B8;--white:#FFF;--danger:#EF4444;--warn:#F59E0B;--safe:#22C55E}
+body{min-height:100vh;background:var(--bg);font-family:'Noto Sans SC',sans-serif;color:var(--text);line-height:1.7}
+.top-nav{position:fixed;top:0;left:0;right:0;height:48px;background:rgba(15,23,42,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(14,165,233,.15);display:flex;align-items:center;padding:0 24px;z-index:100}
+.top-nav a{color:var(--muted);text-decoration:none;font-size:12px;margin-right:16px;transition:color .2s}
+.top-nav a:hover,.top-nav a.active{color:var(--accent2)}
+.top-nav .brand{font-family:'Noto Serif SC',serif;font-weight:700;color:var(--accent2);font-size:14px;margin-right:auto}
+.container{max-width:860px;margin:0 auto;padding:64px 24px 60px}
+.page-title{font-family:'Noto Serif SC',serif;font-size:32px;font-weight:900;color:var(--accent2);margin-bottom:4px}
+.page-sub{font-size:14px;color:var(--muted);margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid rgba(14,165,233,.1)}
+h2{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:700;color:var(--text);margin:40px 0 16px;padding-left:14px;border-left:3px solid var(--accent)}
+h3{font-size:16px;font-weight:600;color:var(--accent2);margin:24px 0 10px}
+p{font-size:14px;color:var(--muted);margin-bottom:12px}
+strong{color:var(--text)}
+code{font-family:Consolas,'Courier New',monospace;font-size:12px;background:rgba(14,165,233,.1);color:var(--accent2);padding:2px 6px;border-radius:3px}
+.card{background:var(--bg2);border-radius:8px;padding:20px 24px;margin:16px 0;border:1px solid rgba(14,165,233,.1)}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.highlight{background:linear-gradient(135deg,rgba(14,165,233,.08) 0%,rgba(14,165,233,.02) 100%);border:1px solid rgba(14,165,233,.2);border-radius:8px;padding:20px 24px;margin:20px 0}
+.highlight p{color:var(--text)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+th{background:var(--bg2);color:var(--accent2);text-align:left;padding:10px 14px;font-weight:600;border-bottom:2px solid var(--accent)}
+td{padding:8px 14px;border-bottom:1px solid rgba(14,165,233,.08);color:var(--muted)}
+tr:hover td{background:rgba(14,165,233,.03)}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:600}
+.tag-safe{background:rgba(34,197,94,.15);color:var(--safe)}
+.tag-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.tag-danger{background:rgba(239,68,68,.15);color:var(--danger)}
+.tag-accent{background:rgba(14,165,233,.15);color:var(--accent2)}
+.verdict{background:var(--bg2);border-left:3px solid var(--accent);padding:12px 16px;margin:12px 0;border-radius:0 6px 6px 0;font-size:13px}
+.verdict strong{color:var(--accent2)}
+.pros{color:var(--safe)}
+.cons{color:var(--danger)}
+.bottom-nav{max-width:860px;margin:0 auto;padding:20px 24px 40px;display:flex;justify-content:space-between}
+.bottom-nav a{padding:10px 24px;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600;transition:all .2s}
+.btn-prev{background:var(--bg2);color:var(--muted);border:1px solid rgba(14,165,233,.15)}
+.btn-prev:hover{border-color:var(--accent);color:var(--accent2)}
+.btn-next{background:var(--accent);color:var(--white)}
+.btn-next:hover{background:var(--accent2)}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <span class="brand">FirmClaw</span>
+  <a href="index.html">首页</a>
+  <a href="01-openclaw-principles.html">01 原理</a>
+  <a href="02-firmclaw-detail.html">02 实现</a>
+  <a href="03-enterprise-outlook.html">03 展望</a>
+  <a href="04-comparison-roadmap.html">04 对比</a>
+  <a href="05-tech-choices.html" class="active">05 选型</a>
+</nav>
+
+<div class="container">
+  <div class="page-title">技术选型决策说明</div>
+  <div class="page-sub">逐一解释 FirmClaw 的每个技术决策——为什么这样选，有什么替代方案</div>
+
+  <div class="highlight">
+    <p><strong>设计原则：</strong>每个技术选型都遵循三个标准：<strong>简单</strong>（新人容易理解）、<strong>可靠</strong>（生产级稳定性）、<strong>自主</strong>（不依赖外部服务）。</p>
+  </div>
+
+  <!-- ========== 选型 1 ========== -->
+  <h2>一、编程语言：TypeScript + Node.js</h2>
+
+  <table>
+    <tr><th>对比维度</th><th>TypeScript + Node.js</th><th>Python</th><th>Go</th></tr>
+    <tr><td><strong>类型系统</strong></td><td>✅ 静态类型，编译时检查</td><td>⚠️ 可选（mypy），社区不强制</td><td>✅ 静态类型</td></tr>
+    <tr><td><strong>异步处理</strong></td><td>✅ async/await 原生支持</td><td>✅ asyncio</td><td>✅ goroutine</td></tr>
+    <tr><td><strong>LLM SDK 生态</strong></td><td>✅ OpenAI SDK（官方 TypeScript）</td><td>✅ OpenAI SDK（官方 Python）</td><td>⚠️ 社区维护</td></tr>
+    <tr><td><strong>参考项目</strong></td><td>✅ OpenClaw 同款语言</td><td>❌ OpenClaw 不用 Python</td><td>❌ 无参考项目</td></tr>
+    <tr><td><strong>JSON 处理</strong></td><td>✅ 原生 JSON 对象</td><td>⚠️ 需要序列化/反序列化</td><td>⚠️ 需要序列化</td></tr>
+    <tr><td><strong>运行时</strong></td><td>⚠️ 需要 Node.js</td><td>⚠️ 需要 Python</td><td>✅ 单二进制</td></tr>
+  </table>
+
+  <div class="card">
+    <p><span class="pros">✅ 优势：</span>与 OpenClaw 同款语言，可以直接参考其实现；LLM SDK 生态成熟；JSON 处理天然友好；静态类型减少运行时错误。</p>
+    <p><span class="cons">❌ 劣势：</span>Python 开发者需要学习新语言；Node.js 单线程模型对 CPU 密集任务不利。</p>
+  </div>
+
+  <div class="verdict">
+    <strong>决策：</strong>选择 TypeScript + Node.js，主要因为 <strong>与 OpenClaw 保持技术栈一致</strong>，便于参考和移植。如果用 Python，就无法直接参考 OpenClaw 的代码实现。
+  </div>
+
+  <!-- ========== 选型 2 ========== -->
+  <h2>二、存储格式：JSONL 文件</h2>
+
+  <table>
+    <tr><th>对比维度</th><th>JSONL 文件</th><th>SQLite</th><th>PostgreSQL</th></tr>
+    <tr><td><strong>复杂度</strong></td><td>✅ 零配置</td><td>⚠️ 需要引入 sqlite3</td><td>❌ 需要外部服务</td></tr>
+    <tr><td><strong>可读性</strong></td><td>✅ 文本编辑器直接查看</td><td>⚠️ 需要 SQL 查询</td><td>❌ 需要 SQL 查询</td></tr>
+    <tr><td><strong>Git 友好</strong></td><td>✅ diff 友好（每行一条记录）</td><td>⚠️ 二进制文件</td><td>❌ 外部数据</td></tr>
+    <tr><td><strong>并发写入</strong></td><td>⚠️ 需要文件锁</td><td>✅ 内置锁机制</td><td>✅ 完善的事务</td></tr>
+    <tr><td><strong>查询能力</strong></td><td>❌ 只能全文件扫描</td><td>✅ SQL 查询</td><td>✅ SQL + 索引</td></tr>
+    <tr><td><strong>追加性能</strong></td><td>✅ O(1) append</td><td>✅ 快速 INSERT</td><td>✅ 快速 INSERT</td></tr>
+  </table>
+
+  <div class="card">
+    <p><span class="pros">✅ 优势：</span>零配置、零依赖、可直接用文本编辑器查看、Git 可追踪变更、追加写入性能极佳。</p>
+    <p><span class="cons">❌ 劣势：</span>查询能力弱（只能全文件扫描）；不支持并发写入；不适合大数据量。</p>
+  </div>
+
+  <div class="verdict">
+    <strong>决策：</strong>选择 JSONL，因为 FirmClaw 是<strong>个人 Agent</strong>（单用户、单进程），不需要数据库的事务和并发能力。"能用文件就不用数据库"是本地优先架构的核心原则。
+  </div>
+
+  <!-- ========== 选型 3 ========== -->
+  <h2>三、搜索引擎：纯 JS BM25</h2>
+
+  <table>
+    <tr><th>对比维度</th><th>纯 JS BM25</th><th>SQLite FTS5</th><th>Elasticsearch</th><th>向量搜索</th></tr>
+    <tr><td><strong>外部依赖</strong></td><td>✅ 零依赖</td><td>⚠️ 需要 sqlite3</td><td>❌ 需要独立服务</td><td>⚠️ 需要 embedding 模型</td></tr>
+    <tr><td><strong>中文支持</strong></td><td>✅ 自实现 bigram</td><td>✅ 内置 tokenizer</td><td>✅ 插件支持</td><td>✅ embedding 自带</td></tr>
+    <tr><td><strong>语义理解</strong></td><td>❌ 仅关键词匹配</td><td>❌ 仅关键词匹配</td><td>⚠️ 有限</td><td>✅ 语义相似度</td></tr>
+    <tr><td><strong>索引持久化</strong></td><td>✅ JSON 文件</td><td>✅ SQLite 数据库</td><td>✅ 内置</td><td>✅ 向量数据库</td></tr>
+    <tr><td><strong>部署复杂度</strong></td><td>✅ 零部署</td><td>⚠️ 需要安装</td><td>❌ 需要集群</td><td>❌ 需要模型+数据库</td></tr>
+  </table>
+
+  <div class="verdict">
+    <strong>决策：</strong>选择纯 JS BM25，因为<strong>零外部依赖</strong>。对于 FirmClaw 当前的记忆规模（几十到几百条），BM25 完全够用。未来版本（v7.2）会在此基础上叠加向量搜索，形成"关键词 + 语义"的混合检索。
+  </div>
+
+  <!-- ========== 选型 4 ========== -->
+  <h2>四、LLM 接入：OpenAI 兼容 SDK</h2>
+
+  <div class="card">
+    <p>几乎所有的 LLM 提供商（DeepSeek、Kimi、MiniMax、Claude、通义千问）都提供了 <strong>OpenAI 兼容的 API 格式</strong>。这意味着：</p>
+    <ul style="margin:10px 0 10px 20px;color:var(--muted);font-size:13px;line-height:2">
+      <li>用<strong>同一个 SDK</strong>（<code>openai</code>）就能调用所有模型</li>
+      <li>切换模型只需要改 <code>base_url</code> 和 <code>api_key</code></li>
+      <li>本地模型（Ollama）也兼容这个格式</li>
+    </ul>
+    <p><span class="cons">唯一例外：</span>Claude 的官方 API 格式与 OpenAI 不同，但可以通过第三方代理（如 OpenRouter）转换为 OpenAI 格式。</p>
+  </div>
+
+  <div class="verdict">
+    <strong>决策：</strong>使用 <code>openai</code> npm 包作为 LLM 接入层。这是当前 AI 生态的<strong>事实标准</strong>，最大程度减少模型切换的成本。
+  </div>
+
+  <!-- ========== 选型 5 ========== -->
+  <h2>五、实时通信：WebSocket（ws 库）</h2>
+
+  <table>
+    <tr><th>对比维度</th><th>WebSocket (ws)</th><th>SSE (Server-Sent Events)</th><th>HTTP 轮询</th></tr>
+    <tr><td><strong>双向通信</strong></td><td>✅ 服务端和客户端都能主动发消息</td><td>❌ 仅服务端→客户端</td><td>❌ 仅客户端→服务端</td></tr>
+    <tr><td><strong>实时性</strong></td><td>✅ 毫秒级</td><td>✅ 毫秒级</td><td>❌ 取决于轮询间隔</td></tr>
+    <tr><td><strong>复杂度</strong></td><td>⚠️ 需要管理连接状态</td><td>✅ 简单（HTTP 之上）</td><td>✅ 最简单</td></tr>
+    <tr><td><strong>适用场景</strong></td><td>双向实时交互（审批请求等）</td><td>单向推送（事件流）</td><td>低频查询</td></tr>
+  </table>
+
+  <div class="verdict">
+    <strong>决策：</strong>选择 WebSocket，因为 Agent 交互需要<strong>双向实时通信</strong>——不仅服务端要推送事件（思考内容、工具状态），客户端也要发送消息和审批响应。SSE 和 HTTP 轮询无法满足这个需求。
+  </div>
+
+  <!-- ========== 选型 6 ========== -->
+  <h2>六、参数校验：ajv（JSON Schema）</h2>
+
+  <div class="card">
+    <p>LLM 传来的工具调用参数可能包含错误类型、缺失字段、非法值。<code>ajv</code> 是 JavaScript 生态中最流行的 JSON Schema 校验库，功能等价于 Python 中的：</p>
+    <ul style="margin:10px 0 10px 20px;color:var(--muted);font-size:13px;line-height:2">
+      <li><code>pydantic</code> — Python 数据校验</li>
+      <li><code>cerberus</code> — 轻量级校验</li>
+      <li><code>jsonschema</code> — JSON Schema 校验</li>
+    </ul>
+    <p>选择 ajv 而非其他校验库，因为它是 Node.js 生态中性能最高、兼容性最好的选择。</p>
+  </div>
+
+  <div class="verdict">
+    <strong>决策：</strong>使用 <code>ajv</code>，这是 Node.js 生态的<strong>标准选择</strong>，类似 Python 中用 <code>pydantic</code> 做参数校验。
+  </div>
+
+  <!-- ========== 总结 ========== -->
+  <h2>七、技术选型总结</h2>
+
+  <table>
+    <tr><th>组件</th><th>选择</th><th>核心理由</th><th>Python 类比</th></tr>
+    <tr><td>语言</td><td>TypeScript</td><td>与 OpenClaw 保持一致</td><td>Python</td></tr>
+    <tr><td>运行时</td><td>Node.js</td><td>TS 原生运行环境</td><td>CPython</td></tr>
+    <tr><td>LLM 接入</td><td>openai SDK</td><td>行业标准，统一接口</td><td>openai Python SDK</td></tr>
+    <tr><td>存储</td><td>JSONL 文件</td><td>零配置，可读性强</td><td>JSON Lines</td></tr>
+    <tr><td>搜索</td><td>纯 JS BM25</td><td>零依赖，够用</td><td>whoosh / rank_bm25</td></tr>
+    <tr><td>通信</td><td>WebSocket (ws)</td><td>双向实时</td><td>websockets</td></tr>
+    <tr><td>校验</td><td>ajv</td><td>生态标准</td><td>pydantic</td></tr>
+    <tr><td>运行工具</td><td>tsx</td><td>直接运行 TS，无需预编译</td><td>python（直接运行）</td></tr>
+  </table>
+
+  <div class="highlight">
+    <p><strong>一句话总结：</strong>FirmClaw 的所有技术选型都遵循"<strong>能用简单方案就不用复杂方案</strong>"的原则。如果某个选型让你觉得"这也太简陋了"，请记住——Agent 的核心价值在于 LLM 的推理能力，而非基础设施的复杂性。简单的基础设施 + 强大的 LLM = 最好的 Agent。</p>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <a href="04-comparison-roadmap.html" class="btn-prev">← 竞品对比</a>
+  <a href="index.html" class="btn-next">返回首页 →</a>
+</div>
+</body>
+</html>

@@ -24,6 +24,8 @@ import { bashTool } from './tools/bash.js';
 import { readTool } from './tools/read.js';
 import { writeTool } from './tools/write.js';
 import { editTool } from './tools/edit.js';
+import { webSearchTool } from './tools/web-search.js';
+import { webFetchTool } from './tools/web-fetch.js';
 import { DefaultPermissionPolicy } from './tools/permissions.js';
 import { AgentLoop } from './agent/agent-loop.js';
 import { SessionManager } from './session/manager.js';
@@ -69,6 +71,8 @@ async function main(): Promise<void> {
   tools.register(readTool);
   tools.register(writeTool);
   tools.register(editTool);
+  tools.register(webSearchTool);
+  tools.register(webFetchTool);
 
   // 设置权限策略
   const policy = new DefaultPermissionPolicy({ allowedPaths: [workDir] });

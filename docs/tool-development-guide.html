@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirmClaw 工具开发指南</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-secondary: #161b22; --bg-code: #0d1117;
+  --text: #c9d1d9; --text-secondary: #8b949e; --text-muted: #484f58;
+  --border: #30363d; --accent: #58a6ff; --green: #3fb950; --orange: #d29922;
+  --red: #f85149; --purple: #bc8cff; --radius: 8px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Header */
+.header { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 24px 32px; }
+.header h1 { font-size: 24px; color: var(--accent); margin-bottom: 4px; }
+.header .subtitle { color: var(--text-secondary); font-size: 14px; }
+.toc-link { color: var(--accent); cursor: pointer; font-weight: 600; }
+
+/* Layout */
+.container { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+/* Sections */
+h2 { font-size: 22px; color: var(--accent); margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+h3 { font-size: 17px; color: var(--text); margin: 28px 0 12px; }
+h4 { font-size: 15px; color: var(--text-secondary); margin: 20px 0 8px; }
+p { margin: 10px 0; color: var(--text-secondary); font-size: 14.5px; }
+ul, ol { margin: 8px 0 12px 24px; color: var(--text-secondary); font-size: 14.5px; }
+li { margin: 4px 0; }
+
+/* Code */
+pre { background: var(--bg-code); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; overflow-x: auto; margin: 12px 0; font-size: 13px; line-height: 1.6; }
+code { font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace; font-size: 13px; }
+pre code { color: var(--text); }
+p code, li code { background: rgba(88,166,255,0.1); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 12.5px; }
+.lang-tag { float: right; color: var(--text-muted); font-size: 12px; font-family: inherit; margin-top: -4px; }
+
+/* Callouts */
+.callout { border-left: 4px solid var(--accent); background: rgba(88,166,255,0.04); padding: 14px 18px; border-radius: var(--radius); margin: 16px 0; font-size: 14px; }
+.callout.success { border-color: var(--green); background: rgba(63,185,80,0.04); }
+.callout.warn { border-color: var(--orange); background: rgba(210,153,34,0.04); }
+.callout.danger { border-color: var(--red); background: rgba(248,81,73,0.04); }
+.callout strong { display: block; margin-bottom: 4px; }
+.callout.success strong { color: var(--green); }
+.callout.warn strong { color: var(--orange); }
+.callout.danger strong { color: var(--red); }
+.callout code { font-size: 12.5px; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13.5px; }
+th { background: var(--bg-secondary); color: var(--text); text-align: left; padding: 10px 14px; border: 1px solid var(--border); font-weight: 600; }
+td { padding: 10px 14px; border: 1px solid var(--border); color: var(--text-secondary); }
+tr:hover td { background: rgba(88,166,255,0.02); }
+td code { font-size: 12px; }
+
+/* Flow diagram */
+.flow { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 16px 0; flex-wrap: wrap; }
+.flow-step { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; font-size: 13px; text-align: center; min-width: 100px; }
+.flow-step .step-num { color: var(--accent); font-weight: 700; font-size: 11px; display: block; }
+.flow-arrow { color: var(--text-muted); font-size: 18px; }
+
+/* Badge */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.badge.required { background: rgba(248,81,73,0.15); color: var(--red); }
+.badge.optional { background: rgba(88,166,255,0.12); color: var(--accent); }
+
+/* Architecture diagram */
+.arch-box { background: var(--bg-secondary); border: 2px solid var(--border); border-radius: var(--radius); padding: 16px; margin: 12px 0; }
+.arch-box .box-title { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+.arch-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.arch-item { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; flex: 1; min-width: 180px; font-size: 13px; }
+.arch-item .item-label { color: var(--purple); font-weight: 600; font-size: 12px; display: block; margin-bottom: 4px; }
+
+/* Tab system */
+.tabs { display: flex; gap: 0; margin: 16px 0 0; border-bottom: 1px solid var(--border); }
+.tab { padding: 8px 18px; cursor: pointer; border: 1px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; color: var(--text-secondary); font-size: 13px; background: transparent; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); background: var(--bg-secondary); border-color: var(--border); border-bottom-color: var(--bg-secondary); margin-bottom: -1px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>FirmClaw 工具开发指南</h1>
+  <div class="subtitle">让 FirmClaw 智能体调用您公司现有的软件模块 &middot; v6.0</div>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="toc">目录</h2>
+<ol>
+  <li><a href="#overview">架构总览：工具在 FirmClaw 中的位置</a></li>
+  <li><a href="#interface">工具接口定义（Tool Interface）</a></li>
+  <li><a href="#lifecycle">工具执行生命周期</a></li>
+  <li><a href="#quickstart">5 分钟上手：最小化工具示例</a></li>
+  <li><a href="#realworld">实战案例</a>
+    <ol>
+      <li>HTTP API 调用（调用公司 REST 服务）</li>
+      <li>数据库查询（查询公司数据库）</li>
+      <li>消息队列操作（RabbitMQ / Kafka）</li>
+      <li>文件系统桥接（操作公司共享目录）</li>
+    </ol>
+  </li>
+  <li><a href="#register">注册工具到 FirmClaw</a></li>
+  <li><a href="#test">测试工具</a></li>
+  <li><a href="#security">安全与权限</a></li>
+  <li><a href="#hooks">高级：钩子与审计</a></li>
+  <li><a href="#tips">最佳实践</a></li>
+  <li><a href="#faq">常见问题</a></li>
+</ol>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="overview">1. 架构总览</h2>
+
+<p>FirmClaw 采用 <strong>ReAct（Reasoning + Acting）</strong>架构。LLM 在推理过程中会自主决定调用哪个工具，工具的返回结果作为 Observation 反馈给 LLM，驱动下一轮推理。</p>
+
+<div class="arch-box">
+  <div class="box-title">ReAct 循环 &times; 工具调用流程</div>
+  <div class="arch-row">
+    <div class="arch-item"><span class="item-label">用户输入</span>用户消息 → AgentLoop</div>
+    <div class="arch-item"><span class="item-label">LLM 推理</span>选择工具 → 生成参数</div>
+    <div class="arch-item"><span class="item-label">参数校验</span>AJV JSON Schema 校验</div>
+    <div class="arch-item"><span class="item-label">Before Hooks</span>可修改参数 / 拒绝执行</div>
+  </div>
+  <div class="arch-row">
+    <div class="arch-item"><span class="item-label">权限检查</span>PermissionPolicy 中间件</div>
+    <div class="arch-item"><span class="item-label">执行工具</span>tool.execute(params, ctx)</div>
+    <div class="arch-item"><span class="item-label">After Hooks</span>审计日志 / 处理结果</div>
+    <div class="arch-item"><span class="item-label">PromptGuard</span>扫描注入攻击</div>
+  </div>
+</div>
+
+<p>文件结构：</p>
+<pre><code class="lang-tag">text
+src/tools/
+├── types.ts          # Tool 接口定义（你必须实现的）
+├── context.ts        # ToolContext（运行时注入的工作目录等）
+├── registry.ts       # ToolRegistry（注册中心 + 执行管道）
+├── permissions.ts    # 权限策略（路径白名单 + 命令黑名单）
+├── hook-manager.ts   # Before/After 钩子
+├── bash.ts           # 内置：Shell 命令执行
+├── read.ts           # 内置：文件读取
+├── write.ts          # 内置：文件写入
+├── edit.ts           # 内置：文件查找替换
+└── subagent.ts       # 内置：子智能体
+
+src/index.ts          # ← 在这里注册你的工具
+</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="interface">2. 工具接口定义</h2>
+
+<p>每个工具必须实现 <code>Tool</code> 接口，共 <strong>4 个字段</strong>：</p>
+
+<pre><code class="lang-tag">typescript
+import type { Tool, ToolResult, ToolContext } from './tools/types.js';
+
+export const myTool: Tool = {
+  // ① 名称 —— LLM 通过这个名字调用工具（必须唯一）
+  name: 'my_tool',
+
+  // ② 描述 —— 告诉 LLM 这个工具能做什么（直接影响 LLM 的调用决策）
+  description: '调用公司的 XX 系统执行 YY 操作。传入参数说明...',
+
+  // ③ 参数定义 —— JSON Schema 格式，LLM 据此生成正确的调用参数
+  parameters: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: '查询内容',
+      },
+      limit: {
+        type: 'number',
+        description: '返回条数上限，默认 10',
+      },
+    },
+    required: ['query'],   // 必填参数列表
+  },
+
+  // ④ 执行函数 —— 工具被调用时实际运行的逻辑
+  async execute(
+    params: Record&lt;string, unknown&gt;,   // LLM 传入的参数
+    context: ToolContext,                    // 运行时上下文
+  ): Promise&lt;ToolResult&gt; {
+    // ... 你的业务逻辑 ...
+    return {
+      content: '执行结果文本',  // 返回给 LLM 的 observation
+      isError: false,            // 可选：标记为错误
+    };
+  },
+};
+</code></pre>
+
+<h3>ToolContext 运行时上下文</h3>
+
+<table>
+  <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+  <tr><td><code>workDir</code></td><td><code>string</code></td><td>工作目录（文件操作的根路径）</td></tr>
+  <tr><td><code>sessionId</code></td><td><code>string?</code></td><td>当前会话 ID（多轮对话时可用）</td></tr>
+</table>
+
+<h3>ToolResult 返回值</h3>
+
+<table>
+  <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+  <tr><td><code>content</code></td><td><code>string</code></td><td>返回给 LLM 的文本（会作为 observation）</td></tr>
+  <tr><td><code>isError</code></td><td><code>boolean?</code></td><td>标记为错误（LLM 会调整策略重试）</td></tr>
+</table>
+
+<div class="callout">
+  <strong>关键原则</strong>
+  <code>description</code> 字段极其重要——LLM 完全依赖它来判断何时、如何调用工具。<br>
+  好的描述应包含：<strong>功能</strong> + <strong>参数说明</strong> + <strong>使用场景</strong> + <strong>注意事项</strong>。
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="lifecycle">3. 工具执行生命周期</h2>
+
+<p>当 LLM 决定调用工具时，<code>ToolRegistry.execute()</code> 会依次执行以下 7 个步骤：</p>
+
+<div class="flow">
+  <div class="flow-step"><span class="step-num">STEP 1</span>JSON Schema 校验</div>
+  <div class="flow-arrow">&rarr;</div>
+  <div class="flow-step"><span class="step-num">STEP 2</span>Before Hooks</div>
+  <div class="flow-arrow">&rarr;</div>
+  <div class="flow-step"><span class="step-num">STEP 3</span>权限检查</div>
+  <div class="flow-arrow">&rarr;</div>
+  <div class="flow-step"><span class="step-num">STEP 4</span>执行工具</div>
+  <div class="flow-arrow">&rarr;</div>
+  <div class="flow-step"><span class="step-num">STEP 5</span>After Hooks</div>
+  <div class="flow-arrow">&rarr;</div>
+  <div class="flow-step"><span class="step-num">STEP 6</span>PromptGuard</div>
+</div>
+
+<table>
+  <tr><th>步骤</th><th>说明</th><th>你的工具需要关心？</th></tr>
+  <tr><td>1. 参数校验</td><td>AJV 根据 <code>parameters</code> 定义自动校验</td><td><span class="badge optional">自动</span> 只需正确定义 schema</td></tr>
+  <tr><td>2. Before Hooks</td><td>可在执行前修改参数或拒绝</td><td><span class="badge optional">自动</span> 除非你注册了 hook</td></tr>
+  <tr><td>3. 权限检查</td><td>路径白名单 + 命令黑名单</td><td><span class="badge optional">自动</span> 自定义工具默认放行</td></tr>
+  <tr><td>4. 执行工具</td><td>调用你的 <code>execute()</code> 函数</td><td><span class="badge required">是</span> 你的核心逻辑在这里</td></tr>
+  <tr><td>5. After Hooks</td><td>审计日志、处理结果</td><td><span class="badge optional">自动</span></td></tr>
+  <tr><td>6. PromptGuard</td><td>扫描结果中的注入攻击</td><td><span class="badge optional">自动</span></td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="quickstart">4. 5 分钟上手：最小化工具</h2>
+
+<p>创建文件 <code>src/tools/company-api.ts</code>：</p>
+
+<pre><code class="lang-tag">typescript
+// src/tools/company-api.ts
+import type { Tool, ToolResult } from './types.js';
+
+export const companyApiTool: Tool = {
+  name: 'company_api',
+  description: '调用公司内部 API。支持 GET/POST 请求。',
+  parameters: {
+    type: 'object',
+    properties: {
+      method: {
+        type: 'string',
+        description: 'HTTP 方法：GET 或 POST',
+        enum: ['GET', 'POST'],
+      },
+      url: {
+        type: 'string',
+        description: 'API 端点 URL（相对于 BASE_URL）',
+      },
+      body: {
+        type: 'string',
+        description: 'POST 请求的 JSON body（可选）',
+      },
+    },
+    required: ['method', 'url'],
+  },
+
+  async execute(params): Promise&lt;ToolResult&gt; {
+    const { method, url, body } = params as {
+      method: string;
+      url: string;
+      body?: string;
+    };
+
+    const BASE_URL = process.env.COMPANY_API_URL || 'http://internal-api.company.com';
+    const API_KEY = process.env.COMPANY_API_KEY || '';
+
+    try {
+      const response = await fetch(`${BASE_URL}${url}`, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`,
+        },
+        body: method === 'POST' ? body : undefined,
+      });
+
+      if (!response.ok) {
+        return {
+          content: `API Error: ${response.status} ${response.statusText}`,
+          isError: true,
+        };
+      }
+
+      const data = await response.json();
+      // 截断过大的响应，避免消耗过多 context window
+      const resultStr = JSON.stringify(data, null, 2);
+      const MAX_LEN = 10000;
+      if (resultStr.length > MAX_LEN) {
+        return {
+          content: resultStr.substring(0, MAX_LEN)
+            + `\n\n[Truncated: total ${resultStr.length} chars]`,
+        };
+      }
+
+      return { content: resultStr };
+    } catch (err) {
+      return {
+        content: `Request failed: ${err instanceof Error ? err.message : String(err)}`,
+        isError: true,
+      };
+    }
+  },
+};
+</code></pre>
+
+<div class="callout success">
+  <strong>完成！</strong>
+  你已经创建了第一个工具。接下来只需在 <code>src/index.ts</code> 中注册它（见第 6 节）。
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="realworld">5. 实战案例</h2>
+
+<!-- Tab: HTTP API -->
+<h3>案例 A：HTTP API 调用（REST 服务）</h3>
+
+<p>适用于公司有 RESTful API 的场景（ERP、CRM、OA 等）。</p>
+
+<pre><code class="lang-tag">typescript
+// src/tools/erp-tool.ts
+import type { Tool, ToolResult } from './types.js';
+
+export const erpTool: Tool = {
+  name: 'erp_query',
+  description: `查询公司 ERP 系统数据。
+支持模块：
+- 订单查询：传入 action="query_orders", 可按 customer_id、status、date_range 筛选
+- 库存查询：传入 action="query_inventory", 可按 sku、warehouse 筛选
+- 客户信息：传入 action="get_customer", 传入 customer_id
+返回 JSON 格式的数据，最多 20 条记录。`.trim(),
+  parameters: {
+    type: 'object',
+    properties: {
+      action: {
+        type: 'string',
+        description: '操作类型：query_orders | query_inventory | get_customer',
+        enum: ['query_orders', 'query_inventory', 'get_customer'],
+      },
+      customer_id: { type: 'string', description: '客户 ID（查询订单时可选）' },
+      status: { type: 'string', description: '订单状态（如 pending/shipped/completed）' },
+      sku: { type: 'string', description: 'SKU 编号（库存查询时使用）' },
+      date_start: { type: 'string', description: '起始日期 YYYY-MM-DD' },
+      date_end: { type: 'string', description: '截止日期 YYYY-MM-DD' },
+    },
+    required: ['action'],
+  },
+
+  async execute(params): Promise&lt;ToolResult&gt; {
+    const { action, ...filters } = params;
+    const BASE = process.env.ERP_API_URL || 'http://erp.internal.company.com/api/v1';
+
+    // 将业务参数映射为 API 查询字符串
+    const qs = new URLSearchParams(
+      Object.entries(filters).filter(([, v]) => v != null) as [string, string][]
+    );
+
+    try {
+      const resp = await fetch(`${BASE}/${action}?${qs}`, {
+        headers: {
+          'Authorization': `Bearer ${process.env.ERP_API_KEY}`,
+        },
+      });
+
+      if (!resp.ok) {
+        return { content: `ERP API error: ${resp.status}`, isError: true };
+      }
+
+      const data = await resp.json();
+      return { content: JSON.stringify(data, null, 2) };
+    } catch (err) {
+      return {
+        content: `ERP connection failed: ${err instanceof Error ? err.message : String(err)}`,
+        isError: true,
+      };
+    }
+  },
+};
+</code></pre>
+
+<!-- Tab: Database -->
+<h3>案例 B：数据库查询</h3>
+
+<p>适用于需要直接查询公司数据库的场景。建议使用只读连接。</p>
+
+<pre><code class="lang-tag">typescript
+// src/tools/db-query.ts
+import type { Tool, ToolResult } from './types.js';
+
+export const dbQueryTool: Tool = {
+  name: 'db_query',
+  description: `查询公司 MySQL/PostgreSQL 数据库。
+⚠️ 仅允许 SELECT 查询，禁止 INSERT/UPDATE/DELETE。
+使用示例：查询某用户的最近订单、统计销售额等。`.trim(),
+  parameters: {
+    type: 'object',
+    properties: {
+      sql: {
+        type: 'string',
+        description: 'SQL SELECT 查询语句（只允许 SELECT）',
+      },
+      database: {
+        type: 'string',
+        description: '目标数据库名（默认 company_main）',
+        default: 'company_main',
+      },
+    },
+    required: ['sql'],
+  },
+
+  async execute(params): Promise&lt;ToolResult&gt; {
+    const sql = (params.sql as string).trim();
+    const database = (params.database as string) || 'company_main';
+
+    // 安全检查：只允许 SELECT
+    if (!/^SELECT\s/i.test(sql)) {
+      return {
+        content: 'Error: Only SELECT queries are allowed. Write/modify operations are prohibited.',
+        isError: true,
+      };
+    }
+
+    // 防止超大批量查询
+    if (/LIMIT\s/i.test(sql)) {
+      const limitMatch = sql.match(/LIMIT\s+(\d+)/i);
+      if (limitMatch && parseInt(limitMatch[1]) > 200) {
+        return { content: 'Error: LIMIT cannot exceed 200 rows.', isError: true };
+      }
+    }
+
+    try {
+      // Node.js 22+ 原生支持 mysql 或使用 npm 包
+      const mysql = await import('mysql2/promise');
+      const pool = await mysql.createPool({
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '3306'),
+        user: process.env.DB_USER || 'readonly_user',
+        password: process.env.DB_PASS || '',
+        database,
+        connectionLimit: 1,
+        // 设置查询超时
+        acquireTimeout: 10000,
+      });
+
+      const [rows] = await pool.execute(sql);
+      await pool.end();
+
+      // 格式化输出
+      const result = {
+        columns: Object.keys(rows[0] || {}),
+        rowCount: Array.isArray(rows) ? rows.length : 0,
+        data: rows,
+      };
+
+      return { content: JSON.stringify(result, null, 2) };
+    } catch (err) {
+      return {
+        content: `Database error: ${err instanceof Error ? err.message : String(err)}`,
+        isError: true,
+      };
+    }
+  },
+};
+</code></pre>
+
+<!-- Tab: File Bridge -->
+<h3>案例 C：文件系统桥接（共享目录）</h3>
+
+<p>适用于公司有共享文件目录（SMB/NFS）、需要读取 Excel/CSV/日志等文件的场景。</p>
+
+<pre><code class="lang-tag">typescript
+// src/tools/file-bridge.ts
+import fs from 'node:fs';
+import path from 'node:path';
+import type { Tool, ToolResult, ToolContext } from './types.js';
+
+export const fileBridgeTool: Tool = {
+  name: 'file_bridge',
+  description: `读取公司共享目录中的文件。
+支持 CSV、JSON、TXT、日志文件。
+⚠️ 只读操作，不能写入或删除共享目录中的文件。`.trim(),
+  parameters: {
+    type: 'object',
+    properties: {
+      action: {
+        type: 'string',
+        description: '操作类型：list（列出目录）| read（读取文件）| search（搜索文件名）',
+        enum: ['list', 'read', 'search'],
+      },
+      dir_path: {
+        type: 'string',
+        description: '共享目录中的相对路径（如 /sales/reports/2024）',
+      },
+      file_path: {
+        type: 'string',
+        description: '要读取的文件相对路径（read 时必填）',
+      },
+      pattern: {
+        type: 'string',
+        description: '文件名搜索模式，支持通配符（search 时使用，如 *.csv）',
+      },
+      encoding: {
+        type: 'string',
+        description: '文件编码（默认 utf-8，CSV 可用 gbk）',
+        default: 'utf-8',
+      },
+    },
+    required: ['action'],
+  },
+
+  async execute(params, context: ToolContext): Promise&lt;ToolResult&gt; {
+    const SHARED_ROOT = process.env.SHARED_DIR || '//fileserver/company';
+    const encoding = (params.encoding as string) || 'utf-8';
+
+    try {
+      switch (params.action) {
+        case 'list': {
+          const dir = path.join(SHARED_ROOT, (params.dir_path as string || '').replace(/^\//, ''));
+          if (!fs.existsSync(dir)) {
+            return { content: `Directory not found: ${dir}`, isError: true };
+          }
+          const entries = fs.readdirSync(dir)
+            .filter(f => !f.startsWith('~') && !f.startsWith('.'))
+            .slice(0, 50);
+          return { content: JSON.stringify(entries, null, 2) };
+        }
+
+        case 'read': {
+          const filePath = path.join(SHARED_ROOT, (params.file_path as string || '').replace(/^\//, ''));
+          if (!fs.existsSync(filePath)) {
+            return { content: `File not found: ${filePath}`, isError: true };
+          }
+          // 限制文件大小 5MB
+          const stat = fs.statSync(filePath);
+          if (stat.size > 5 * 1024 * 1024) {
+            return { content: `File too large: ${(stat.size / 1024 / 1024).toFixed(1)}MB`, isError: true };
+          }
+          const content = fs.readFileSync(filePath, encoding);
+          // 截断过长内容
+          if (content.length > 20000) {
+            return { content: content.substring(0, 20000) + '\n... [truncated]' };
+          }
+          return { content };
+        }
+
+        case 'search': {
+          const dir = path.join(SHARED_ROOT, (params.dir_path as string || '').replace(/^\//, ''));
+          const pattern = (params.pattern as string || '*');
+          // 简单搜索实现（生产环境建议用 glob）
+          const results: string[] = [];
+          function walk(d: string) {
+            for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+              const full = path.join(d, entry.name);
+              if (entry.isDirectory()) walk(full);
+              else if (entry.name.match(pattern.replace(/\*/g, '.*'))) {
+                results.push(full.replace(SHARED_ROOT, ''));
+              }
+            }
+          }
+          walk(dir);
+          return { content: JSON.stringify(results.slice(0, 50), null, 2) };
+        }
+
+        default:
+          return { content: `Unknown action: ${params.action}`, isError: true };
+      }
+    } catch (err) {
+      return {
+        content: `File operation failed: ${err instanceof Error ? err.message : String(err)}`,
+        isError: true,
+      };
+    }
+  },
+};
+</code></pre>
+
+<!-- Tab: Message Queue -->
+<h3>案例 D：消息队列操作</h3>
+
+<pre><code class="lang-tag">typescript
+// src/tools/mq-tool.ts
+import type { Tool, ToolResult } from './types.js';
+
+export const mqTool: Tool = {
+  name: 'message_queue',
+  description: `与公司消息队列（RabbitMQ）交互。
+支持发送消息到指定队列和查看队列状态。`.trim(),
+  parameters: {
+    type: 'object',
+    properties: {
+      action: {
+        type: 'string',
+        description: '操作：send（发送消息）| status（查看队列状态）',
+        enum: ['send', 'status'],
+      },
+      queue: { type: 'string', description: '队列名称' },
+      message: { type: 'string', description: '消息内容（send 时必填）' },
+    },
+    required: ['action'],
+  },
+
+  async execute(params): Promise&lt;ToolResult&gt; {
+    const MQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
+
+    try {
+      switch (params.action) {
+        case 'send': {
+          if (!params.queue || !params.message) {
+            return { content: 'Error: queue and message are required for send action.', isError: true };
+          }
+          // 使用 amqplib 发送消息
+          const amqp = await import('amqplib/callback_api.js');
+          const conn = await amqp.connect(MQ_URL);
+          const channel = await conn.createChannel();
+          await channel.assertQueue(params.queue as string, { durable: true });
+          channel.sendToQueue(params.queue as string, Buffer.from(params.message as string), {
+            persistent: true,
+          });
+          await new Promise(r => setTimeout(r, 500));
+          await conn.close();
+          return { content: `Message sent to queue "${params.queue}" successfully.` };
+        }
+
+        case 'status': {
+          // 简化示例：返回预定义的队列列表
+          const queues = ['order.created', 'order.shipped', 'notification.email', 'report.daily'];
+          return { content: JSON.stringify({ queues, mqUrl: MQ_URL }, null, 2) };
+        }
+
+        default:
+          return { content: 'Unknown action.', isError: true };
+      }
+    } catch (err) {
+      return {
+        content: `MQ error: ${err instanceof Error ? err.message : String(err)}`,
+        isError: true,
+      };
+    }
+  },
+};
+</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="register">6. 注册工具到 FirmClaw</h2>
+
+<p>在 <code>src/index.ts</code> 中注册你创建的工具：</p>
+
+<pre><code class="lang-tag">typescript
+// src/index.ts（摘录）
+
+import { bashTool } from './tools/bash.js';
+import { readTool } from './tools/read.js';
+import { writeTool } from './tools/write.js';
+import { editTool } from './tools/edit.js';
+import { companyApiTool } from './tools/company-api.js';   // ← 导入你的工具
+import { erpTool } from './tools/erp-tool.js';             // ←
+import { dbQueryTool } from './tools/db-query.js';           // ←
+
+async function main() {
+  // ... LLM 初始化 ...
+
+  const tools = new ToolRegistry();
+
+  // 注册内置工具
+  tools.register(bashTool);
+  tools.register(readTool);
+  tools.register(writeTool);
+  tools.register(editTool);
+
+  // 注册你的自定义工具
+  tools.register(companyApiTool);    // ← 注册
+  tools.register(erpTool);           // ← 注册
+  tools.register(dbQueryTool);       // ← 注册
+
+  // 设置权限策略
+  const policy = new DefaultPermissionPolicy({ allowedPaths: [workDir] });
+  tools.setPolicy(policy);
+
+  // ... AgentLoop 初始化 ...
+}
+</code></pre>
+
+<div class="callout warn">
+  <strong>注意事项</strong>
+  <ul>
+    <li>工具名称（<code>name</code>）必须全局唯一，不能与内置工具冲突</li>
+    <li>注册顺序无影响，LLM 根据 <code>description</code> 自动选择</li>
+    <li>需要额外 npm 包时，先 <code>npm install &lt;package&gt;</code></li>
+    <li>环境变量放在 <code>.env</code> 文件中（已在 <code>.gitignore</code> 中，不会泄露）</li>
+  </ul>
+</div>
+
+<h3>.env 配置示例</h3>
+
+<pre><code class="lang-tag">bash
+# .env
+
+# LLM 配置
+LLM_API_KEY=sk-xxx
+LLM_MODEL=MiniMax-M2.7
+
+# 公司 API
+COMPANY_API_URL=http://internal-api.company.com
+COMPANY_API_KEY=your-api-key
+
+# ERP 系统
+ERP_API_URL=http://erp.internal.company.com/api/v1
+ERP_API_KEY=erp-token-xxx
+
+# 数据库（只读账户）
+DB_HOST=db.internal.company.com
+DB_PORT=3306
+DB_USER=readonly_user
+DB_PASS=readonly_password
+
+# 共享文件目录
+SHARED_DIR=//fileserver/company
+
+# 消息队列
+RABBITMQ_URL=amqp://mq-user:mq-pass@rabbitmq.internal.company.com
+</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="test">7. 测试工具</h2>
+
+<h3>方法 1：通过 FirmClaw REPL 直接测试</h3>
+
+<pre><code class="lang-tag">text
+$ npm run dev
+
+FirmClaw v6.0.0
+&gt; 帮我查询客户 C1001 最近 10 笔订单
+
+# FirmClaw 会自动调用 erp_query 工具
+[Tool: erp_query] action=query_orders customer_id=C1001 limit=10
+
+# 10 条订单数据...
+
+&gt; 查询数据库中今天新增了多少用户
+
+# FirmClaw 会自动调用 db_query 工具
+[Tool: db_query] sql=SELECT COUNT(*) as new_users FROM users WHERE created_at >= CURDATE()
+</code></pre>
+
+<h3>方法 2：编写单元测试</h3>
+
+<pre><code class="lang-tag">typescript
+// src/tests/test-company-api.ts
+import { companyApiTool } from '../tools/company-api.js';
+import { ToolRegistry } from '../tools/registry.js';
+
+async function main() {
+  const registry = new ToolRegistry();
+  registry.register(companyApiTool);
+
+  // 测试参数校验
+  const err1 = await registry.execute('company_api', { method: 'GET' }, { workDir: '/tmp' });
+  console.log('Missing url:', err1.isError); // true
+
+  // 模拟测试（需要 mock fetch 或指向测试环境）
+  // const result = await registry.execute('company_api',
+  //   { method: 'GET', url: '/api/health' }, { workDir: '/tmp' });
+  // console.log('Health check:', result.content);
+}
+
+main();
+</code></pre>
+
+<p>运行：<code>npx tsx src/tests/test-company-api.ts</code></p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="security">8. 安全与权限</h2>
+
+<h3>内置权限策略</h3>
+
+<p>FirmClaw 的 <code>DefaultPermissionPolicy</code> 对<strong>文件工具</strong>和 <strong>bash 工具</strong>有内置限制：</p>
+
+<table>
+  <tr><th>工具类型</th><th>保护措施</th></tr>
+  <tr><td>文件工具<br>(read/write/edit)</td><td>
+    路径白名单：只能在 <code>allowedPaths</code> 指定的目录内操作<br>
+    系统目录保护：<code>C:\Windows</code>、<code>C:\Program Files</code> 默认禁止<br>
+    敏感文件保护：不能写入 <code>.env</code>、<code>credentials.json</code> 等
+  </td></tr>
+  <tr><td>bash 工具</td><td>
+    命令黑名单：<code>rm -rf /</code>、<code>format</code>、<code>shutdown</code> 等<br>
+    风险评估：<code>rm</code>/sudo → high，<code>npm install</code> → medium，查询 → low
+  </td></tr>
+  <tr><td>自定义工具</td><td>
+    <strong>默认放行</strong>——自定义工具不受内置策略限制<br>
+    你需要在工具内部自行实现安全逻辑
+  </td></tr>
+</table>
+
+<h3>自定义工具中的安全实践</h3>
+
+<pre><code class="lang-tag">typescript
+// ✅ 好的安全实践
+
+// 1. 输入校验
+if (!/^SELECT\s/i.test(sql)) {
+  return { content: 'Only SELECT allowed', isError: true };
+}
+
+// 2. 输出截断（避免消耗过多 context window）
+if (resultStr.length > MAX_LEN) {
+  return { content: resultStr.substring(0, MAX_LEN) + '...[truncated]' };
+}
+
+// 3. 超时保护
+const controller = new AbortController();
+setTimeout(() => controller.abort(), 30000);
+
+// 4. 敏感信息脱敏
+function maskSensitive(data: Record&lt;string, unknown&gt;) {
+  const SENSITIVE_KEYS = ['password', 'token', 'secret', 'api_key'];
+  return Object.fromEntries(
+    Object.entries(data).map(([k, v]) => [
+      SENSITIVE_KEYS.some(s => k.toLowerCase().includes(s))
+        ? [k, '***REDACTED***']
+        : [k, v],
+    ])
+  );
+}
+
+// 5. 连接池限制
+const pool = await createPool({ connectionLimit: 2 });
+
+// ❌ 坏的安全实践
+// - 不过滤 SQL 关键字
+// - 直接把 API 响应全部返回（无截断）
+// - 不设超时
+// - 硬编码密码
+</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="hooks">9. 高级：钩子与审计</h2>
+
+<p>使用 <code>HookManager</code> 可以为工具添加审计日志、参数转换等能力：</p>
+
+<pre><code class="lang-tag">typescript
+import { HookManager } from './tools/hook-manager.js';
+
+const hooks = new HookManager();
+
+// Before Hook：为所有公司 API 调用添加追踪 header
+hooks.registerBefore('company_api', (ctx) => {
+  // 注入 trace_id
+  return { args: { ...ctx.args, trace_id: crypto.randomUUID() } };
+});
+
+// Before Hook：禁止在非工作时间调用 ERP
+hooks.registerBefore('erp_query', () => {
+  const hour = new Date().getHours();
+  if (hour < 9 || hour > 18) {
+    return { deny: true, reason: 'ERP 只允许在工作时间 (9:00-18:00) 调用' };
+  }
+});
+
+// After Hook：记录所有工具调用到审计日志
+hooks.registerAfter('*', (ctx) => {
+  auditLog.info({
+    tool: ctx.toolName,
+    args: ctx.args,
+    riskLevel: ctx.riskLevel,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// 注册到 ToolRegistry
+tools.setHookManager(hooks);
+</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="tips">10. 最佳实践</h2>
+
+<table>
+  <tr><th>实践</th><th>说明</th></tr>
+  <tr>
+    <td><strong>description 要详细</strong></td>
+    <td>LLM 的工具选择完全依赖 description。写得越详细，LLM 调用越准确。包含：功能说明、参数含义、使用场景、返回格式。</td>
+  </tr>
+  <tr>
+    <td><strong>截断大输出</strong></td>
+    <td>API 返回可能很大，必须截断到合理长度（建议 10KB 以内），否则会消耗 context window 导致后续对话质量下降。</td>
+  </tr>
+  <tr>
+    <td><strong>善用 enum</strong></td>
+    <td>参数类型使用 enum 限制可选值，避免 LLM 传入无效参数（如 <code>enum: ['GET', 'POST']</code>）。</td>
+  </tr>
+  <tr>
+    <td><strong>错误信息清晰</strong></td>
+    <td>isError=true 时，提供有意义的错误描述，帮助 LLM 调整策略。</td>
+  </tr>
+  <tr>
+    <td><strong>环境变量管理密钥</strong></td>
+    <td>API Key、数据库密码等必须放在 .env 中，不要硬编码。.env 已在 .gitignore 中。</td>
+  </tr>
+  <tr>
+    <td><strong>一个工具一个职责</strong></td>
+    <td>不要把多个系统塞进一个工具。每个系统/服务应该有独立的工具，LLM 能更精准地选择。</td>
+  </tr>
+  <tr>
+    <td><strong>幂等性</strong></td>
+    <td>GET/查询操作应设计为幂等的，LLM 可能会重试失败的调用。</td>
+  </tr>
+  <tr>
+    <td><strong>超时保护</strong></td>
+    <td>所有外部调用必须设置超时（建议 10-30 秒），防止 LLM 循环卡死。</td>
+  </tr>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2 id="faq">11. 常见问题</h2>
+
+<h4>Q: LLM 不调用我创建的工具？</h4>
+<p>检查 <code>description</code> 是否清晰描述了工具的功能和使用场景。LLM 只有在认为需要时才会调用。可以在 SOUL.md 中添加提示，如"优先使用 company_api 工具查询订单数据"。</p>
+
+<h4>Q: 工具调用报 "Parameter validation failed"？</h4>
+<p>检查 <code>parameters</code> 中的 <code>required</code> 列表是否正确，以及 LLM 传入的参数类型是否与 schema 定义匹配。</p>
+
+<h4>Q: 自定义工具需要权限检查吗？</h4>
+<p>默认情况下，自定义工具不受 <code>DefaultPermissionPolicy</code> 限制（只对文件工具和 bash 工具生效）。如果你需要权限控制，请在 <code>execute()</code> 内部实现，或通过 <code>Before Hook</code> 实现。</p>
+
+<h4>Q: 如何在 Web UI / Gateway 中使用自定义工具？</h4>
+<p>Gateway 启动时会使用与 CLI 相同的 <code>ToolRegistry</code> 实例，所以自定义工具在 Web UI 中自动可用。</p>
+
+<h4>Q: 工具调用太慢怎么办？</h4>
+<p>1) 确保外部服务有索引；2) 在参数中增加过滤条件让 LLM 精准查询；3) 设置 <code>AbortController</code> 超时；4) 考虑缓存常用查询结果。</p>
+
+<h4>Q: 如何让 LLM 知道有哪些工具可用？</h4>
+<p>工具的 <code>name</code>、<code>description</code>、<code>parameters</code> 会被自动转换为 OpenAI function calling 格式，包含在每次 LLM 调用的 system prompt 中。你不需要手动维护工具列表。</p>
+
+</div>
+
+</body>
+</html>

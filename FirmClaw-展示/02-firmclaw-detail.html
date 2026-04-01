@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>02 - FirmClaw 实现详解 | FirmClaw</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0F172A;--bg2:#1E293B;--accent:#0EA5E9;--accent2:#38BDF8;--text:#F1F5F9;--muted:#94A3B8;--white:#FFF;--danger:#EF4444;--warn:#F59E0B;--safe:#22C55E}
+body{min-height:100vh;background:var(--bg);font-family:'Noto Sans SC',sans-serif;color:var(--text);line-height:1.7}
+.top-nav{position:fixed;top:0;left:0;right:0;height:48px;background:rgba(15,23,42,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(14,165,233,.15);display:flex;align-items:center;padding:0 24px;z-index:100}
+.top-nav a{color:var(--muted);text-decoration:none;font-size:12px;margin-right:16px;transition:color .2s}
+.top-nav a:hover,.top-nav a.active{color:var(--accent2)}
+.top-nav .brand{font-family:'Noto Serif SC',serif;font-weight:700;color:var(--accent2);font-size:14px;margin-right:auto}
+.container{max-width:860px;margin:0 auto;padding:64px 24px 60px}
+.page-title{font-family:'Noto Serif SC',serif;font-size:32px;font-weight:900;color:var(--accent2);margin-bottom:4px}
+.page-sub{font-size:14px;color:var(--muted);margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid rgba(14,165,233,.1)}
+h2{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:700;color:var(--text);margin:40px 0 16px;padding-left:14px;border-left:3px solid var(--accent)}
+h3{font-size:16px;font-weight:600;color:var(--accent2);margin:24px 0 10px}
+p{font-size:14px;color:var(--muted);margin-bottom:12px}
+strong{color:var(--text)}
+code{font-family:Consolas,'Courier New',monospace;font-size:12px;background:rgba(14,165,233,.1);color:var(--accent2);padding:2px 6px;border-radius:3px}
+.card{background:var(--bg2);border-radius:8px;padding:20px 24px;margin:16px 0;border:1px solid rgba(14,165,233,.1)}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.python-box{background:#1a1a2e;border-radius:8px;padding:16px 20px;margin:12px 0;font-family:Consolas,monospace;font-size:12px;color:#a8dadc;line-height:1.7;border-left:3px solid var(--accent2)}
+.python-box .comment{color:var(--muted)}
+.python-box .keyword{color:#f72585}
+.python-box .func{color:#4cc9f0}
+.python-box .string{color:#80ed99}
+.highlight{background:linear-gradient(135deg,rgba(14,165,233,.08) 0%,rgba(14,165,233,.02) 100%);border:1px solid rgba(14,165,233,.2);border-radius:8px;padding:20px 24px;margin:20px 0}
+.highlight p{color:var(--text);font-size:14px}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+th{background:var(--bg2);color:var(--accent2);text-align:left;padding:10px 14px;font-weight:600;border-bottom:2px solid var(--accent)}
+td{padding:8px 14px;border-bottom:1px solid rgba(14,165,233,.08);color:var(--muted)}
+tr:hover td{background:rgba(14,165,233,.03)}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:600}
+.tag-accent{background:rgba(14,165,233,.15);color:var(--accent2)}
+.step-list{counter-reset:step}
+.step-item{counter-increment:step;display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+.step-item::before{content:counter(step);width:28px;height:28px;border-radius:6px;background:var(--accent);color:var(--white);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-item .step-content{flex:1}
+.step-item .step-content h4{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
+.step-item .step-content p{font-size:12px;color:var(--muted);margin:0}
+.file-tree{background:#000;border-radius:8px;padding:16px 20px;font-family:Consolas,monospace;font-size:12px;line-height:1.8;color:var(--muted);margin:16px 0}
+.file-tree .dir{color:var(--accent2);font-weight:700}
+.file-tree .file{color:var(--muted)}
+.file-tree .desc{color:var(--muted);opacity:.6}
+.bottom-nav{max-width:860px;margin:0 auto;padding:20px 24px 40px;display:flex;justify-content:space-between}
+.bottom-nav a{padding:10px 24px;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600;transition:all .2s}
+.btn-prev{background:var(--bg2);color:var(--muted);border:1px solid rgba(14,165,233,.15)}
+.btn-prev:hover{border-color:var(--accent);color:var(--accent2)}
+.btn-next{background:var(--accent);color:var(--white)}
+.btn-next:hover{background:var(--accent2)}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <span class="brand">FirmClaw</span>
+  <a href="index.html">首页</a>
+  <a href="01-openclaw-principles.html">01 原理</a>
+  <a href="02-firmclaw-detail.html" class="active">02 实现</a>
+  <a href="03-enterprise-outlook.html">03 展望</a>
+  <a href="04-comparison-roadmap.html">04 对比</a>
+  <a href="05-tech-choices.html">05 选型</a>
+</nav>
+
+<div class="container">
+  <div class="page-title">FirmClaw 实现详解</div>
+  <div class="page-sub">面向 Python 开发者——用你熟悉的思维方式理解 65 个 TypeScript 源文件</div>
+
+  <div class="highlight">
+    <p><strong>阅读提示：</strong>本章会用 Python 概念类比 TypeScript 代码。你不需要会写 TypeScript 也能理解 FirmClaw 的设计。每个核心模块都会给出 Python 等价写法。</p>
+  </div>
+
+  <h2>一、项目结构总览</h2>
+  <p>FirmClaw 共 <strong>65 个 TypeScript 源文件</strong>，按功能分为 8 个模块。下面是完整的目录结构（附 Python 类比）：</p>
+
+  <div class="file-tree"><span class="dir">src/</span>
+├── <span class="dir">agent/</span>          ← Agent 核心（相当于 Python 的 agent/ 包）
+│   ├── agent-loop.ts    <span class="desc"># ReAct 循环 —— 系统的心脏</span>
+│   ├── types.ts         <span class="desc"># 类型定义（类似 Python 的 dataclass / TypedDict）</span>
+│   ├── approval-gateway.ts  <span class="desc"># 人工审批（async + Promise）</span>
+│   ├── prompt-guard.ts  <span class="desc"># Prompt Injection 防护（正则匹配）</span>
+│   ├── heartbeat.ts     <span class="desc"># Heartbeat 自主循环</span>
+│   └── subagent-manager.ts  <span class="desc"># 子智能体管理器</span>
+│
+├── <span class="dir">tools/</span>          ← 工具系统（4 个核心工具 + 基础设施）
+│   ├── types.ts         <span class="desc"># 工具接口定义</span>
+│   ├── registry.ts      <span class="desc"># 工具注册中心（校验 + 执行 + 钩子）</span>
+│   ├── bash.ts          <span class="desc"># 终端命令执行</span>
+│   ├── read.ts          <span class="desc"># 文件读取</span>
+│   ├── write.ts         <span class="desc"># 文件写入</span>
+│   ├── edit.ts          <span class="desc"># 文件编辑</span>
+│   ├── permissions.ts   <span class="desc"># 权限策略（白名单 + 黑名单）</span>
+│   ├── hook-manager.ts  <span class="desc"># 工具执行钩子</span>
+│   └── subagent.ts      <span class="desc"># 子智能体工具定义</span>
+│
+├── <span class="dir">session/</span>        ← 会话管理 + 记忆 + 搜索
+│   ├── manager.ts       <span class="desc"># 会话 CRUD</span>
+│   ├── context-builder.ts  <span class="desc"># 系统提示词组装器</span>
+│   ├── summarizer.ts    <span class="desc"># LLM 摘要压缩</span>
+│   ├── memory-manager.ts  <span class="desc"># MEMORY.md 管理</span>
+│   └── search-engine.ts <span class="desc"># BM25 全文搜索</span>
+│
+├── <span class="dir">llm/</span>            ← 大模型客户端
+│   └── client.ts        <span class="desc"># OpenAI 兼容 API 封装</span>
+│
+├── <span class="dir">gateway/</span>        ← WebSocket 网关
+│   ├── server.ts        <span class="desc"># WebSocket 服务器</span>
+│   ├── router.ts        <span class="desc"># JSON-RPC 消息路由</span>
+│   └── web-ui.ts        <span class="desc"># 内嵌 Web UI</span>
+│
+├── <span class="dir">audit/</span>          ← 审计日志
+├── <span class="dir">cli/</span>            ← 命令行界面
+├── <span class="dir">utils/</span>          ← 工具函数（事件流、token 计数等）
+│
+└── index.ts             ← 程序入口（组件组装 + CLI 循环）</div>
+
+  <h2>二、TypeScript vs Python —— 速览对照表</h2>
+  <table>
+    <tr><th>概念</th><th>Python</th><th>TypeScript（FirmClaw）</th></tr>
+    <tr><td>类型注解</td><td><code>x: str = "hello"</code></td><td><code>const x: string = "hello"</code></td></tr>
+    <tr><td>接口/数据类</td><td><code>@dataclass</code> 或 <code>TypedDict</code></td><td><code>interface</code> 或 <code>type</code></td></tr>
+    <tr><td>异步函数</td><td><code>async def f():</code></td><td><code>async function f():</code></td></tr>
+    <tr><td>等待异步</td><td><code>await f()</code></td><td><code>await f()</code></td></tr>
+    <tr><td>Promise</td><td><code>asyncio.Future</code></td><td><code>Promise&lt;T&gt;</code></td></tr>
+    <tr><td>事件系统</td><td>自定义 EventEmitter 或 pydispatch</td><td>Node.js 内置 <code>EventEmitter</code></td></tr>
+    <tr><td>JSON 解析</td><td><code>json.loads() / json.dumps()</code></td><td><code>JSON.parse() / JSON.stringify()</code></td></tr>
+    <tr><td>文件读写</td><td><code>open(f).read() / .write()</code></td><td><code>fs.readFileSync() / .writeFileSync()</code></td></tr>
+    <tr><td>正则表达式</td><td><code>import re; re.match()</code></td><td><code>/pattern/.test(str)</code></td></tr>
+    <tr><td>包管理</td><td><code>pip</code> + <code>requirements.txt</code></td><td><code>npm</code> + <code>package.json</code></td></tr>
+    <tr><td>运行</td><td><code>python main.py</code></td><td><code>tsx src/index.ts</code></td></tr>
+  </table>
+
+  <h2>三、Agent Loop 实现详解</h2>
+  <p>Agent Loop 是 FirmClaw 的心脏，在 <code>src/agent/agent-loop.ts</code> 中实现，约 200 行代码。</p>
+
+  <div class="card">
+    <h3 style="margin-top:0">核心数据流</h3>
+    <div class="python-box">
+<span class="comment"># agent-loop.ts 的逻辑（Python 伪代码）</span>
+<span class="keyword">class</span> <span class="func">AgentLoop</span>:
+    <span class="keyword">def</span> <span class="func">run</span>(self, user_input: <span class="func">str</span>) -> <span class="func">str</span>:
+        <span class="comment"># 1. 恢复历史消息</span>
+        messages = session_manager.<span class="func">load_messages</span>()
+        
+        <span class="comment"># 2. 构建系统提示词（动态组装）</span>
+        system_prompt = context_builder.<span class="func">build</span>(
+            soul=<span class="func">read_file</span>(<span class="string">".firmclaw/SOUL.md"</span>),
+            tools=registry.<span class="func">get_definitions</span>(),
+            memory=search_engine.<span class="func">search</span>(user_input)
+        )
+        
+        <span class="comment"># 3. ReAct 循环</span>
+        messages.<span class="func">append</span>({<span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: user_input})
+        
+        <span class="keyword">while</span> <span class="keyword">True</span>:
+            <span class="comment"># 3a. 上下文压缩（如果需要）</span>
+            messages = <span class="func">compress_if_needed</span>(messages)
+            
+            <span class="comment"># 3b. 调用 LLM</span>
+            response = <span class="keyword">await</span> llm.<span class="func">chat</span>(messages, tools, on_delta=<span class="func">emit_thinking</span>)
+            
+            <span class="comment"># 3c. 如果没有工具调用，返回最终回复</span>
+            <span class="keyword">if not</span> response.tool_calls:
+                <span class="keyword">return</span> response.text
+            
+            <span class="comment"># 3d. 执行每个工具调用</span>
+            <span class="keyword">for</span> call <span class="keyword">in</span> response.tool_calls:
+                result = <span class="keyword">await</span> registry.<span class="func">execute</span>(
+                    call.name, call.args, context
+                )
+                messages.<span class="func">append</span>({<span class="string">"role"</span>: <span class="string">"tool"</span>, <span class="string">"content"</span>: result})</div>
+  </div>
+
+  <h2>四、工具系统实现详解</h2>
+  <p>工具系统在 <code>src/tools/</code> 目录下，核心是 <code>registry.ts</code>（注册中心）和 4 个工具实现。</p>
+
+  <h3>4.1 工具定义（类似 Python 的函数签名）</h3>
+  <div class="python-box">
+<span class="comment"># tools/types.ts 中的工具接口（Python 等价）</span>
+<span class="keyword">class</span> <span class="func">Tool</span>:
+    name: <span class="func">str</span>           <span class="comment"># 工具名，如 "bash"</span>
+    description: <span class="func">str</span>    <span class="comment"># LLM 看到的功能描述</span>
+    parameters: <span class="func">dict</span>    <span class="comment"># JSON Schema 格式的参数定义</span>
+    execute: <span class="func">Callable</span>   <span class="comment"># 实际执行函数</span>
+</div>
+
+  <h3>4.2 工具执行流水线</h3>
+  <p><code>registry.ts</code> 的 <code>execute()</code> 方法是所有工具的统一入口，执行 7 个步骤：</p>
+  <div class="step-list">
+    <div class="step-item"><div class="step-content"><h4>1. 参数校验（ajv）</h4><p>类似 Python 的 <code>pydantic.validate_arguments</code>，用 JSON Schema 校验 LLM 传来的参数是否合法</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>2. Before Hooks</h4><p>执行前钩子，可修改参数或拒绝执行</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>3. 权限检查</h4><p>路径白名单 + 命令黑名单 + 风险评估</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>4. 人工审批</h4><p>高风险操作（如 <code>rm</code>）暂停等待用户确认</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>5. 工具执行</h4><p>调用实际的 bash/read/write/edit 函数</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>6. After Hooks</h4><p>执行后钩子：审计日志、结果处理</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>7. Prompt Injection 扫描</h4><p>扫描返回结果中的注入攻击，标记可疑内容</p></div></div>
+  </div>
+
+  <h3>4.3 bash 工具详解</h3>
+  <div class="python-box">
+<span class="comment"># tools/bash.ts 的核心逻辑（Python 等价）</span>
+<span class="keyword">async def</span> <span class="func">execute_bash</span>(command: <span class="func">str</span>, cwd: <span class="func">str</span>, timeout: <span class="func">int</span>) -> <span class="func">str</span>:
+    <span class="comment"># 类似 Python 的 subprocess.Popen</span>
+    process = <span class="func">spawn</span>(command, {cwd, timeout})
+    
+    <span class="comment"># 流式收集输出（逐块读取，而非等全部完成）</span>
+    output = <span class="string">""</span>
+    <span class="keyword">for</span> chunk <span class="keyword">in</span> process.stdout:
+        output += chunk
+        <span class="func">emit_event</span>(<span class="string">"bash_output"</span>, chunk)  <span class="comment"># 实时推送</span>
+    
+    <span class="comment"># 超时处理（类似 Python 的 threading.Timer）</span>
+    <span class="keyword">if</span> timeout_exceeded:
+        process.<span class="func">kill</span>()  <span class="comment"># 发送 SIGTERM</span>
+    
+    <span class="keyword">return</span> output</div>
+
+  <h2>五、LLM Client 实现详解</h2>
+  <p>在 <code>src/llm/client.ts</code> 中，封装了与 LLM API 的通信。核心设计是<strong>统一 OpenAI 兼容格式</strong>。</p>
+
+  <div class="python-box">
+<span class="comment"># llm/client.ts 核心逻辑（Python 等价）</span>
+<span class="keyword">from</span> openai <span class="keyword">import</span> AsyncOpenAI
+
+<span class="keyword">class</span> <span class="func">LLMClient</span>:
+    <span class="keyword">def</span> <span class="func">__init__</span>(self, api_key, base_url, model):
+        <span class="comment"># 所有模型提供商统一用 OpenAI SDK</span>
+        self.client = <span class="func">AsyncOpenAI</span>(api_key, base_url)
+        self.model = model  <span class="comment"># "deepseek-chat", "gpt-4", 等</span>
+    
+    <span class="keyword">async def</span> <span class="func">chat</span>(self, messages, tools=<span class="keyword">None</span>, on_delta=<span class="keyword">None</span>):
+        response = <span class="keyword">await</span> self.client.chat.completions.<span class="func">create</span>(
+            model=self.model,
+            messages=messages,
+            tools=tools,  <span class="comment"># 工具定义（让 LLM 知道可用什么工具）</span>
+            stream=<span class="keyword">True</span>   <span class="comment"># 流式输出</span>
+        )
+        <span class="comment"># 逐块读取流式响应，调用 on_delta 回调</span>
+        <span class="keyword">async for</span> chunk <span class="keyword">in</span> response:
+            <span class="keyword">if</span> on_delta:
+                <span class="keyword">await</span> <span class="func">on_delta</span>(chunk)
+        <span class="keyword">return</span> response</div>
+
+  <div class="highlight">
+    <p><strong>关键点：</strong>MiniMax、DeepSeek、Kimi、Claude 等都提供了 OpenAI 兼容的 API。只需改 <code>base_url</code> 和 <code>api_key</code>，代码完全不变。这就像 Python 中用同一个 <code>requests</code> 库调用不同 REST API。</p>
+  </div>
+
+  <h2>六、会话管理实现详解</h2>
+  <p>会话管理在 <code>src/session/</code> 目录下。</p>
+
+  <h3>6.1 会话存储（JSONL）</h3>
+  <div class="python-box">
+<span class="comment"># session/store.ts 的核心逻辑</span>
+<span class="keyword">def</span> <span class="func">save_message</span>(session_id, message):
+    <span class="comment"># append-only 追加写入（类似 Python 的 "a" 模式）</span>
+    path = <span class="string">f"~/.firmclaw/sessions/{session_id}.jsonl"</span>
+    <span class="keyword">with</span> <span class="func">open</span>(path, <span class="string">"a"</span>) <span class="keyword">as</span> f:
+        f.<span class="func">write</span>(json.<span class="func">dumps</span>(message) + <span class="string">"\n"</span>)
+
+<span class="keyword">def</span> <span class="func">load_messages</span>(session_id) -> list:
+    <span class="comment"># 逐行读取，还原为 messages 数组</span>
+    <span class="keyword">return</span> [json.<span class="func">loads</span>(line) <span class="keyword">for</span> line <span class="keyword">in</span> <span class="func">open</span>(path)]</div>
+
+  <h3>6.2 系统提示词组装（ContextBuilder）</h3>
+  <p><code>context-builder.ts</code> 是 FirmClaw 最精巧的设计之一。它动态组装系统提示词：</p>
+  <div class="python-box">
+<span class="comment"># session/context-builder.ts 的逻辑</span>
+<span class="keyword">def</span> <span class="func">build_system_prompt</span>(self) -> <span class="func">str</span>:
+    template = <span class="func">read</span>(<span class="string">".firmclaw/SOUL.md"</span>)
+    
+    <span class="comment"># 动态替换模板中的占位符</span>
+    template = template.<span class="func">replace</span>(<span class="string">"{{tools}}"</span>, self.<span class="func">format_tools</span>())
+    template = template.<span class="func">replace</span>(<span class="string">"{{memory}}"</span>, self.<span class="func">format_memory</span>())
+    template = template.<span class="func">replace</span>(<span class="string">"{{session_info}}"</span>, self.<span class="func">format_session</span>())
+    
+    <span class="keyword">return</span> template  <span class="comment"># 返回完整的系统提示词</span></div>
+
+  <h2>七、网关层实现详解</h2>
+  <p>网关层在 <code>src/gateway/</code> 目录下，基于 WebSocket + JSON-RPC 2.0 协议。</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3 style="margin-top:0">WebSocket 服务器</h3>
+      <p>基于 <code>ws</code> 库（类似 Python 的 <code>websockets</code>），接收 JSON-RPC 请求，路由到对应的处理函数。</p>
+      <p style="font-size:11px">Python 等价：<code>websockets.serve(handler, port=3000)</code></p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">JSON-RPC 协议</h3>
+      <p>标准的请求/响应格式，方法包括 <code>agent.chat</code>、<code>session.list</code>、<code>approval.respond</code> 等。</p>
+      <p style="font-size:11px">Python 等价：可以用 <code>jsonrpcserver</code> 库实现</p>
+    </div>
+    <div class="card" style="grid-column:span 2">
+      <h3 style="margin-top:0">事件推送</h3>
+      <p>AgentLoop 的所有事件（思考内容、工具开始/结束、审批请求）通过 EventEmitter → WebSocket 实时推送给客户端。这样 Web UI 和 CLI 可以同时显示 Agent 的执行状态。</p>
+    </div>
+  </div>
+
+  <h2>八、6 个开发阶段的实现状态</h2>
+  <table>
+    <tr><th>阶段</th><th>版本</th><th>目标</th><th>核心实现</th><th>状态</th></tr>
+    <tr><td>Phase 1</td><td>v1.0</td><td>最小 ReAct 循环</td><td>LLM 调用 + bash 工具 + CLI</td><td style="color:var(--safe)">✅ 完成</td></tr>
+    <tr><td>Phase 2</td><td>v1.6</td><td>完善工具系统</td><td>read/write/edit + 权限 + 注册</td><td style="color:var(--safe)">✅ 完成</td></tr>
+    <tr><td>Phase 3</td><td>v2.4</td><td>会话管理</td><td>JSONL 存储 + 提示词 + 上下文</td><td style="color:var(--safe)">✅ 完成</td></tr>
+    <tr><td>Phase 4</td><td>v3.4</td><td>记忆系统</td><td>BM25 搜索 + MEMORY.md + 摘要</td><td style="color:var(--safe)">✅ 完成</td></tr>
+    <tr><td>Phase 5</td><td>v5.0</td><td>安全特性</td><td>审批 + 审计 + 心跳 + 分支 + 钩子</td><td style="color:var(--safe)">✅ 完成</td></tr>
+    <tr><td>Phase 6</td><td>v6.0</td><td>网关适配</td><td>WebSocket + 子智能体 + Web UI</td><td style="color:var(--safe)">✅ 完成</td></tr>
+  </table>
+</div>
+
+<div class="bottom-nav">
+  <a href="01-openclaw-principles.html" class="btn-prev">← OpenClaw 原理</a>
+  <a href="03-enterprise-outlook.html" class="btn-next">单位软件展望 →</a>
+</div>
+</body>
+</html>

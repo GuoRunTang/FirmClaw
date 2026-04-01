@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirmClaw v5.0 技术手册</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   全局变量与重置
+   ═══════════════════════════════════════════════════════ */
+:root {
+  --sidebar-w: 280px;
+  --bg: #0d1117;
+  --bg-sidebar: #010409;
+  --bg-card: #161b22;
+  --bg-code: #0d1117;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  --accent: #58a6ff;
+  --accent-hover: #79c0ff;
+  --green: #3fb950;
+  --yellow: #d29922;
+  --red: #f85149;
+  --purple: #bc8cff;
+  --cyan: #39d2c0;
+  --tag-v1: #238636;
+  --tag-v2: #1f6feb;
+  --tag-v3: #8957e5;
+  --tag-v4: #bc8cff;
+  --tag-v5: #f0883e;
+  --radius: 8px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════════════
+   侧边栏
+   ═══════════════════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-header {
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar-header h1 .logo {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent), var(--tag-v5));
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+}
+.sidebar-header .version {
+  font-size: 11px;
+  color: var(--tag-v5);
+  background: rgba(240,136,62,0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+.sidebar-nav { flex: 1; padding: 12px 0; }
+.nav-group { margin-bottom: 4px; }
+.nav-group-title {
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px 7px 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+}
+.nav-item:hover { color: var(--text); background: rgba(88,166,255,0.06); }
+.nav-item.active { color: var(--accent); background: rgba(88,166,255,0.1); border-left-color: var(--accent); }
+.nav-item .nav-icon { width: 16px; text-align: center; flex-shrink: 0; }
+.nav-item .nav-ver {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.nav-ver.v10 { background: rgba(35,134,54,0.15); color: var(--green); }
+.nav-ver.v30 { background: rgba(137,87,229,0.15); color: var(--tag-v3); }
+.nav-ver.v40 { background: rgba(188,140,255,0.15); color: var(--purple); }
+.nav-ver.v50 { background: rgba(240,136,62,0.15); color: var(--tag-v5); }
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════
+   主内容区
+   ═══════════════════════════════════════════════════════ */
+.main { flex: 1; margin-left: var(--sidebar-w); min-width: 0; }
+.content { max-width: 920px; margin: 0 auto; padding: 40px 48px 80px; }
+
+/* ═══════════════════════════════════════════════════════
+   横向 Tab 导航
+   ═══════════════════════════════════════════════════════ */
+.top-tabs {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(13,17,23,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 0; padding: 0 48px;
+  max-width: 920px; margin: 0 auto;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 12px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all 0.15s;
+  white-space: nowrap; font-family: var(--font);
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ═══════════════════════════════════════════════════════
+   Section 通用样式
+   ═══════════════════════════════════════════════════════ */
+.section { display: none; animation: fadeIn 0.25s ease; }
+.section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.section h2 { font-size: 28px; font-weight: 700; margin-bottom: 8px; padding-top: 20px; }
+.section > h2::after {
+  content: ''; display: block; width: 48px; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--tag-v5));
+  border-radius: 2px; margin-top: 8px; margin-bottom: 24px;
+}
+.section h3 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.section h4 { font-size: 14px; font-weight: 600; margin: 20px 0 8px; color: var(--accent); }
+.section p { margin-bottom: 12px; color: var(--text-secondary); }
+
+/* ═══════════════════════════════════════════════════════
+   特殊组件
+   ═══════════════════════════════════════════════════════ */
+.ver-tag {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 4px; vertical-align: middle; margin-left: 6px; letter-spacing: 0.02em;
+}
+.ver-tag.phase1 { background: rgba(35,134,54,0.15); color: var(--green); }
+.ver-tag.phase2 { background: rgba(31,111,235,0.15); color: var(--accent); }
+.ver-tag.phase3 { background: rgba(137,87,229,0.15); color: var(--tag-v3); }
+.ver-tag.phase4 { background: rgba(188,140,255,0.15); color: var(--purple); }
+.ver-tag.phase5 { background: rgba(240,136,62,0.15); color: var(--tag-v5); }
+
+.callout { padding: 14px 18px; border-radius: var(--radius); margin: 16px 0; border-left: 3px solid; font-size: 13px; }
+.callout.info { background: rgba(88,166,255,0.08); border-color: var(--accent); color: var(--text-secondary); }
+.callout.warn { background: rgba(210,153,34,0.08); border-color: var(--yellow); color: var(--text-secondary); }
+.callout.danger { background: rgba(248,81,73,0.08); border-color: var(--red); color: var(--text-secondary); }
+.callout.success { background: rgba(63,185,80,0.08); border-color: var(--green); color: var(--text-secondary); }
+.callout strong { color: var(--text); }
+.callout code { background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+pre {
+  background: var(--bg-code); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px;
+  overflow-x: auto; margin: 12px 0; font-size: 12.5px; line-height: 1.6;
+}
+pre code { font-family: var(--font-mono); color: var(--text); }
+code {
+  font-family: var(--font-mono); font-size: 12.5px;
+  background: rgba(255,255,255,0.06); padding: 2px 6px;
+  border-radius: 4px; color: var(--accent);
+}
+
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+th {
+  text-align: left; padding: 10px 14px;
+  background: rgba(255,255,255,0.03); border-bottom: 2px solid var(--border);
+  font-weight: 600; color: var(--text); font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+ul, ol { margin: 8px 0 12px 20px; color: var(--text-secondary); }
+li { margin-bottom: 4px; }
+
+.file-tree {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px;
+  margin: 16px 0; font-family: var(--font-mono);
+  font-size: 13px; line-height: 1.8; overflow-x: auto;
+}
+.file-tree .comment { color: var(--text-muted); }
+.file-tree .dir { color: var(--accent); }
+.file-tree .file { color: var(--text); }
+.file-tree .new { color: var(--green); }
+
+.interface-box {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); margin: 12px 0; overflow: hidden;
+}
+.interface-header {
+  padding: 10px 16px;
+  background: rgba(88,166,255,0.06); border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 14px;
+  font-weight: 600; color: var(--accent);
+  display: flex; align-items: center; gap: 8px;
+}
+.interface-body {
+  padding: 12px 16px; font-family: var(--font-mono);
+  font-size: 12.5px; line-height: 1.8;
+}
+.interface-body .field { color: var(--text-secondary); }
+.interface-body .type { color: var(--purple); }
+.interface-body .comment-inline { color: var(--text-muted); }
+
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 16px; }
+.badge { font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
+.badge.dep { background: rgba(188,140,255,0.12); color: var(--purple); }
+.badge.runtime { background: rgba(63,185,80,0.12); color: var(--green); }
+.badge.dev { background: rgba(210,153,34,0.12); color: var(--yellow); }
+.badge.zero { background: rgba(57,210,192,0.12); color: var(--cyan); }
+
+.stat-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px; margin: 16px 0;
+}
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px; text-align: center;
+}
+.stat-card .stat-value { font-size: 32px; font-weight: 700; color: var(--accent); }
+.stat-card .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.flow-diagram {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+  margin: 16px 0; text-align: center; overflow-x: auto;
+  font-family: var(--font-mono); font-size: 12px; line-height: 1.6;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .top-tabs { padding: 0 16px; }
+  .content { padding: 24px 16px 60px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     侧边栏
+     ═══════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1><span class="logo">FC</span> FirmClaw <span class="version">v5.0</span></h1>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-group-title">概述</div>
+      <a class="nav-item active" data-section="overview" onclick="showSection('overview')">
+        <span class="nav-icon">&#x1F4D6;</span> 项目简介
+      </a>
+      <a class="nav-item" data-section="architecture" onclick="showSection('architecture')">
+        <span class="nav-icon">&#x1F3D7;</span> 系统架构
+      </a>
+      <a class="nav-item" data-section="quickstart" onclick="showSection('quickstart')">
+        <span class="nav-icon">&#x1F680;</span> 快速开始
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 1-2 核心</div>
+      <a class="nav-item" data-section="agent-loop" onclick="showSection('agent-loop')">
+        <span class="nav-icon">&#x1F9E0;</span> Agent Loop
+        <span class="nav-ver v10">v1.0</span>
+      </a>
+      <a class="nav-item" data-section="tools" onclick="showSection('tools')">
+        <span class="nav-icon">&#x1F527;</span> 工具系统
+        <span class="nav-ver v10">v1.1-v1.6</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 3 会话管理</div>
+      <a class="nav-item" data-section="session" onclick="showSection('session')">
+        <span class="nav-icon">&#x1F4C4;</span> SessionManager
+        <span class="nav-ver v30">v2.1</span>
+      </a>
+      <a class="nav-item" data-section="context-builder" onclick="showSection('context-builder')">
+        <span class="nav-icon">&#x1F3AF;</span> ContextBuilder
+        <span class="nav-ver v30">v2.2</span>
+      </a>
+      <a class="nav-item" data-section="token-counter" onclick="showSection('token-counter')">
+        <span class="nav-icon">&#x1F4CA;</span> TokenCounter
+        <span class="nav-ver v30">v2.3</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 4 智能记忆</div>
+      <a class="nav-item" data-section="summarizer" onclick="showSection('summarizer')">
+        <span class="nav-icon">&#x1F4DD;</span> Summarizer
+        <span class="nav-ver v40">v3.1</span>
+      </a>
+      <a class="nav-item" data-section="memory" onclick="showSection('memory')">
+        <span class="nav-icon">&#x1F9E0;</span> MemoryManager
+        <span class="nav-ver v40">v3.2</span>
+      </a>
+      <a class="nav-item" data-section="search" onclick="showSection('search')">
+        <span class="nav-icon">&#x1F50D;</span> SearchEngine
+        <span class="nav-ver v40">v3.3</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 5 安全与自主</div>
+      <a class="nav-item" data-section="approval" onclick="showSection('approval')">
+        <span class="nav-icon">&#x1F6E1;</span> ApprovalGateway
+        <span class="nav-ver v50">v4.1</span>
+      </a>
+      <a class="nav-item" data-section="prompt-guard" onclick="showSection('prompt-guard')">
+        <span class="nav-icon">&#x1F6E1;</span> PromptGuard
+        <span class="nav-ver v50">v4.2</span>
+      </a>
+      <a class="nav-item" data-section="audit" onclick="showSection('audit')">
+        <span class="nav-icon">&#x1F4CB;</span> AuditLogger
+        <span class="nav-ver v50">v4.3</span>
+      </a>
+      <a class="nav-item" data-section="heartbeat" onclick="showSection('heartbeat')">
+        <span class="nav-icon">&#x2764;</span> Heartbeat
+        <span class="nav-ver v50">v4.4</span>
+      </a>
+      <a class="nav-item" data-section="hooks" onclick="showSection('hooks')">
+        <span class="nav-icon">&#x1F517;</span> HookManager
+        <span class="nav-ver v50">v4.5</span>
+      </a>
+      <a class="nav-item" data-section="branch" onclick="showSection('branch')">
+        <span class="nav-icon">&#x1F500;</span> Session Branch
+        <span class="nav-ver v50">v4.5</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">参考</div>
+      <a class="nav-item" data-section="file-structure" onclick="showSection('file-structure')">
+        <span class="nav-icon">&#x1F4C1;</span> 文件结构
+      </a>
+      <a class="nav-item" data-section="cli" onclick="showSection('cli')">
+        <span class="nav-icon">&#x2328;</span> CLI 命令
+      </a>
+      <a class="nav-item" data-section="version-history" onclick="showSection('version-history')">
+        <span class="nav-icon">&#x1F4CB;</span> 版本历史
+      </a>
+      <a class="nav-item" data-section="capabilities" onclick="showSection('capabilities')">
+        <span class="nav-icon">&#x1F4AF;</span> 能力与边界
+      </a>
+      <a class="nav-item" data-section="examples" onclick="showSection('examples')">
+        <span class="nav-icon">&#x1F4A1;</span> 使用案例
+      </a>
+      <a class="nav-item" data-section="security" onclick="showSection('security')">
+        <span class="nav-icon">&#x1F512;</span> 安全规则指南
+      </a>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="margin-bottom:8px">
+      <a href="manual-v4.0.html" style="color:var(--accent);text-decoration:none;font-size:11px;">v4.0 手册</a>
+    </div>
+    TypeScript + Node.js &middot; ReAct Architecture
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════
+     主内容区
+     ═══════════════════════════════════════════════════════ -->
+<div class="main">
+  <div class="top-tabs">
+    <button class="tab-btn active" data-section="overview" onclick="showSection('overview')">概述</button>
+    <button class="tab-btn" data-section="architecture" onclick="showSection('architecture')">架构</button>
+    <button class="tab-btn" data-section="quickstart" onclick="showSection('quickstart')">快速开始</button>
+    <button class="tab-btn" data-section="approval" onclick="showSection('approval')">审批</button>
+    <button class="tab-btn" data-section="audit" onclick="showSection('audit')">审计</button>
+    <button class="tab-btn" data-section="hooks" onclick="showSection('hooks')">钩子</button>
+    <button class="tab-btn" data-section="branch" onclick="showSection('branch')">分支</button>
+    <button class="tab-btn" data-section="cli" onclick="showSection('cli')">CLI</button>
+    <button class="tab-btn" data-section="version-history" onclick="showSection('version-history')">版本</button>
+    <button class="tab-btn" data-section="capabilities" onclick="showSection('capabilities')">能力</button>
+    <button class="tab-btn" data-section="examples" onclick="showSection('examples')">案例</button>
+    <button class="tab-btn" data-section="security" onclick="showSection('security')">安全</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 项目简介
+         ═══════════════════════════════════════════════════ -->
+    <div class="section active" id="sec-overview">
+      <h2>项目简介</h2>
+      <p>FirmClaw 是一个从零搭建的 <strong>本地优先 AI 智能体框架</strong>，核心采用 ReAct（Reasoning + Acting）架构。灵感来源于 OpenClaw，目标是实现一个可理解、可扩展、本地运行的生产级智能体系统。</p>
+
+      <h3>v5.0 核心亮点</h3>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value">6</div>
+          <div class="stat-label">Phase 5 新增安全模块</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Phase 5 新增外部依赖</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">8</div>
+          <div class="stat-label">新增 CLI 斜杠命令</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">5</div>
+          <div class="stat-label">开发阶段已完成</div>
+        </div>
+      </div>
+
+      <h3>完整能力矩阵</h3>
+      <table>
+        <thead><tr><th>能力</th><th>模块</th><th>版本</th></tr></thead>
+        <tbody>
+          <tr><td>理解自然语言指令并自主规划执行步骤</td><td>Agent Loop + LLM Client</td><td><span class="ver-tag phase1">v1.0</span></td></tr>
+          <tr><td>执行任意终端命令并获取输出</td><td>bash 工具</td><td><span class="ver-tag phase1">v1.0</span> <span class="ver-tag phase2">v1.5</span></td></tr>
+          <tr><td>读取 / 创建 / 编辑文件</td><td>read / write / edit 工具</td><td><span class="ver-tag phase2">v1.2-v1.4</span></td></tr>
+          <tr><td>三层安全防护（路径白名单+命令黑名单+敏感文件）</td><td>PermissionPolicy</td><td><span class="ver-tag phase2">v1.6</span></td></tr>
+          <tr><td>多轮对话（会话持久化 + 自动恢复）</td><td>SessionManager + SessionStore</td><td><span class="ver-tag phase3">v2.1</span></td></tr>
+          <tr><td>动态系统提示词（SOUL.md / AGENTS.md / MEMORY.md）</td><td>ContextBuilder + PromptTemplate</td><td><span class="ver-tag phase3">v2.2</span></td></tr>
+          <tr><td>上下文窗口管理（token 计数 + 智能裁剪）</td><td>TokenCounter</td><td><span class="ver-tag phase3">v2.3</span></td></tr>
+          <tr><td>LLM 摘要压缩（长对话保留关键信息）</td><td>Summarizer</td><td><span class="ver-tag phase4">v3.1</span></td></tr>
+          <tr><td>结构化记忆管理（MEMORY.md 读写 + 自动分类）</td><td>MemoryManager</td><td><span class="ver-tag phase4">v3.2</span></td></tr>
+          <tr><td>全文搜索引擎（BM25 + 中英文混合分词）</td><td>SearchEngine</td><td><span class="ver-tag phase4">v3.3</span></td></tr>
+          <tr><td>记忆搜索自动注入系统提示词</td><td>ContextBuilder 集成</td><td><span class="ver-tag phase4">v3.4</span></td></tr>
+          <tr><td>实时流式输出 + 事件广播</td><td>EventStream</td><td><span class="ver-tag phase1">v1.0</span></td></tr>
+          <tr><td><strong>人工审批（Human-in-the-Loop）</strong></td><td>ApprovalGateway</td><td><span class="ver-tag phase5">v4.1</span></td></tr>
+          <tr><td><strong>Prompt Injection 防护（10 条内置规则）</strong></td><td>PromptGuard</td><td><span class="ver-tag phase5">v4.2</span></td></tr>
+          <tr><td><strong>审计日志（全量操作记录 + 查询 + CSV 导出）</strong></td><td>AuditLogger + AuditQuery</td><td><span class="ver-tag phase5">v4.3</span></td></tr>
+          <tr><td><strong>Heartbeat 自主循环（定时执行任务）</strong></td><td>Heartbeat</td><td><span class="ver-tag phase5">v4.4</span></td></tr>
+          <tr><td><strong>工具执行钩子（before/after hook）</strong></td><td>HookManager</td><td><span class="ver-tag phase5">v4.5</span></td></tr>
+          <tr><td><strong>会话分支（Git branch 式分叉）</strong></td><td>SessionManager.branch()</td><td><span class="ver-tag phase5">v4.5</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>依赖一览</h3>
+      <div class="badge-row">
+        <span class="badge dep">openai ^6.32</span>
+        <span class="badge dep">ajv ^8.18</span>
+        <span class="badge dep">dotenv ^17.3</span>
+        <span class="badge dev">typescript ^6.0</span>
+        <span class="badge dev">tsx ^4.21</span>
+        <span class="badge runtime">Node.js >= 18</span>
+        <span class="badge zero">Phase 5 零新增依赖</span>
+      </div>
+
+      <h3>性能边界</h3>
+      <table>
+        <thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>摘要触发阈值</td><td>80,000 tokens</td><td>历史消息超过此值时自动触发 LLM 摘要</td></tr>
+          <tr><td>每次摘要消息上限</td><td>50 条</td><td>单次摘要最多压缩的消息数</td></tr>
+          <tr><td>摘要最大 token 数</td><td>2,000 tokens</td><td>摘要 prompt 要求不超过 1500 字</td></tr>
+          <tr><td>上下文窗口上限</td><td>128,000 tokens</td><td>TokenCounter 裁剪阈值</td></tr>
+          <tr><td>BM25 搜索性能</td><td>&lt; 50ms / 1000 文档</td><td>纯 JS 实现，内存索引</td></tr>
+          <tr><td>Agent 最大循环轮次</td><td>10 轮（默认）</td><td>防止无限循环</td></tr>
+          <tr><td>bash 输出截断</td><td>100KB</td><td>超长输出自动截断</td></tr>
+          <tr><td>read_file 大小限制</td><td>10MB</td><td>超大文件拒绝读取</td></tr>
+          <tr><td>审批默认超时</td><td>5 分钟</td><td>超时自动拒绝</td></tr>
+          <tr><td>审计输出摘要</td><td>500 字</td><td>审计日志中输出字段自动截断</td></tr>
+          <tr><td>Heartbeat 默认间隔</td><td>60 秒</td><td>可配置 intervalMs</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 系统架构
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-architecture">
+      <h2>系统架构</h2>
+      <p>FirmClaw v5.0 在 v4.0 的基础上，新增了六大安全与自主能力模块：人工审批、注入防护、审计日志、自主循环、工具钩子、会话分支。</p>
+
+      <h3>v5.0 架构总览</h3>
+      <div class="flow-diagram">
+        <pre><code>用户输入
+  │
+  ▼
+┌─────────────────────────────────────────────────┐
+│              AgentLoop (ReAct 循环)               │
+│                                                  │
+│  run(userMessage) {                             │
+│    ① SessionManager.create/resume()             │
+│    ② ContextBuilder.build()                      │
+│       └→ SearchEngine.search() + MemoryManager    │
+│    ③ Summarizer.shouldSummarize()?               │
+│    ④ TokenCounter.trim()                         │
+│    ⑤ LLM.chat(messages) ← ReAct 循环              │
+│    ⑥ 工具执行循环:                                │
+│       ├─ hookManager.runBeforeHooks()  ←v4.5    │
+│       ├─ PermissionPolicy.check()    ←v1.6      │
+│       ├─ ApprovalGateway.request()    ←v4.1      │
+│       │   └→ [等待用户 y/n]                       │
+│       ├─ tool.execute()                            │
+│       ├─ hookManager.runAfterHooks()   ←v4.5     │
+│       ├─ PromptGuard.scan()          ←v4.2      │
+│       ├─ AuditLogger.log()           ←v4.3      │
+│       └─ SessionManager.append()                  │
+│    ⑦ SearchEngine.index() ← 结果                   │
+│  }                                                 │
+└─────────────────────────────────────────────────┘
+
+┌──────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│ApprovalGateway│ │ Prompt   │ │  Audit   │ │Heartbeat │
+│ (v4.1)        │ │  Guard   │ │  Logger  │ │  (v4.4)  │
+│                │ │  (v4.2)  │ │  (v4.3)  │ │          │
+│- request()    │ │          │ │          │ │- start   │
+│- resolve()    │ │- scan    │ │- log     │ │- stop    │
+│- autoApprove  │ │- clean   │ │- query   │ │- pause   │
+└──────────────┘ └──────────┘ └──────────┘ └──────────┘
+
+┌──────────┐ ┌──────────┐
+│Hook      │ │  Session │
+│Manager   │ │  Branch  │
+│ (v4.5)   │ │  (v4.5)  │
+│          │ │          │
+│- before  │ │- branch()│
+│- after   │ │- list()  │
+└──────────┘ └──────────┘</code></pre>
+      </div>
+
+      <h3>工具执行管道（v5.0 完整版）</h3>
+      <p>ToolRegistry.execute() 中的完整执行管道：</p>
+      <div class="flow-diagram">
+        <pre><code>1. AJV 参数校验          ← v1.1
+2. runBeforeHooks()         ← v4.5  (可修改参数/拒绝)
+3. PermissionPolicy.check()  ← v1.6  (路径白名单/命令黑名单)
+4. ApprovalGateway.request()  ← v4.1  (人工审批，高风险暂停)
+5. tool.execute()            ← v1.0  (实际执行)
+6. runAfterHooks()           ← v4.5  (审计/处理结果)
+7. PromptGuard.scan()         ← v4.2  (注入检测+净化)</code></pre>
+      </div>
+
+      <div class="callout info">
+        <strong>渐进增强设计</strong>：所有 Phase 5 模块均为<strong>可选组件</strong>。不设置时 AgentLoop 自动降级为 Phase 4 的行为，不影响核心功能。
+      </div>
+
+      <h3>风险等级判定规则</h3>
+      <table>
+        <thead><tr><th>操作类型</th><th>风险等级</th><th>审批行为</th></tr></thead>
+        <tbody>
+          <tr><td><code>read_file</code></td><td><code style="color:var(--green)">low</code></td><td>自动放行</td></tr>
+          <tr><td><code>bash</code>（只读命令）</td><td><code style="color:var(--green)">low</code></td><td>自动放行</td></tr>
+          <tr><td><code>write_file</code>（新文件）</td><td><code style="color:var(--yellow)">medium</code></td><td>需人工审批</td></tr>
+          <tr><td><code>edit_file</code></td><td><code style="color:var(--yellow)">medium</code></td><td>需人工审批</td></tr>
+          <tr><td><code>bash</code>（npm install / git commit）</td><td><code style="color:var(--yellow)">medium</code></td><td>需人工审批</td></tr>
+          <tr><td><code>bash</code>（rm / --force / sudo）</td><td><code style="color:var(--red)">high</code></td><td>需人工审批</td></tr>
+          <tr><td><code>bash</code>（rm -rf / / format / shutdown）</td><td><code style="color:var(--red)">BLOCKED</code></td><td>直接拒绝（黑名单）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 快速开始
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-quickstart">
+      <h2>快速开始</h2>
+      <h3>1. 环境要求</h3>
+      <div class="badge-row">
+        <span class="badge runtime">Node.js >= 18</span>
+        <span class="badge dep">npm / pnpm</span>
+        <span class="badge dep">Git</span>
+      </div>
+      <h3>2. 安装</h3>
+      <pre><code>git clone &lt;repo-url&gt;
+cd FirmClaw
+npm install</code></pre>
+      <h3>3. 配置 .env</h3>
+      <pre><code>LLM_API_KEY=sk-your-api-key-here
+LLM_BASE_URL=https://api.minimax.chat/v1
+LLM_MODEL=MiniMax-M2.7</code></pre>
+      <h3>4. 运行</h3>
+      <pre><code>npm run dev</code></pre>
+      <h3>5. 运行全部 Phase 5 测试</h3>
+      <pre><code># Phase 1-2 测试（离线）
+npx tsx src/tests/test-v1.6-permissions.ts
+
+# Phase 5 测试（离线，全部 48 个用例）
+npx tsx src/tests/test-approval-gateway.ts
+npx tsx src/tests/test-prompt-guard.ts
+npx tsx src/tests/test-audit-logger.ts
+npx tsx src/tests/test-heartbeat.ts
+npx tsx src/tests/test-hook-manager.ts
+npx tsx src/tests/test-session-branch.ts
+
+# 一键运行全部测试
+npm run test:all</code></pre>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: ApprovalGateway
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-approval">
+      <h2>ApprovalGateway <span class="ver-tag phase5">v4.1</span></h2>
+      <p>人工审批网关 —— 危险工具调用的暂停/恢复机制。通过 Promise + 回调模式实现异步等待，Agent Loop 在 <code>request()</code> 处暂停，CLI 通过 <code>resolve()</code> 恢复。</p>
+      <p><strong>源文件</strong>：<code>src/agent/approval-gateway.ts</code></p>
+
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">interface</span> ApprovalGatewayConfig
+        </div>
+        <div class="interface-body">
+          <span class="field">mode</span><span class="type">?</span>: <span class="type">'strict' | 'risk-based' | 'auto'</span> <span class="comment-inline">// 默认 'risk-based'</span><br>
+          <span class="field">autoApproveTools</span><span class="type">?</span>: <span class="type">string[]</span> <span class="comment-inline">// 自动批准的工具列表，默认 []</span><br>
+          <span class="field">timeoutMs</span><span class="type">?</span>: <span class="type">number</span> <span class="comment-inline">// 超时毫秒，默认 300000 (5分钟)</span><br>
+          <span class="field">requireApprovalFor</span><span class="type">?</span>: <span class="type">RiskLevel[]</span> <span class="comment-inline">// 需审批的风险等级，默认 ['medium', 'high']</span>
+        </div>
+      </div>
+
+      <h3>核心 API</h3>
+      <table>
+        <thead><tr><th>方法</th><th>返回类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>request(toolName, args, riskLevel?)</code></td><td><code>Promise&lt;ApprovalResult&gt;</code></td><td>发起审批请求，可能阻塞。自动批准条件：mode=auto / 工具在 autoApproveTools 中 / risk-based 模式下 riskLevel 为 low</td></tr>
+          <tr><td><code>resolve('approved' | 'denied')</code></td><td><code>boolean</code></td><td>解决当前挂起的审批。返回 true=成功，false=无挂起请求</td></tr>
+          <tr><td><code>getPendingRequest()</code></td><td><code>ApprovalRequest | null</code></td><td>获取当前挂起的审批请求</td></tr>
+          <tr><td><code>getMode() / setMode()</code></td><td><code>ApprovalMode / void</code></td><td>获取/设置审批模式</td></tr>
+          <tr><td><code>getHistory()</code></td><td><code>ReadonlyArray</code></td><td>获取最近 100 条审批历史</td></tr>
+          <tr><td><code>hasPending()</code></td><td><code>boolean</code></td><td>判断是否有挂起请求</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>超时安全</strong>：审批请求默认 5 分钟超时自动拒绝，防止系统永远阻塞。超时后返回 <code>'timeout'</code>。
+      </div>
+
+      <h3>通信流程</h3>
+      <div class="flow-diagram">
+        <pre><code>Agent Loop                          CLI (readline)
+    │                                    │
+    ├─ gateway.request(toolName, args)   │
+    │  └─ new Promise → 暂停等待         │
+    │       │                            │
+    │       ├─ emit('approval_requested') ─→ 显示审批提示
+    │       │                                  用户输入 y/n
+    │       │←─ gateway.resolve(true) ─────┘
+    │       │                            │
+    ├─ 继续执行                          │
+    │                                    │</code></pre>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: PromptGuard
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-prompt-guard">
+      <h2>PromptGuard <span class="ver-tag phase5">v4.2</span></h2>
+      <p>扫描工具返回结果中的 Prompt Injection 攻击。不依赖 LLM 二次调用（零成本），基于正则匹配 + 启发式规则。不阻断执行，而是标记/净化内容。</p>
+      <p><strong>源文件</strong>：<code>src/agent/prompt-guard.ts</code></p>
+
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">interface</span> PromptGuardConfig
+        </div>
+        <div class="interface-body">
+          <span class="field">enabled</span><span class="type">?</span>: <span class="type">boolean</span> <span class="comment-inline">// 默认 true</span><br>
+          <span class="field">autoClean</span><span class="type">?</span>: <span class="type">boolean</span> <span class="comment-inline">// 自动净化（替换为 [REDACTED]），默认 true</span><br>
+          <span class="field">customPatterns</span><span class="type">?</span>: <span class="type">GuardPattern[]</span> <span class="comment-inline">// 自定义检测规则</span>
+        </div>
+      </div>
+
+      <h3>10 条内置检测规则</h3>
+      <table>
+        <thead><tr><th>规则名</th><th>严重程度</th><th>检测模式</th></tr></thead>
+        <tbody>
+          <tr><td><code>system_prompt_override</code></td><td><code style="color:var(--red)">high</code></td><td>"ignore previous/above instructions"</td></tr>
+          <tr><td><code>role_hijack</code></td><td><code style="color:var(--red)">high</code></td><td>"you are/act as/become supervisor/admin"</td></tr>
+          <tr><td><code>delimiter_injection</code></td><td><code style="color:var(--yellow)">medium</code></td><td><code>&lt;|end|&gt;</code>, <code>&lt;|system|&gt;</code></td></tr>
+          <tr><td><code>special_tag_injection</code></td><td><code style="color:var(--yellow)">medium</code></td><td><code>|im_start|&gt;</code>, <code>|endoftext|&gt;</code></td></tr>
+          <tr><td><code>new_system_prompt</code></td><td><code style="color:var(--red)">high</code></td><td>"new system prompt:"</td></tr>
+          <tr><td><code>output_format_override</code></td><td><code style="color:var(--yellow)">medium</code></td><td>"output only/exactly the following"</td></tr>
+          <tr><td><code>chinese_injection</code></td><td><code style="color:var(--red)">high</code></td><td>"忽略以上所有指令/提示/规则"</td></tr>
+          <tr><td><code>markdown_injection</code></td><td><code style="color:var(--red)">high</code></td><td>[INST], <code>&lt;|im_start|&gt;</code>, [[SYSTEM]]</td></tr>
+          <tr><td><code>jailbreak_attempt</code></td><td><code style="color:var(--red)">high</code></td><td>"you are now freed/unlocked"</td></tr>
+          <tr><td><code>base64_obfuscation</code></td><td><code style="color:var(--yellow)">medium</code></td><td>"decode/decrypt the following base64"</td></tr>
+        </tbody>
+      </table>
+
+      <h3>核心 API</h3>
+      <table>
+        <thead><tr><th>方法</th><th>返回类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>scan(content)</code></td><td><code>GuardResult</code></td><td>扫描内容，返回是否可疑、匹配规则、净化后内容</td></tr>
+          <tr><td><code>isSuspicious(content)</code></td><td><code>boolean</code></td><td>仅检测（不执行净化）</td></tr>
+          <tr><td><code>getPatterns()</code></td><td><code>ReadonlyArray&lt;GuardPattern&gt;</code></td><td>获取已加载的规则列表</td></tr>
+          <tr><td><code>addPattern(pattern)</code></td><td><code>void</code></td><td>添加自定义检测规则</td></tr>
+          <tr><td><code>isEnabled() / setEnabled()</code></td><td><code>boolean / void</code></td><td>获取/设置启用状态</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: AuditLogger
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-audit">
+      <h2>AuditLogger <span class="ver-tag phase5">v4.3</span></h2>
+      <p>全量操作审计日志系统。Append-only JSONL 写入，支持按条件过滤、聚合统计和 CSV 导出。存储路径：<code>~/.firmclaw/audit.jsonl</code>。</p>
+      <p><strong>源文件</strong>：<code>src/audit/logger.ts</code>, <code>src/audit/types.ts</code>, <code>src/audit/query.ts</code></p>
+
+      <h3>审计记录格式</h3>
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">interface</span> AuditEntry
+        </div>
+        <div class="interface-body">
+          <span class="field">id</span>: <span class="type">string</span> <span class="comment-inline">// aud_NNN</span><br>
+          <span class="field">timestamp</span>: <span class="type">string</span> <span class="comment-inline">// ISO 8601</span><br>
+          <span class="field">sessionId</span><span class="type">?</span>: <span class="type">string</span><br>
+          <span class="field">eventType</span>: <span class="type">'tool_execution' | 'approval' | 'prompt_injection' | 'session_start' | 'session_end' | 'config_change'</span><br>
+          <span class="field">toolName</span><span class="type">?</span>: <span class="type">string</span><br>
+          <span class="field">args</span><span class="type">?</span>: <span class="type">Record&lt;string, unknown&gt;</span><br>
+          <span class="field">riskLevel</span><span class="type">?</span>: <span class="type">'low' | 'medium' | 'high'</span><br>
+          <span class="field">approvedBy</span><span class="type">?</span>: <span class="type">'auto' | 'user' | 'timeout' | 'policy'</span><br>
+          <span class="field">result</span>: <span class="type">string</span><br>
+          <span class="field">output</span><span class="type">?</span>: <span class="type">string</span> <span class="comment-inline">// 截断到 500 字</span><br>
+          <span class="field">durationMs</span><span class="type">?</span>: <span class="type">number</span>
+        </div>
+      </div>
+
+      <h3>AuditLogger API</h3>
+      <table>
+        <thead><tr><th>方法</th><th>返回类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>log(entry)</code></td><td><code>Promise&lt;string&gt;</code></td><td>记录一条审计日志，返回审计 ID</td></tr>
+          <tr><td><code>logBatch(entries)</code></td><td><code>Promise&lt;string[]&gt;</code></td><td>批量记录</td></tr>
+          <tr><td><code>getFilePath()</code></td><td><code>string</code></td><td>获取审计文件路径</td></tr>
+        </tbody>
+      </table>
+
+      <h3>AuditQuery API</h3>
+      <table>
+        <thead><tr><th>方法</th><th>返回类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>query(filter?)</code></td><td><code>Promise&lt;AuditEntry[]&gt;</code></td><td>按条件查询（按时间倒序），支持 sessionId / eventType / toolName / riskLevel / from / to / deniedOnly 过滤</td></tr>
+          <tr><td><code>stats()</code></td><td><code>Promise&lt;StatsObject&gt;</code></td><td>统计摘要：totalEntries / byType / byTool / byRiskLevel / totalDurationMs / deniedCount</td></tr>
+          <tr><td><code>exportCSV(filter?)</code></td><td><code>Promise&lt;string&gt;</code></td><td>导出为 CSV 格式</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: HookManager
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-hooks">
+      <h2>HookManager <span class="ver-tag phase5">v4.5</span></h2>
+      <p>工具执行钩子管理器 —— 在工具执行前后插入自定义逻辑。before hook 可修改参数或拒绝执行；after hook 可处理/审计结果。支持通配符 <code>*</code> 匹配所有工具。hook 异常不影响主流程。</p>
+      <p><strong>源文件</strong>：<code>src/tools/hook-manager.ts</code></p>
+
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">type</span> BeforeHookResult
+        </div>
+        <div class="interface-body">
+          <span class="comment-inline">// 放行（不修改参数）</span><br>
+          <span class="type">void</span><br>
+          <span class="comment-inline">// 修改参数后放行</span><br>
+          <span class="type">{ args: Record&lt;string, unknown&gt; }</span><br>
+          <span class="comment-inline">// 拒绝执行</span><br>
+          <span class="type">{ deny: true; reason: string }</span>
+        </div>
+      </div>
+
+      <h3>核心 API</h3>
+      <table>
+        <thead><tr><th>方法</th><th>返回类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>registerBefore(toolName, hook)</code></td><td><code>void</code></td><td>注册 before hook。toolName='*' 匹配所有工具</td></tr>
+          <tr><td><code>registerAfter(toolName, hook)</code></td><td><code>void</code></td><td>注册 after hook</td></tr>
+          <tr><td><code>runBeforeHooks(toolName, ctx)</code></td><td><code>Promise&lt;Record | null&gt;</code></td><td>运行 before hooks。先运行通配符 <code>*</code>，再运行具体工具。返回 null 表示被拒绝</td></tr>
+          <tr><td><code>runAfterHooks(toolName, ctx)</code></td><td><code>Promise&lt;void&gt;</code></td><td>运行 after hooks</td></tr>
+          <tr><td><code>listHooks()</code></td><td><code>HookInfo[]</code></td><td>获取已注册的钩子列表</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout success">
+        <strong>典型用法</strong>：通过 <code>registerAfter('*', async (ctx) =&gt; { await auditLogger.log(...) })</code> 自动记录所有工具执行到审计日志。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: Session Branch
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-branch">
+      <h2>Session Branch <span class="ver-tag phase5">v4.5</span></h2>
+      <p>会话分支 —— Git branch 概念的会话化实现。从历史节点的消息处分叉出新的探索方向，新会话元数据记录 <code>parentSessionId</code> 和 <code>branchPoint</code>。</p>
+      <p><strong>源文件</strong>：<code>src/session/manager.ts</code>, <code>src/session/store.ts</code></p>
+
+      <h3>核心 API</h3>
+      <table>
+        <thead><tr><th>方法</th><th>返回类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>branch(fromMessageIndex, newTitle?)</code></td><td><code>Promise&lt;SessionMeta&gt;</code></td><td>从当前会话的第 N 条消息处创建分支（0-based）</td></tr>
+          <tr><td><code>listBranches(sessionId?)</code></td><td><code>Promise&lt;SessionMeta[]&gt;</code></td><td>列出指定会话的所有分支</td></tr>
+        </tbody>
+      </table>
+
+      <h3>分支示意</h3>
+      <div class="flow-diagram">
+        <pre><code>原始会话 (abc123):                 分支会话 (def456):
+  msg1: "帮我重构代码"               msg1: "帮我重构代码"
+  msg2: "好的，我来看一下"            msg2: "好的，我来看一下"
+  msg3: "我建议使用工厂模式"          msg3: "我建议使用工厂模式"
+  msg4: "好的，开始实现"              ← 分支点 (branch from msg3)
+  msg5: "实现了..."                   msg4: "不，我觉得用策略模式更好"
+  msg6: "完成了"                     msg5: "好的，用策略模式实现..."</code></pre>
+      </div>
+
+      <div class="callout info">
+        <strong>安全设计</strong>：分支时使用 <code>branchFrom()</code> 一次性构建完整新文件（避免 create + appendBatch 的竞争问题）。sessionId 使用正则校验防止路径遍历。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: Agent Loop（v5.0 更新）
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-agent-loop">
+      <h2>Agent Loop <span class="ver-tag phase1">v1.0</span> + <span class="ver-tag phase5">v4.1</span></h2>
+      <p>AgentLoop 是 FirmClaw 的心脏。v5.0 集成 ApprovalGateway 实现危险工具的审批暂停。</p>
+      <p><strong>源文件</strong>：<code>src/agent/agent-loop.ts</code></p>
+
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">interface</span> AgentConfig (v5.0)
+        </div>
+        <div class="interface-body">
+          <span class="field">systemPrompt</span>: <span class="type">string</span> <span class="comment-inline">// ContextBuilder 设置后可留空</span><br>
+          <span class="field">maxTurns</span>: <span class="type">number</span> <span class="comment-inline">// 最大循环轮次（默认 10）</span><br>
+          <span class="field">workDir</span><span class="type">?</span>: <span class="type">string</span> <span class="comment-inline">// [v1.1]</span><br>
+          <span class="field">sessionManager</span><span class="type">?</span>: <span class="type">SessionManager</span> <span class="comment-inline">// [v2.1]</span><br>
+          <span class="field">contextBuilder</span><span class="type">?</span>: <span class="type">ContextBuilder</span> <span class="comment-inline">// [v2.2]</span><br>
+          <span class="field">tokenCounter</span><span class="type">?</span>: <span class="type">TokenCounter</span> <span class="comment-inline">// [v2.3]</span><br>
+          <span class="field">trimConfig</span><span class="type">?</span>: <span class="type">TrimConfig</span> <span class="comment-inline">// [v2.3]</span><br>
+          <span class="field">summarizer</span><span class="type">?</span>: <span class="type">Summarizer</span> <span class="comment-inline">// [v3.1]</span><br>
+          <span class="field">approvalGateway</span><span class="type">?</span>: <span class="type">ApprovalGateway</span> <span class="comment-inline">// [v4.1]</span>
+        </div>
+      </div>
+
+      <h3>v5.0 新增事件</h3>
+      <table>
+        <thead><tr><th>事件</th><th>版本</th><th>data</th></tr></thead>
+        <tbody>
+          <tr><td><code>thinking_delta</code></td><td>v1.0</td><td>文本片段</td></tr>
+          <tr><td><code>tool_start</code></td><td>v1.0</td><td><code>{toolName, args}</code></td></tr>
+          <tr><td><code>tool_end</code></td><td>v1.0</td><td><code>{toolName, result, isError}</code></td></tr>
+          <tr><td><code>session_start</code></td><td>v2.3</td><td><code>{id, title, createdAt}</code></td></tr>
+          <tr><td><code>context_trimmed</code></td><td>v2.3</td><td><code>{originalTokens, trimmedTokens}</code></td></tr>
+          <tr><td><code>summary_generated</code></td><td>v3.1</td><td><code>{compressedCount, originalTokens, newTokens}</code></td></tr>
+          <tr><td><code>memory_saved</code></td><td>v3.2</td><td><code>{id, tag}</code></td></tr>
+          <tr><td><code>approval_requested</code></td><td><strong>v4.1</strong></td><td><code>{id, toolName, args, riskLevel}</code></td></tr>
+          <tr><td><code>approval_granted</code></td><td><strong>v4.1</strong></td><td><code>{toolName, args}</code></td></tr>
+          <tr><td><code>approval_denied</code></td><td><strong>v4.1</strong></td><td><code>{toolName, args, reason}</code></td></tr>
+          <tr><td><code>prompt_injection_detected</code></td><td><strong>v4.2</strong></td><td><code>{toolName, matchTypes}</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: Heartbeat
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-heartbeat">
+      <h2>Heartbeat <span class="ver-tag phase5">v4.4</span></h2>
+      <p>心跳管理器 —— 让智能体自主执行定时任务。通过 <code>onTick</code> 回调组合，<code>setInterval</code> 定时触发。支持最多 N 次循环后自动停止，错误不中断心跳。</p>
+      <p><strong>源文件</strong>：<code>src/agent/heartbeat.ts</code></p>
+
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">interface</span> HeartbeatConfig
+        </div>
+        <div class="interface-body">
+          <span class="field">taskPrompt</span>: <span class="type">string</span> <span class="comment-inline">// 任务 prompt</span><br>
+          <span class="field">intervalMs</span><span class="type">?</span>: <span class="type">number</span> <span class="comment-inline">// 默认 60000 (1分钟)</span><br>
+          <span class="field">maxTicks</span><span class="type">?</span>: <span class="type">number</span> <span class="comment-inline">// 最大循环次数，默认 10</span>
+        </div>
+      </div>
+
+      <h3>生命周期 API</h3>
+      <table>
+        <thead><tr><th>方法</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>start()</code></td><td>启动心跳（已在运行或已停止时无效）</td></tr>
+          <tr><td><code>stop()</code></td><td>停止心跳（不可恢复）</td></tr>
+          <tr><td><code>pause() / resume()</code></td><td>暂停/恢复</td></tr>
+          <tr><td><code>getStats()</code></td><td>返回 HeartbeatStats：status / ticksCompleted / ticksRemaining / totalDurationMs / lastTickAt / nextTickAt / errorCount</td></tr>
+          <tr><td><code>updatePrompt(prompt)</code></td><td>更新任务 prompt（下次 tick 生效）</td></tr>
+          <tr><td><code>getStatus()</code></td><td>返回 HeartbeatStatus：'idle' | 'running' | 'paused' | 'stopped'</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 权限系统（v4.1 更新）
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-tools">
+      <h2>工具系统 <span class="ver-tag phase1">v1.0</span> + <span class="ver-tag phase5">v4.1</span></h2>
+      <p>ToolRegistry 是工具注册、参数校验、执行管道的核心枢纽。v5.0 完整集成 PromptGuard + HookManager + ApprovalGateway。</p>
+      <p><strong>源文件</strong>：<code>src/tools/registry.ts</code>, <code>src/tools/permissions.ts</code></p>
+
+      <h3>v4.1 风险等级扩展</h3>
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">interface</span> PermissionResult
+        </div>
+        <div class="interface-body">
+          <span class="field">allowed</span>: <span class="type">boolean</span><br>
+          <span class="field">reason</span><span class="type">?</span>: <span class="type">string</span><br>
+          <span class="field">riskLevel</span><span class="type">?</span>: <span class="type">'low' | 'medium' | 'high'</span> <span class="comment-inline">// [v4.1] 供审批网关使用</span>
+        </div>
+      </div>
+
+      <h3>默认命令黑名单</h3>
+      <pre><code>rm -rf /, rm -rf /*, del /f /s /q c:\, format ,
+diskpart, shutdown , taskkill /f /im,
+:(){ :|:& };:   (fork bomb), mkfs., dd if=</code></pre>
+
+      <h3>默认受保护文件</h3>
+      <pre><code>.env, .env.local, .env.production,
+credentials.json, id_rsa, id_ed25519, .ssh</code></pre>
+
+      <h3>内置工具</h3>
+      <table>
+        <thead><tr><th>工具名</th><th>必填参数</th><th>可选参数</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>bash</code></td><td><code>command</code></td><td><code>timeout</code>(30s), <code>cwd</code></td><td>执行 Shell 命令，输出截断 100KB</td></tr>
+          <tr><td><code>read_file</code></td><td><code>path</code></td><td><code>offset</code>(1), <code>limit</code></td><td>读取文件，带行号，10MB 限制</td></tr>
+          <tr><td><code>write_file</code></td><td><code>path</code>, <code>content</code></td><td><code>createDirs</code>(true)</td><td>创建/覆写文件</td></tr>
+          <tr><td><code>edit_file</code></td><td><code>path</code>, <code>old_str</code>, <code>new_str</code></td><td>-</td><td>查找替换，old_str 必须唯一</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 会话管理（v4.5 更新）
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-session">
+      <h2>SessionManager <span class="ver-tag phase3">v2.1</span> + <span class="ver-tag phase5">v4.5</span></h2>
+      <p>会话管理器，封装 SessionStore，提供面向业务的 API。内部维护 metaCache 避免频繁读文件。v4.5 新增 <code>branch()</code> 方法。</p>
+      <p><strong>源文件</strong>：<code>src/session/manager.ts</code></p>
+
+      <h3>v4.5 SessionMeta 扩展</h3>
+      <div class="interface-box">
+        <div class="interface-header">
+          <span style="color:var(--text-muted)">interface</span> SessionMeta (v4.5)
+        </div>
+        <div class="interface-body">
+          <span class="field">id</span>: <span class="type">string</span> <span class="comment-inline">// UUID</span><br>
+          <span class="field">createdAt</span>: <span class="type">string</span> <span class="comment-inline">// ISO 8601</span><br>
+          <span class="field">updatedAt</span>: <span class="type">string</span><br>
+          <span class="field">workDir</span>: <span class="type">string</span><br>
+          <span class="field">title</span>: <span class="type">string</span> <span class="comment-inline">// 用户首条消息前50字</span><br>
+          <span class="field">messageCount</span>: <span class="type">number</span><br>
+          <span class="field">parentSessionId</span><span class="type">?</span>: <span class="type">string</span> <span class="comment-inline">// [v4.5] 父会话 ID</span><br>
+          <span class="field">branchPoint</span><span class="type">?</span>: <span class="type">number</span> <span class="comment-inline">// [v4.5] 分支点消息序号</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 其他模块（Phase 3-4）
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-context-builder">
+      <h2>ContextBuilder <span class="ver-tag phase3">v2.2</span></h2>
+      <p>运行时动态生成 system prompt。加载 SOUL.md / AGENTS.md / MEMORY.md，注入工具定义、会话信息、记忆内容。v3.2 集成 MemoryManager，v3.3 集成 SearchEngine。</p>
+      <p><strong>源文件</strong>：<code>src/session/context-builder.ts</code></p>
+      <h3>核心 API</h3>
+      <table>
+        <thead><tr><th>方法</th><th>返回类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>setMemoryManager(manager)</code></td><td><code>void</code></td><td>注入记忆管理器</td></tr>
+          <tr><td><code>setSearchEngine(engine)</code></td><td><code>void</code></td><td>注入搜索引擎</td></tr>
+          <tr><td><code>build(tools, sessionMeta?, query?)</code></td><td><code>Promise&lt;string&gt;</code></td><td>构建完整系统提示词。自动按 query 搜索相关记忆</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section" id="sec-token-counter">
+      <h2>TokenCounter <span class="ver-tag phase3">v2.3</span></h2>
+      <p>简单的 token 估算（约 4 字符 = 1 token）与消息裁剪。裁剪优先级：system/user/assistant 永不裁剪 → tool 消息优先截断 → 整体从最早消息移除（保留首条 user）。</p>
+      <p><strong>源文件</strong>：<code>src/utils/token-counter.ts</code></p>
+    </div>
+
+    <div class="section" id="sec-summarizer">
+      <h2>Summarizer <span class="ver-tag phase4">v3.1</span></h2>
+      <p>LLM 摘要压缩器。当历史消息超过 80000 tokens 时自动触发，调用 LLM 生成高质量摘要替代旧消息。摘要失败不阻塞主流程。</p>
+      <p><strong>源文件</strong>：<code>src/session/summarizer.ts</code></p>
+      <h3>核心 API</h3>
+      <table>
+        <thead><tr><th>方法</th><th>返回类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>shouldSummarize(messages)</code></td><td><code>boolean</code></td><td>判断是否需要摘要</td></tr>
+          <tr><td><code>summarize(messages)</code></td><td><code>Promise&lt;SummaryResult&gt;</code></td><td>执行摘要压缩。SummaryResult 含 messages / summarized / compressedCount / originalTokens / newTokens</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section" id="sec-memory">
+      <h2>MemoryManager <span class="ver-tag phase4">v3.2</span></h2>
+      <p>结构化管理 MEMORY.md。支持按标签分类查询：preference（偏好）、decision（决策）、todo（待办）、knowledge（知识）。</p>
+      <p><strong>源文件</strong>：<code>src/session/memory-manager.ts</code></p>
+      <h3>核心 API</h3>
+      <table>
+        <thead><tr><th>方法</th><th>返回类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>add(tag, content)</code></td><td><code>Promise&lt;MemoryEntry&gt;</code></td><td>添加一条记忆（自动生成 ID，如 P001）</td></tr>
+          <tr><td><code>remove(id)</code></td><td><code>Promise&lt;boolean&gt;</code></td><td>删除一条记忆</td></tr>
+          <tr><td><code>getByTag(tag)</code></td><td><code>MemoryEntry[]</code></td><td>按标签筛选</td></tr>
+          <tr><td><code>getFormatted()</code></td><td><code>string</code></td><td>获取格式化的记忆文本（用于注入系统提示词）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section" id="sec-search">
+      <h2>SearchEngine <span class="ver-tag phase4">v3.3</span></h2>
+      <p>全文搜索引擎 —— 纯 JS BM25 实现。支持中英文混合分词（中文 bigram + 英文单词），零原生依赖。支持索引持久化到磁盘。</p>
+      <p><strong>源文件</strong>：<code>src/session/search-engine.ts</code></p>
+      <h3>核心 API</h3>
+      <table>
+        <thead><tr><th>方法</th><th>返回类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>search(query, limit?)</code></td><td><code>SearchResult[]</code></td><td>BM25 排序的搜索结果</td></tr>
+          <tr><td><code>searchMemory(query, entries, limit?)</code></td><td><code>string[]</code></td><td>搜索记忆条目（便捷方法）</td></tr>
+          <tr><td><code>persist() / load()</code></td><td><code>Promise&lt;void&gt;</code></td><td>索引持久化到磁盘 / 从磁盘加载</td></tr>
+          <tr><td><code>getStats()</code></td><td><code>{docCount, sources}</code></td><td>索引统计</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 文件结构
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-file-structure">
+      <h2>文件结构</h2>
+      <div class="file-tree">
+<span class="comment">src/</span>
+<span class="dir">agent/</span>
+<span class="file">agent-loop.ts          <span class="comment">← v4.1: 集成 ApprovalGateway</span></span>
+<span class="file">types.ts               <span class="comment">← v4.1: AgentConfig 新增 approvalGateway</span></span>
+<span class="file new">approval-gateway.ts    <span class="comment">← v4.1: 新增（人工审批网关）</span></span>
+<span class="file new">prompt-guard.ts        <span class="comment">← v4.2: 新增（Prompt Injection 防护）</span></span>
+<span class="file new">heartbeat.ts           <span class="comment">← v4.4: 新增（心跳管理器）</span></span>
+<span class="dir">audit/</span>
+<span class="file new">types.ts               <span class="comment">← v4.3: 新增（审计类型定义）</span></span>
+<span class="file new">logger.ts              <span class="comment">← v4.3: 新增（审计记录器）</span></span>
+<span class="file new">query.ts               <span class="comment">← v4.3: 新增（审计查询器）</span></span>
+<span class="dir">llm/</span>
+<span class="file">client.ts              <span class="comment">← 不变</span></span>
+<span class="dir">session/</span>
+<span class="file">types.ts               <span class="comment">← v4.5: SessionMeta 新增 parentSessionId / branchPoint</span></span>
+<span class="file">store.ts               <span class="comment">← v4.5: 新增 branchFrom()</span></span>
+<span class="file">manager.ts             <span class="comment">← v4.5: 新增 branch()</span></span>
+<span class="file">context-builder.ts     <span class="comment">← 不变</span></span>
+<span class="file">summarizer.ts          <span class="comment">← 不变</span></span>
+<span class="file">memory-manager.ts      <span class="comment">← 不变</span></span>
+<span class="file">search-engine.ts       <span class="comment">← 不变</span></span>
+<span class="dir">tools/</span>
+<span class="file">types.ts               <span class="comment">← 不变</span></span>
+<span class="file">registry.ts            <span class="comment">← v4.2/v4.5: 集成 PromptGuard + HookManager</span></span>
+<span class="file">permissions.ts         <span class="comment">← v4.1: PermissionResult 新增 riskLevel</span></span>
+<span class="file new">hook-manager.ts        <span class="comment">← v4.5: 新增（工具钩子管理器）</span></span>
+<span class="file">bash.ts                <span class="comment">← 不变</span></span>
+<span class="file">read.ts                <span class="comment">← 不变</span></span>
+<span class="file">write.ts               <span class="comment">← 不变</span></span>
+<span class="file">edit.ts                <span class="comment">← 不变</span></span>
+<span class="file">context.ts             <span class="comment">← 不变</span></span>
+<span class="dir">utils/</span>
+<span class="file">event-stream.ts        <span class="comment">← v4.1~v4.2: 新增审批/注入事件</span></span>
+<span class="file">token-counter.ts       <span class="comment">← 不变</span></span>
+<span class="file">prompt-template.ts     <span class="comment">← 不变</span></span>
+<span class="dir">tests/</span>
+<span class="file">test-v1.6-permissions.ts  <span class="comment">← Phase 2</span></span>
+<span class="file new">test-approval-gateway.ts  <span class="comment">← v4.1 新增</span></span>
+<span class="file new">test-prompt-guard.ts      <span class="comment">← v4.2 新增</span></span>
+<span class="file new">test-audit-logger.ts      <span class="comment">← v4.3 新增</span></span>
+<span class="file new">test-heartbeat.ts            <span class="comment">← v4.4 新增</span></span>
+<span class="file new">test-hook-manager.ts         <span class="comment">← v4.5 新增</span></span>
+<span class="file new">test-session-branch.ts      <span class="comment">← v4.5 新增</span></span>
+<span class="file">index.ts                     <span class="comment">← v5.0: 集成全部 Phase 5 模块</span></span>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: CLI 命令
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-cli">
+      <h2>CLI 命令</h2>
+      <table>
+        <thead><tr><th>命令</th><th>Phase</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>/help</code></td><td>1</td><td>显示帮助信息</td></tr>
+          <tr><td><code>/new</code></td><td>3</td><td>创建新会话</td></tr>
+          <tr><td><code>/resume [id]</code></td><td>3</td><td>恢复会话（最新或指定 ID）</td></tr>
+          <tr><td><code>/sessions</code></td><td>3</td><td>列出所有会话</td></tr>
+          <tr><td><code>/session</code></td><td>3</td><td>显示当前会话信息</td></tr>
+          <tr><td><code>/soul</code></td><td>3</td><td>显示 SOUL.md 内容</td></tr>
+          <tr><td><code>/memory [tag]</code></td><td>4</td><td>显示记忆（可选按标签筛选）</td></tr>
+          <tr><td><code>/remember &lt;text&gt;</code></td><td>4</td><td>保存记忆（自动分类标签）</td></tr>
+          <tr><td><code>/forget &lt;id&gt;</code></td><td>4</td><td>删除记忆</td></tr>
+          <tr><td><code>/search &lt;query&gt;</code></td><td>4</td><td>全文搜索</td></tr>
+          <tr><td><code>/compact</code></td><td>4</td><td>手动触发上下文压缩</td></tr>
+          <tr><td><code>/index</code></td><td>4</td><td>显示搜索索引统计</td></tr>
+          <tr><td><strong><code>/approve</code></strong></td><td><strong>5</strong></td><td><strong>批准待审批操作</strong></td></tr>
+          <tr><td><strong><code>/deny</code></strong></td><td><strong>5</strong></td><td><strong>拒绝待审批操作</strong></td></tr>
+          <tr><td><code>/audit [filter]</code></td><td><strong>5</strong></td><td>查看审计日志</td></tr>
+          <tr><td><code>/audit-stats</code></td><td><strong>5</strong></td><td>审计统计摘要</td></tr>
+          <tr><td><code>/audit-export [file]</code></td><td><strong>5</strong></td><td>导出审计 CSV</td></tr>
+          <tr><td><code>/heartbeat start/stop/pause/resume/status</code></td><td><strong>5</strong></td><td>心跳管理</td></tr>
+          <tr><td><code>/branch [n]</code></td><td><strong>5</strong></td><td>创建会话分支</td></tr>
+          <tr><td><code>/branches</code></td><td><strong>5</strong></td><td>列出当前会话的所有分支</td></tr>
+          <tr><td><code>/hooks</code></td><td><strong>5</strong></td><td>列出已注册的工具钩子</td></tr>
+          <tr><td><code>/exit, /quit</code></td><td>1</td><td>退出</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 版本历史
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-version-history">
+      <h2>版本历史</h2>
+      <table>
+        <thead><tr><th>版本</th><th>内容</th><th>新增/变更</th></tr></thead>
+        <tbody>
+          <tr><td><span class="ver-tag phase1">v1.0</span></td><td>基础 ReAct 循环 + bash 工具</td><td>AgentLoop, LLMClient, EventStream, bashTool</td></tr>
+          <tr><td><span class="ver-tag phase1">v1.1</span></td><td>AJV 参数校验 + workDir 上下文</td><td>ToolRegistry.validate(), ToolContext</td></tr>
+          <tr><td><span class="ver-tag phase1">v1.2-v1.4</span></td><td>read / write / edit 文件工具</td><td>readTool, writeTool, editTool</td></tr>
+          <tr><td><span class="ver-tag phase1">v1.5</span></td><td>bash 升级为 spawn()</td><td>流式输出、超时控制、输出截断</td></tr>
+          <tr><td><span class="ver-tag phase2">v1.6</span></td><td>三层安全防护</td><td>PermissionPolicy, DefaultPermissionPolicy</td></tr>
+          <tr><td><span class="ver-tag phase3">v2.1</span></td><td>会话持久化</td><td>SessionManager, SessionStore, JSONL 存储</td></tr>
+          <tr><td><span class="ver-tag phase3">v2.2</span></td><td>动态系统提示词</td><td>ContextBuilder, PromptTemplate</td></tr>
+          <tr><td><span class="ver-tag phase3">v2.3</span></td><td>上下文窗口管理</td><td>TokenCounter, TrimConfig</td></tr>
+          <tr><td><span class="ver-tag phase4">v3.1</span></td><td>LLM 摘要压缩</td><td>Summarizer, SummaryResult</td></tr>
+          <tr><td><span class="ver-tag phase4">v3.2</span></td><td>记忆管理</td><td>MemoryManager, MemoryEntry</td></tr>
+          <tr><td><span class="ver-tag phase4">v3.3</span></td><td>全文搜索</td><td>SearchEngine, SearchResult, BM25</td></tr>
+          <tr><td><span class="ver-tag phase4">v3.4</span></td><td>记忆搜索注入提示词</td><td>ContextBuilder 集成</td></tr>
+          <tr><td><span class="ver-tag phase5">v4.1</span></td><td>人工审批流程</td><td>ApprovalGateway, PermissionResult.riskLevel</td></tr>
+          <tr><td><span class="ver-tag phase5">v4.2</span></td><td>Prompt Injection 防护</td><td>PromptGuard, 10 条内置规则</td></tr>
+          <tr><td><span class="ver-tag phase5">v4.3</span></td><td>审计日志</td><td>AuditLogger, AuditQuery, AuditEntry</td></tr>
+          <tr><td><span class="ver-tag phase5">v4.4</span></td><td>Heartbeat 自主循环</td><td>Heartbeat, HeartbeatConfig</td></tr>
+          <tr><td><span class="ver-tag phase5">v4.5</span></td><td>会话分支 + 工具钩子</td><td>HookManager, SessionManager.branch()</td></tr>
+          <tr><td><span class="ver-tag phase5" style="background:rgba(240,136,62,0.2);color:var(--tag-v5);">v5.0</span></td><td>全量整合 + 版本发布</td><td>index.ts 集成全部模块, 修复 append 竞态</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 能力与边界
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-capabilities">
+      <h2>功能能力与边界</h2>
+      <p>FirmClaw v5.0 是一个本地运行的 AI 智能体框架，以下是它<strong>能做什么</strong>和<strong>不能做什么</strong>的完整说明。</p>
+
+      <h3>FirmClaw 能做什么</h3>
+      <table>
+        <thead><tr><th>能力类别</th><th>具体能力</th><th>依赖条件</th></tr></thead>
+        <tbody>
+          <tr><td><strong>自然语言理解</strong></td><td>理解中文/英文指令，自主拆解为多步骤执行计划</td><td>OpenAI 兼容 API</td></tr>
+          <tr><td><strong>终端命令执行</strong></td><td>执行任意 shell 命令（bash/cmd），获取实时流式输出</td><td>Node.js spawn</td></tr>
+          <tr><td><strong>文件读写编辑</strong></td><td>读取文件、创建文件、基于搜索替换的精确编辑</td><td>文件系统权限</td></tr>
+          <tr><td><strong>多轮对话</strong></td><td>自动保存/恢复会话上下文，支持跨会话恢复</td><td>本地 JSONL 存储</td></tr>
+          <tr><td><strong>智能上下文管理</strong></td><td>自动 token 计数、智能裁剪、LLM 摘要压缩</td><td>OpenAI API（摘要）</td></tr>
+          <tr><td><strong>结构化记忆</strong></td><td>自动分类存储关键信息，BM25 全文搜索 + 语义注入</td><td>本地文件</td></tr>
+          <tr><td><strong>人工审批</strong></td><td>高风险操作暂停等待用户确认，支持超时自动拒绝</td><td>终端交互</td></tr>
+          <tr><td><strong>Prompt 注入防护</strong></td><td>10 条内置规则扫描工具输出，自动标记/净化可疑内容</td><td>无额外依赖</td></tr>
+          <tr><td><strong>审计日志</strong></td><td>全量操作记录、结构化查询、CSV 导出</td><td>本地 JSONL 文件</td></tr>
+          <tr><td><strong>自主循环</strong></td><td>按间隔自动执行任务，支持暂停/恢复</td><td>Node.js Timer</td></tr>
+          <tr><td><strong>工具钩子</strong></td><td>在工具执行前后插入自定义逻辑（日志/修改/拒绝）</td><td>无额外依赖</td></tr>
+          <tr><td><strong>会话分支</strong></td><td>从历史节点 Git 式分叉，探索不同方向</td><td>本地 JSONL 文件</td></tr>
+          <tr><td><strong>动态人格定制</strong></td><td>通过 SOUL.md / AGENTS.md 自定义智能体行为和角色</td><td>Markdown 文件</td></tr>
+        </tbody>
+      </table>
+
+      <h3>FirmClaw 不能做什么（能力边界）</h3>
+      <table>
+        <thead><tr><th>限制项</th><th>说明</th><th>原因</th></tr></thead>
+        <tbody>
+          <tr><td><strong>无 GUI / Web 界面</strong></td><td>纯 CLI 交互，没有图形界面</td><td>本地优先设计，降低复杂度</td></tr>
+          <tr><td><strong>无网络浏览能力</strong></td><td>无法直接访问网页、点击按钮、截图</td><td>未集成浏览器自动化（可通过 bash + curl 间接实现）</td></tr>
+          <tr><td><strong>无图片/音频处理</strong></td><td>仅支持文本 I/O</td><td>基于纯文本 LLM API</td></tr>
+          <tr><td><strong>单机运行</strong></td><td>不支持分布式/多机部署</td><td>设计为个人本地助手</td></tr>
+          <tr><td><strong>受限于 LLM 能力</strong></td><td>规划能力、推理深度、输出质量取决于底层 LLM</td><td>依赖 OpenAI 兼容 API</td></tr>
+          <tr><td><strong>无持久化向量数据库</strong></td><td>BM25 是内存索引，重启后重建</td><td>零新增依赖策略</td></tr>
+          <tr><td><strong>无并发会话</strong></td><td>同一时间只能运行一个 AgentLoop 实例</td><td>单线程 CLI 设计</td></tr>
+          <tr><td><strong>bash 命令有长度限制</strong></td><td>输出超过 100KB 自动截断</td><td>防止 token 爆炸</td></tr>
+          <tr><td><strong>文件大小限制</strong></td><td>单文件读取上限 10MB</td><td>性能与 token 保护</td></tr>
+          <tr><td><strong>上下文窗口上限</strong></td><td>128,000 tokens（超出自动裁剪/摘要）</td><td>受限于 LLM 上下文窗口</td></tr>
+          <tr><td><strong>Agent 循环上限</strong></td><td>默认最多 10 轮工具调用/轮次</td><td>防止无限循环</td></tr>
+          <tr><td><strong>审批超时限制</strong></td><td>默认 5 分钟无响应自动拒绝</td><td>防止无限等待</td></tr>
+        </tbody>
+      </table>
+
+      <h3>适用的典型场景</h3>
+      <div class="callout success">
+        <strong>推荐场景</strong>：代码编写与重构、项目脚手架搭建、文件批量处理、终端自动化操作、文档生成、日志分析、配置管理、测试辅助编写、Git 操作辅助、代码审查。
+      </div>
+      <div class="callout warn">
+        <strong>谨慎场景</strong>：生产环境操作（建议开启人工审批）、大规模数据处理（受 token 和文件大小限制）、需要 GUI 交互的任务、需要实时网络浏览的任务。
+      </div>
+      <div class="callout danger">
+        <strong>不推荐场景</strong>：替代专业 DevOps 工具、需要高并发的服务端部署、需要视觉理解的图像处理、需要亚秒级响应的实时系统。
+      </div>
+
+      <h3>v5.0 性能基线</h3>
+      <table>
+        <thead><tr><th>操作</th><th>典型耗时</th><th>主要瓶颈</th></tr></thead>
+        <tbody>
+          <tr><td>LLM 单次调用</td><td>1-5 秒</td><td>API 网络延迟 + 模型推理</td></tr>
+          <tr><td>单轮 ReAct 循环（含工具调用）</td><td>2-10 秒</td><td>LLM 调用 + 工具执行</td></tr>
+          <tr><td>BM25 搜索（1000 文档）</td><td>&lt; 50ms</td><td>内存计算，极快</td></tr>
+          <tr><td>LLM 摘要压缩（50 条消息）</td><td>3-8 秒</td><td>API 调用</td></tr>
+          <tr><td>会话保存（append）</td><td>&lt; 5ms</td><td>本地文件 I/O</td></tr>
+          <tr><td>审计日志写入</td><td>&lt; 5ms</td><td>本地文件追加</td></tr>
+          <tr><td>会话分支（复制历史）</td><td>10-100ms</td><td>文件复制量取决于历史长度</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 使用案例
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-examples">
+      <h2>使用案例</h2>
+      <p>以下是 FirmClaw v5.0 在实际工作中的典型使用场景，涵盖从基础到高级的各类用例。</p>
+
+      <h3>案例 1：代码项目搭建</h3>
+      <div class="callout info">
+        <strong>场景</strong>：从零创建一个 Express + TypeScript 的 REST API 项目。
+      </div>
+      <pre><code># 用户输入（自然语言）
+帮我创建一个 Express TypeScript API 项目，包含用户 CRUD 功能
+
+# FirmClaw 自主执行：
+1. mkdir my-api && cd my-api
+2. npm init -y → 生成 package.json
+3. npm install express typescript @types/express ts-node --save-dev
+4. npx tsc --init → 生成 tsconfig.json
+5. 创建 src/index.ts → Express 服务器入口
+6. 创建 src/routes/userRoutes.ts → 用户路由
+7. 创建 src/controllers/userController.ts → 用户控制器
+8. 创建 src/models/user.ts → 用户模型接口
+9. 创建 .gitignore → 忽略 node_modules
+10. 输出完成总结 → 列出所有文件和启动命令</code></pre>
+
+      <h3>案例 2：代码审查与修复</h3>
+      <div class="callout info">
+        <strong>场景</strong>：审查指定文件，发现 bug 并自动修复。
+      </div>
+      <pre><code># 用户输入
+审查 src/utils/parser.ts 中的错误处理逻辑，修复所有潜在的空指针问题
+
+# FirmClaw 自主执行：
+1. read_file src/utils/parser.ts → 读取完整文件
+2. 分析代码 → 发现 3 处潜在空指针
+3. edit_file src/utils/parser.ts → 逐一修复（需人工审批）
+4. read_file src/utils/parser.ts → 验证修改
+5. 输出审查报告 → 列出修改点</code></pre>
+
+      <h3>案例 3：利用会话分支探索不同方案</h3>
+      <div class="callout info">
+        <strong>场景</strong>：讨论两种架构方案时，分别在不同分支中实现并对比。
+      </div>
+      <pre><code># 会话中已讨论了 "REST vs GraphQL" 两种方案
+用户: /branch 20          # 从第 20 轮对话分叉
+
+# 分支 A：REST 方案
+用户: 用 Express REST 实现用户模块
+FirmClaw: [创建 REST API 文件...]
+
+# 切回主会话
+用户: /resume main
+用户: /branch 20          # 再次从第 20 轮分叉
+
+# 分支 B：GraphQL 方案
+用户: 用 Apollo GraphQL 实现用户模块
+FirmClaw: [创建 GraphQL 文件...]
+
+# 对比两个分支
+用户: /branches           # 查看所有分支
+用户: /resume branch-A    # 切回任意分支继续</code></pre>
+
+      <h3>案例 4：审计日志追踪团队操作</h3>
+      <div class="callout info">
+        <strong>场景</strong>：查看团队中所有高危操作的审计记录。
+      </div>
+      <pre><code># 实时查看审计日志
+用户: /audit risk:high        # 筛选所有高风险操作
+→ 显示：rm data/cache/ 被批准（2024-01-15 14:32）
+→ 显示：npm publish 被拒绝（2024-01-15 15:01）
+
+# 导出审计报告
+用户: /audit-export report.csv    # 导出为 CSV 文件
+
+# 查看统计摘要
+用户: /audit-stats
+→ 今日操作总数: 47
+→ 高风险操作: 3（批准 2，拒绝 1）
+→ 最活跃工具: bash (32 次)</code></pre>
+
+      <h3>案例 5：Heartbeat 自动监控</h3>
+      <div class="callout info">
+        <strong>场景</strong>：让智能体每 60 秒自动检查服务器状态。
+      </div>
+      <pre><code># 启动心跳监控
+用户: /heartbeat start 60000 "检查 ./logs/error.log 是否有新的 ERROR 行"
+→ Heartbeat 已启动，间隔 60 秒
+
+# 智能体每 60 秒自动：
+1. bash: tail -20 ./logs/error.log | grep ERROR
+2. 如有新错误 → 输出告警
+3. 如无新错误 → 静默跳过
+
+# 暂停 / 恢复
+用户: /heartbeat pause
+用户: /heartbeat resume
+
+# 查看状态
+用户: /heartbeat status
+→ 状态: running | 已执行: 15 次 | 下次: 45s 后</code></pre>
+
+      <h3>案例 6：自定义 Hook 拦截与审计</h3>
+      <div class="callout info">
+        <strong>场景</strong>：为所有 bash 操作自动记录变更到 CHANGELOG.md。
+      </div>
+      <pre><code>// 在代码中注册自定义 Hook（或通过扩展点配置）
+hookManager.registerBeforeHook('bash', async (params) => {
+  // 记录即将执行的命令
+  console.log(`[HOOK] 即将执行: ${params.command}`);
+  return params; // 可修改参数
+});
+
+hookManager.registerAfterHook('bash', async (result, params) => {
+  // 记录执行结果
+  if (result.exitCode !== 0) {
+    console.warn(`[HOOK] 命令失败: ${params.command}`);
+    console.warn(`[HOOK] 错误输出: ${result.stderr}`);
+  }
+  return result; // 可修改结果
+});
+
+// 通过 CLI 查看
+用户: /hooks
+→ bash:
+    before: logCommand (已注册)
+    after:  checkResult (已注册)</code></pre>
+
+      <h3>案例 7：记忆系统辅助长期项目</h3>
+      <div class="callout info">
+        <strong>场景</strong>：跨会话保持项目关键信息，新会话自动获得上下文。
+      </div>
+      <pre><code># 会话 A：保存关键信息
+用户: /remember 项目使用 PostgreSQL 16，连接字符串在 .env 的 DB_URL
+用户: /remember API 前缀是 /api/v2，认证用 JWT，token 过期 24h
+用户: /remember 前端框架是 React 18 + TypeScript，状态管理用 Zustand
+
+# 会话 B（新会话）：自动搜索记忆
+用户: 帮我在 users 表加一个 avatar 字段
+FirmClaw: [自动搜索记忆 → 发现 "PostgreSQL 16"]
+→ 我将连接 PostgreSQL 来修改 users 表结构...
+→ 执行: ALTER TABLE users ADD COLUMN avatar TEXT;</code></pre>
+
+      <h3>案例 8：Prompt Injection 防护实战</h3>
+      <div class="callout info">
+        <strong>场景</strong>：读取一个可能包含恶意注入的文件时，PromptGuard 自动检测并处理。
+      </div>
+      <pre><code># 用户让 FirmClaw 读取一个可疑文件
+用户: 读取 /tmp/external-data.txt 的内容
+
+# FirmClaw 执行：
+1. read_file /tmp/external-data.txt
+2. PromptGuard.scan(result) → 检测到 2 条可疑规则命中：
+   ⚠ 规则 3: "忽略之前的指令" 模式
+   ⚠ 规则 7: "系统角色扮演" 模式
+3. 自动净化 → 在可疑内容前注入 [⚠ 警告：以下内容可能包含注入攻击]
+4. LLM 收到净化后的结果 → 安全地忽略恶意指令</code></pre>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 安全规则指南
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-security">
+      <h2>安全规则指南</h2>
+      <p>FirmClaw v5.0 提供了<strong>多层安全防护</strong>，从最内层的权限策略到最外层的人工审批，确保智能体不会执行危险操作。本章详细说明每一层的工作原理和配置方法。</p>
+
+      <h3>安全防护架构（七层模型）</h3>
+      <div class="flow-diagram">
+        <pre><code>┌──────────────────────────────────────────────────┐
+│  第 1 层: AJV 参数校验                              │  ← v1.1
+│  防止非法参数导致的工具异常                             │
+├──────────────────────────────────────────────────┤
+│  第 2 层: Before Hook                               │  ← v4.5
+│  自定义拦截：可修改参数、拒绝执行、记录日志               │
+├──────────────────────────────────────────────────┤
+│  第 3 层: PermissionPolicy（权限策略）                │  ← v1.6
+│  路径白名单 + 命令黑名单 + 敏感文件保护                 │
+├──────────────────────────────────────────────────┤
+│  第 4 层: ApprovalGateway（人工审批）                  │  ← v4.1
+│  高风险操作暂停等待用户确认                             │
+├──────────────────────────────────────────────────┤
+│  第 5 层: 工具实际执行                                │  ← v1.0
+│  bash → spawn()  /  文件 → fs API                   │
+├──────────────────────────────────────────────────┤
+│  第 6 层: After Hook                                │  ← v4.5
+│  自定义后处理：结果审计、变更记录                        │
+├──────────────────────────────────────────────────┤
+│  第 7 层: PromptGuard（注入扫描）                     │  ← v4.2
+│  扫描工具输出中的注入攻击并净化                          │
+├──────────────────────────────────────────────────┤
+│  第 8 层: AuditLogger（审计日志）                     │  ← v4.3
+│  全量操作记录，永久可追溯                              │
+└──────────────────────────────────────────────────┘</code></pre>
+      </div>
+
+      <h3>第 3 层：权限策略（PermissionPolicy）</h3>
+      <p>权限策略提供三层静态防护，无需人工介入即可自动拦截危险操作：</p>
+
+      <h4>3.1 路径白名单</h4>
+      <p>限制文件操作只能在允许的目录内执行：</p>
+      <pre><code>// 默认配置
+const defaultConfig = {
+  allowedPaths: [
+    process.cwd(),  // 当前工作目录
+  ],
+  // 尝试访问白名单外的路径 → 直接拒绝
+};</code></pre>
+      <div class="callout warn">
+        <strong>注意</strong>：默认仅允许当前工作目录。如需访问其他目录（如 <code>/tmp</code>），需显式添加到 <code>allowedPaths</code>。
+      </div>
+
+      <h4>3.2 命令黑名单</h4>
+      <p>以下命令被<strong>永久禁止</strong>，无论风险等级如何：</p>
+      <pre><code>// 不可覆盖的硬编码黑名单
+const BLOCKED_COMMANDS = [
+  'rm -rf /',       // 删除根目录
+  'rm -rf /*',      // 删除根目录
+  'mkfs',           // 格式化文件系统
+  'dd if=',         // 磁盘镜像覆盖
+  'shutdown',       // 关机
+  'reboot',         // 重启
+  'init 0',         // 关机（System V）
+  '> /dev/sda',     // 直接写磁盘
+  'chmod -R 777 /', // 全局提权
+  'format',         // 格式化（Windows）
+];</code></pre>
+      <div class="callout danger">
+        <strong>关键</strong>：黑名单命令<strong>无法通过任何方式绕过</strong>，包括 Hook 和审批。这是最后的安全兜底。
+      </div>
+
+      <h4>3.3 敏感文件保护</h4>
+      <p>以下文件模式默认受保护，写入操作需额外确认：</p>
+      <pre><code>// 默认受保护文件
+const PROTECTED_FILES = [
+  '.env',
+  '.ssh/*',
+  '.git/*',
+  '*.key',
+  '*.pem',
+  'credentials*',
+  'id_rsa*',
+];</code></pre>
+
+      <h3>第 4 层：人工审批（ApprovalGateway）</h3>
+      <p>人工审批是最核心的交互安全机制，通过风险等级判定决定是否需要用户介入：</p>
+
+      <h4>风险等级说明</h4>
+      <table>
+        <thead><tr><th>风险等级</th><th>含义</th><th>系统行为</th><th>示例</th></tr></thead>
+        <tbody>
+          <tr><td><code style="color:var(--green)">low</code></td><td>安全操作</td><td>自动放行，无需审批</td><td><code>read_file</code>、<code>ls</code>、<code>cat</code>、<code>echo</code></td></tr>
+          <tr><td><code style="color:var(--yellow)">medium</code></td><td>有副作用的操作</td><td>暂停等待用户确认（y/n）</td><td><code>write_file</code>、<code>edit_file</code>、<code>npm install</code>、<code>git commit</code></td></tr>
+          <tr><td><code style="color:var(--red)">high</code></td><td>高风险操作</td><td>暂停等待确认，显示警告</td><td><code>rm</code>、<code>--force</code>、<code>sudo</code>、<code>npm publish</code></td></tr>
+          <tr><td><code style="color:var(--red)">BLOCKED</code></td><td>禁止操作</td><td>直接拒绝，不提供审批选项</td><td><code>rm -rf /</code>、<code>mkfs</code>、<code>format</code></td></tr>
+        </tbody>
+      </table>
+
+      <h4>bash 命令风险判定规则</h4>
+      <pre><code>// 判定优先级（从高到低）：
+1. 命令黑名单匹配    → BLOCKED（直接拒绝）
+2. 包含 --force 标志  → high
+3. 包含 sudo          → high
+4. 包含 rm / rmdir    → high（非黑名单的删除操作）
+5. 包含 npm install / yarn add / pip install  → medium
+6. 包含 git commit / git push               → medium
+7. 包含 > 或 >> （重定向写入）               → medium
+8. 其他命令                                  → low</code></pre>
+
+      <h4>自定义审批策略</h4>
+      <p>你可以为特定工具配置自动审批规则：</p>
+      <pre><code>// 编程式配置
+const gateway = new ApprovalGateway({
+  timeoutMs: 300_000,         // 审批超时 5 分钟
+  autoApprove: {
+    'read_file': 'all',        // read_file 全部自动放行
+    'bash': ['echo *'],        // echo 命令自动放行
+  },
+  alwaysRequire: {
+    'bash': ['rm *', 'sudo *'], // rm 和 sudo 始终需要审批
+  },
+});
+
+// CLI 中使用
+用户: /approve    # 批准当前待审批操作
+用户: /deny       # 拒绝当前待审批操作
+# 也可直接输入 y/n 响应审批提示</code></pre>
+      <div class="callout info">
+        <strong>超时机制</strong>：如果用户在 <code>timeoutMs</code> 时间内未响应，操作将被<strong>自动拒绝</strong>，防止智能体无限等待。默认超时 5 分钟。
+      </div>
+
+      <h3>第 7 层：Prompt Injection 防护（PromptGuard）</h3>
+      <p>PromptGuard 在工具输出返回给 LLM 之前扫描并净化内容，防止恶意代码通过工具输出注入指令：</p>
+
+      <h4>10 条内置检测规则</h4>
+      <table>
+        <thead><tr><th>规则 #</th><th>检测目标</th><th>示例模式</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>指令覆盖</td><td>"忽略之前的指令"、" disregard all"</td></tr>
+          <tr><td>2</td><td>角色劫持</td><td>"你现在是"、" act as"、" pretend to be"</td></tr>
+          <tr><td>3</td><td>系统提示泄露</td><td>"system prompt"、" repeat your instructions"</td></tr>
+          <tr><td>4</td><td>分隔符注入</td><td>大量 <code>&lt;|im_start|&gt;</code>、<code>&lt;|im_end|&gt;</code> 标记</td></tr>
+          <tr><td>5</td><td>数据 exfil</td><td>"发送到"、"send to"、" POST http"</td></tr>
+          <tr><td>6</td><td>代码执行请求</td><td>"eval("、" exec("、" subprocess"</td></tr>
+          <tr><td>7</td><td>环境变量探测</td><td>"$ENV"、" process.env"、" getenv"</td></tr>
+          <tr><td>8</td><td>文件路径探测</td><td>"/etc/passwd"、"/etc/shadow"、".ssh/"</td></tr>
+          <tr><td>9</td><td>编码混淆</td><td>Base64 长字符串、Unicode 转义序列</td></tr>
+          <tr><td>10</td><td>多语言混合注入</td><td>中日韩混合 + "ignore" / "执行"</td></tr>
+        </tbody>
+      </table>
+
+      <h4>处理方式</h4>
+      <div class="callout info">
+        <strong>净化而非阻断</strong>：PromptGuard 不会拒绝工具执行，而是在可疑内容前注入 <code>[⚠ 警告：以下内容可能包含注入攻击]</code> 标记，让 LLM 自主判断是否遵循。这种设计在安全性和功能性之间取得平衡。
+      </div>
+
+      <h4>自定义检测规则</h4>
+      <pre><code>// 添加自定义规则
+const guard = new PromptGuard();
+guard.addRule({
+  id: 'custom-1',
+  name: '禁止暴露内部 IP',
+  pattern: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,
+  severity: 'high',
+});
+
+// 临时禁用某条规则
+guard.disableRule(3);  // 禁用规则 3
+
+// 查看命中统计
+const stats = guard.getStats();
+// { rule1: { hits: 2 }, rule5: { hits: 1 }, ... }</code></pre>
+
+      <h3>第 8 层：审计日志（AuditLogger）</h3>
+      <p>审计日志记录<strong>每一次操作</strong>的完整上下文，支持事后追溯和合规审查：</p>
+
+      <h4>审计记录字段</h4>
+      <pre><code>interface AuditEntry {
+  timestamp: string;       // ISO 8601 时间戳
+  sessionId: string;       // 会话 ID
+  toolName: string;        // 工具名称（bash / read_file / ...）
+  action: string;          // 操作类型（execute / approve / deny / block）
+  riskLevel: string;       // 风险等级（low / medium / high / BLOCKED）
+  params: object;          // 工具参数（输出摘要，最多 500 字）
+  result?: object;         // 执行结果（输出摘要）
+  duration?: number;       // 执行耗时（毫秒）
+  approvedBy?: 'auto' | 'user' | 'timeout';  // 审批来源
+  error?: string;          // 错误信息
+}</code></pre>
+
+      <h4>使用审计日志</h4>
+      <pre><code>// CLI 命令
+用户: /audit              # 查看最近 20 条记录
+用户: /audit risk:high    # 筛选高风险操作
+用户: /audit bash         # 筛选 bash 工具操作
+用户: /audit-stats        # 统计摘要
+用户: /audit-export report.csv   # 导出为 CSV
+
+// 编程式查询
+const query = new AuditQuery(auditFilePath);
+const results = await query.search({
+  toolName: 'bash',
+  riskLevel: 'high',
+  since: '2024-01-01',
+  limit: 50,
+});</code></pre>
+
+      <h3>安全最佳实践</h3>
+      <ol>
+        <li><strong>始终使用 v5.0 的默认安全配置</strong>：七层防护默认全部启用，不要关闭任何层。</li>
+        <li><strong>生产环境必须开启人工审批</strong>：确保 <code>ApprovalGateway</code> 已配置，不要设置全部自动审批。</li>
+        <li><strong>最小化路径白名单</strong>：仅允许必要的目录，避免授权整个文件系统。</li>
+        <li><strong>定期导出审计日志</strong>：使用 <code>/audit-export</code> 定期备份操作记录。</li>
+        <li><strong>检查 PromptGuard 统计</strong>：如果某条规则频繁命中，说明可能正在遭受注入攻击。</li>
+        <li><strong>使用 Hook 实现团队安全策略</strong>：通过 Before Hook 注入团队特定的安全检查逻辑。</li>
+        <li><strong>会话分支用于实验</strong>：不确定操作后果时，先创建分支再执行，保留回滚路径。</li>
+        <li><strong>Heartbeat 配合审批使用</strong>：自主循环任务应设置合理的审批策略，避免无人值守时执行危险操作。</li>
+      </ol>
+
+      <div class="callout success">
+        <strong>安全设计原则</strong>：渐进增强 — 所有安全层均为<strong>可选但推荐</strong>。即使不配置 ApprovalGateway 或 PromptGuard，底层的 PermissionPolicy（路径白名单 + 命令黑名单）仍然提供基础保护。安全配置可以根据使用场景灵活调整。
+      </div>
+    </div>
+
+  </div><!-- .content -->
+</div><!-- .main -->
+
+<script>
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn, .nav-item').forEach(b => b.classList.remove('active'));
+  const sec = document.getElementById('sec-' + id);
+  if (sec) sec.classList.add('active');
+  document.querySelectorAll(`[data-section="${id}"]`).forEach(b => b.classList.add('active'));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

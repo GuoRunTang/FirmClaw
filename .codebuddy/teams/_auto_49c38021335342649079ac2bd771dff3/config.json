@@ -1,0 +1,28 @@
+{
+  "name": "_auto_49c38021335342649079ac2bd771dff3",
+  "leadAgentId": "49c38021335342649079ac2bd771dff3",
+  "workspacePath": "d:\\code\\FirmClaw",
+  "createdAt": "2026-03-30T00:36:22.121Z",
+  "options": {
+    "workspacePath": "d:\\code\\FirmClaw",
+    "isAutoTeam": true
+  },
+  "members": [
+    {
+      "memberId": "team-lead@_auto_49c38021335342649079ac2bd771dff3",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    },
+    {
+      "memberId": "writer-arch@_auto_49c38021335342649079ac2bd771dff3",
+      "name": "writer-arch",
+      "role": "Write architecture + quickstart HTML"
+    },
+    {
+      "memberId": "writer-gateway@_auto_49c38021335342649079ac2bd771dff3",
+      "name": "writer-gateway",
+      "role": "Write Gateway section HTML"
+    }
+  ],
+  "isAutoTeam": true
+}

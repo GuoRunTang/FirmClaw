@@ -88,7 +88,9 @@ export class AuthGuard {
       const parsed = new URL(url);
       return parsed.searchParams.get('token');
     } catch {
-      return null;
+      // WebSocket 的 request.url 是相对路径（如 "/?token=xxx"），需要正则回退
+      const match = url.match(/[?&]token=([^&]*)/);
+      return match ? decodeURIComponent(match[1]) : null;
     }
   }
 

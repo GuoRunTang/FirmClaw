@@ -1,0 +1,20 @@
+# 排除源文件和测试
+src/
+dist/tests/
+*.ts
+*.map
+*.md
+
+# 排除开发文档和临时文件
+docs/
+FirmClaw*.md
+FirmClaw-展示/
+*.pptx
+*.pptx.*
+check-*.cjs
+generate-pptx.cjs
+从零开始构建*.html
+
+# 排除临时文件
+.codebuddy/
+*.tgz

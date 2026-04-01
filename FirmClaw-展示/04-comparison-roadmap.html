@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>04 - 竞品对比与未来研发路线 | FirmClaw</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0F172A;--bg2:#1E293B;--accent:#0EA5E9;--accent2:#38BDF8;--text:#F1F5F9;--muted:#94A3B8;--white:#FFF;--danger:#EF4444;--warn:#F59E0B;--safe:#22C55E}
+body{min-height:100vh;background:var(--bg);font-family:'Noto Sans SC',sans-serif;color:var(--text);line-height:1.7}
+.top-nav{position:fixed;top:0;left:0;right:0;height:48px;background:rgba(15,23,42,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(14,165,233,.15);display:flex;align-items:center;padding:0 24px;z-index:100}
+.top-nav a{color:var(--muted);text-decoration:none;font-size:12px;margin-right:16px;transition:color .2s}
+.top-nav a:hover,.top-nav a.active{color:var(--accent2)}
+.top-nav .brand{font-family:'Noto Serif SC',serif;font-weight:700;color:var(--accent2);font-size:14px;margin-right:auto}
+.container{max-width:860px;margin:0 auto;padding:64px 24px 60px}
+.page-title{font-family:'Noto Serif SC',serif;font-size:32px;font-weight:900;color:var(--accent2);margin-bottom:4px}
+.page-sub{font-size:14px;color:var(--muted);margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid rgba(14,165,233,.1)}
+h2{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:700;color:var(--text);margin:40px 0 16px;padding-left:14px;border-left:3px solid var(--accent)}
+h3{font-size:16px;font-weight:600;color:var(--accent2);margin:24px 0 10px}
+p{font-size:14px;color:var(--muted);margin-bottom:12px}
+strong{color:var(--text)}
+code{font-family:Consolas,'Courier New',monospace;font-size:12px;background:rgba(14,165,233,.1);color:var(--accent2);padding:2px 6px;border-radius:3px}
+.card{background:var(--bg2);border-radius:8px;padding:20px 24px;margin:16px 0;border:1px solid rgba(14,165,233,.1)}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.highlight{background:linear-gradient(135deg,rgba(14,165,233,.08) 0%,rgba(14,165,233,.02) 100%);border:1px solid rgba(14,165,233,.2);border-radius:8px;padding:20px 24px;margin:20px 0}
+.highlight p{color:var(--text)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+th{background:var(--bg2);color:var(--accent2);text-align:left;padding:10px 14px;font-weight:600;border-bottom:2px solid var(--accent)}
+td{padding:8px 14px;border-bottom:1px solid rgba(14,165,233,.08);color:var(--muted)}
+tr:hover td{background:rgba(14,165,233,.03)}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:600}
+.tag-safe{background:rgba(34,197,94,.15);color:var(--safe)}
+.tag-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.tag-danger{background:rgba(239,68,68,.15);color:var(--danger)}
+.tag-accent{background:rgba(14,165,233,.15);color:var(--accent2)}
+.step-list{counter-reset:step}
+.step-item{counter-increment:step;display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+.step-item::before{content:counter(step);width:28px;height:28px;border-radius:6px;background:var(--accent);color:var(--white);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-item .step-content{flex:1}
+.step-item .step-content h4{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
+.step-item .step-content p{font-size:12px;color:var(--muted);margin:0}
+.timeline{position:relative;padding-left:30px}
+.timeline::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:2px;background:var(--accent);opacity:.3}
+.timeline-item{position:relative;margin-bottom:20px;padding:14px 18px;background:var(--bg2);border-radius:8px;border:1px solid rgba(14,165,233,.1)}
+.timeline-item::before{content:'';position:absolute;left:-22px;top:18px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+.timeline-item h4{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.timeline-item p{font-size:12px;color:var(--muted);margin:0}
+.timeline-item.future{border-style:dashed;opacity:.7}
+.timeline-item.future::before{background:var(--warn)}
+.bottom-nav{max-width:860px;margin:0 auto;padding:20px 24px 40px;display:flex;justify-content:space-between}
+.bottom-nav a{padding:10px 24px;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600;transition:all .2s}
+.btn-prev{background:var(--bg2);color:var(--muted);border:1px solid rgba(14,165,233,.15)}
+.btn-prev:hover{border-color:var(--accent);color:var(--accent2)}
+.btn-next{background:var(--accent);color:var(--white)}
+.btn-next:hover{background:var(--accent2)}
+.vs-table td:nth-child(2){color:var(--accent2);font-weight:600}
+.gap-table td.gap{color:var(--danger);font-weight:600}
+.gap-table td.partial{color:var(--warn);font-weight:600}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <span class="brand">FirmClaw</span>
+  <a href="index.html">首页</a>
+  <a href="01-openclaw-principles.html">01 原理</a>
+  <a href="02-firmclaw-detail.html">02 实现</a>
+  <a href="03-enterprise-outlook.html">03 展望</a>
+  <a href="04-comparison-roadmap.html" class="active">04 对比</a>
+  <a href="05-tech-choices.html">05 选型</a>
+</nav>
+
+<div class="container">
+  <div class="page-title">竞品对比与未来研发路线</div>
+  <div class="page-sub">对标主流产品，分析差距与机遇，规划 FirmClaw 下一步发展方向</div>
+
+  <h2>一、主流 AI 编码工具全景对比</h2>
+
+  <table class="vs-table">
+    <tr><th>维度</th><th>OpenClaw</th><th>Claude Code</th><th>Cursor</th><th>Aider</th><th style="color:var(--accent2)">FirmClaw</th></tr>
+    <tr><td><strong>定位</strong></td><td>开源 Agent 框架</td><td>终端 Agent</td><td>AI IDE</td><td>命令行助手</td><td style="color:var(--accent2)">本地 Agent 框架</td></tr>
+    <tr><td><strong>开源</strong></td><td style="color:var(--safe)">✅</td><td style="color:var(--danger)">❌ 闭源</td><td style="color:var(--danger)">❌ 闭源</td><td style="color:var(--safe)">✅</td><td style="color:var(--safe)">✅</td></tr>
+    <tr><td><strong>语言</strong></td><td>TypeScript</td><td>TypeScript</td><td>Electron+TS</td><td>Python</td><td>TypeScript</td></tr>
+    <tr><td><strong>模型支持</strong></td><td>14+ 提供商</td><td>仅 Claude</td><td>多模型</td><td>多模型</td><td>多模型（OpenAI 兼容）</td></tr>
+    <tr><td><strong>工具系统</strong></td><td>4 核心工具</td><td>内置工具集</td><td>编辑器集成</td><td>Git 操作</td><td>4 核心工具</td></tr>
+    <tr><td><strong>会话管理</strong></td><td>JSONL</td><td>内置</td><td>内置</td><td>Git 追踪</td><td>JSONL</td></tr>
+    <tr><td><strong>记忆系统</strong></td><td>MEMORY.md</td><td>CLAUDE.md</td><td>项目规则</td><td>无</td><td>MEMORY.md + BM25</td></tr>
+    <tr><td><strong>多 Agent</strong></td><td>✅ Subagent</td><td>✅ 并行 Agent</td><td>❌</td><td>❌</td><td>✅ Subagent</td></tr>
+    <tr><td><strong>MCP 协议</strong></td><td>✅ 完整支持</td><td>✅ 完整支持</td><td>部分</td><td>❌</td><td style="color:var(--danger)">❌ 待实现</td></tr>
+    <tr><td><strong>Skills 系统</strong></td><td>✅ 自定义命令</td><td>✅ Skills + Hooks</td><td>❌</td><td>❌</td><td style="color:var(--danger)">❌ 待实现</td></tr>
+    <tr><td><strong>本地部署</strong></td><td>✅</td><td>需 API Key</td><td>需订阅</td><td>✅</td><td>✅ 完全本地</td></tr>
+    <tr><td><strong>价格</strong></td><td>框架免费</td><td>$20/月起</td><td>$20/月起</td><td>免费</td><td>框架免费</td></tr>
+  </table>
+
+  <h2>二、FirmClaw 的功能差距分析</h2>
+
+  <table class="gap-table">
+    <tr><th>缺失功能</th><th>参考产品</th><th>优先级</th><th>实现难度</th><th>预期版本</th></tr>
+    <tr><td class="gap">MCP 协议支持</td><td>OpenClaw / Claude Code</td><td><span class="tag tag-danger">P0 最高</span></td><td>中等</td><td>v7.0</td></tr>
+    <tr><td class="gap">Skills 自定义命令系统</td><td>OpenClaw / Claude Code</td><td><span class="tag tag-danger">P0 最高</span></td><td>中等</td><td>v7.0</td></tr>
+    <tr><td class="gap">多模型智能路由</td><td>Claude Code</td><td><span class="tag tag-warn">P1 高</span></td><td>简单</td><td>v7.1</td></tr>
+    <tr><td class="partial">100 万 token 上下文</td><td>Claude Code</td><td><span class="tag tag-warn">P1 高</span></td><td>依赖模型</td><td>v7.x</td></tr>
+    <tr><td class="partial">/loop 定时任务</td><td>Claude Code</td><td><span class="tag tag-warn">P1 高</span></td><td>简单</td><td>v7.1</td></tr>
+    <tr><td class="partial">语音交互</td><td>Claude Code</td><td><span class="tag tag-accent">P2 中</span></td><td>中等</td><td>v8.0</td></tr>
+    <tr><td class="partial">Agent SDK（自定义 Agent）</td><td>Claude Code</td><td><span class="tag tag-accent">P2 中</span></td><td>较高</td><td>v8.0</td></tr>
+    <tr><td class="partial">浏览器自动化</td><td>OpenClaw</td><td><span class="tag tag-accent">P2 中</span></td><td>中等</td><td>v8.0</td></tr>
+    <tr><td>向量搜索（embedding）</td><td>OpenClaw</td><td><span class="tag tag-accent">P2 中</span></td><td>中等</td><td>v7.2</td></tr>
+    <tr><td>HTTP Hooks</td><td>Claude Code</td><td><span class="tag tag-accent">P2 中</span></td><td>简单</td><td>v7.1</td></tr>
+  </table>
+
+  <h2>三、FirmClaw 的独特优势</h2>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3 style="margin-top:0">1. 完全可理解</h3>
+      <p>从零搭建，每个模块都有清晰的注释和文档。不同于 OpenClaw 的庞大代码库，FirmClaw 只有 65 个文件，代码总量可控。</p>
+      <p style="color:var(--accent2);font-size:12px">→ 适合作为学习 AI Agent 的教学项目</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">2. 完全可控</h3>
+      <p>开源 + 本地优先，不依赖任何云服务。可以搭配本地 LLM 实现完全离线运行，适合对数据安全有严格要求的单位。</p>
+      <p style="color:var(--accent2);font-size:12px">→ 适合单位内网部署</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">3. 极简依赖</h3>
+      <p>外部依赖仅 7 个（openai/ajv/ws/dotenv/tsx/typescript/pptxgenjs），不引入复杂的原生依赖。</p>
+      <p style="color:var(--accent2);font-size:12px">→ 部署简单，环境一致性好</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">4. 渐进式架构</h3>
+      <p>6 个阶段逐步叠加功能，每个阶段都经过充分测试。新功能不影响已有功能。</p>
+      <p style="color:var(--accent2);font-size:12px">→ 可靠性高，适合生产环境</p>
+    </div>
+  </div>
+
+  <h2>四、未来研发路线图</h2>
+
+  <div class="timeline">
+    <div class="timeline-item future">
+      <h4><span class="tag tag-danger">v7.0</span> MCP 协议 + Skills 系统</h4>
+      <p><strong>目标：</strong>补齐最重要的两个缺失能力——外部工具集成（MCP）和自定义工作流（Skills）。</p>
+      <p><strong>MCP 协议：</strong>实现 Model Context Protocol，对接 Jira/Slack/飞书/数据库等外部服务。类似 Python 中安装 pip 包后自动获得新能力。</p>
+      <p><strong>Skills 系统：</strong>支持 <code>/review-pr</code>、<code>/deploy-staging</code> 等自定义命令，封装可重复的工作流。</p>
+      <p><strong>预期时间：</strong>4-6 周</p>
+    </div>
+
+    <div class="timeline-item future">
+      <h4><span class="tag tag-warn">v7.1</span> 智能路由 + 定时任务 + HTTP Hooks</h4>
+      <p><strong>多模型智能路由：</strong>根据任务复杂度自动选择本地/云端模型（简单任务用本地，复杂任务用云端）。</p>
+      <p><strong>/loop 定时任务：</strong>类似 Claude Code 的 /loop，支持 <code>/loop 5m check deploy status</code>。</p>
+      <p><strong>HTTP Hooks：</strong>工具执行前后可调用 HTTP 端点，与外部系统集成。</p>
+      <p><strong>预期时间：</strong>3-4 周</p>
+    </div>
+
+    <div class="timeline-item future">
+      <h4><span class="tag tag-warn">v7.2</span> 向量搜索 + 增强记忆</h4>
+      <p><strong>向量搜索：</strong>引入 embedding 模型（如 bge-m3），在 BM25 基础上增加语义搜索能力。</p>
+      <p><strong>自动记忆提取：</strong>Agent 在对话中自动识别重要信息，写入 MEMORY.md，无需手动管理。</p>
+      <p><strong>预期时间：</strong>3-4 周</p>
+    </div>
+
+    <div class="timeline-item future">
+      <h4><span class="tag tag-accent">v8.0</span> Agent SDK + 浏览器自动化 + 语音交互</h4>
+      <p><strong>Agent SDK：</strong>提供编程接口，允许用户用几行代码创建自定义 Agent。类似 Python 中 <code>from firmclaw import Agent</code>。</p>
+      <p><strong>浏览器自动化：</strong>通过 Puppeteer 集成，Agent 可以操作浏览器——填写表单、截图、提取网页内容。</p>
+      <p><strong>语音交互：</strong>通过 Web Speech API 或 Whisper，支持语音输入和语音输出。</p>
+      <p><strong>预期时间：</strong>6-8 周</p>
+    </div>
+
+    <div class="timeline-item future">
+      <h4><span class="tag tag-accent">v9.0</span> 多模态 + 团队协作 + 移动端</h4>
+      <p><strong>多模态输入：</strong>支持图片输入（截图分析、图表理解）、PDF 输入（文档问答）。</p>
+      <p><strong>团队协作：</strong>多用户共享 Agent 会话、共享记忆、角色权限管理。</p>
+      <p><strong>移动端适配：</strong>响应式 Web UI + PWA 支持，在手机上也能使用 Agent。</p>
+      <p><strong>预期时间：</strong>8-10 周</p>
+    </div>
+  </div>
+
+  <h2>五、总结：FirmClaw 的定位</h2>
+
+  <div class="highlight">
+    <p>FirmClaw 不是要替代 OpenClaw 或 Claude Code，而是定位于一个<strong>可理解、可控、可定制的本地 Agent 框架</strong>。它最适合以下场景：</p>
+  </div>
+
+  <div class="step-list">
+    <div class="step-item"><div class="step-content"><h4>学习 AI Agent 原理</h4><p>代码量小、结构清晰、文档完整，是学习 Agent 架构的最佳教材</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>单位内网部署</h4><p>搭配本地 LLM，完全离线运行，数据不外泄</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>定制化需求</h4><p>可以根据单位的具体需求，修改源码或添加自定义工具</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>二次开发基础</h4><p>作为基座，在此基础上开发单位专属的 AI 应用</p></div></div>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <a href="03-enterprise-outlook.html" class="btn-prev">← 单位展望</a>
+  <a href="05-tech-choices.html" class="btn-next">技术选型说明 →</a>
+</div>
+</body>
+</html>

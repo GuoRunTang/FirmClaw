@@ -195,6 +195,53 @@ export class DefaultPermissionPolicy implements PermissionPolicy {
     // 其他 → low
     return 'low';
   }
+
+  /**
+   * v6.2: 导出当前权限配置快照
+   *
+   * 供 settings.get 路由使用，用于前端展示和持久化
+   */
+  getConfig(): PermissionSnapshot {
+    return {
+      allowedPaths: [...this.allowedPaths],
+      extraAllowedPaths: [...this.extraAllowedPaths],
+      commandBlacklist: [...this.commandBlacklist],
+      protectedFiles: [...this.protectedFiles],
+    };
+  }
+
+  /**
+   * v6.2: 导入/更新权限配置
+   *
+   * 供 settings.update 路由使用，更新后立即生效
+   * @param config - 新配置（字段可选，不提供的字段保持不变）
+   */
+  updateConfig(config: Partial<PermissionConfig>): void {
+    if (config.allowedPaths) {
+      this.allowedPaths = config.allowedPaths.map(normalizePath);
+    }
+    if (config.extraAllowedPaths) {
+      this.extraAllowedPaths = config.extraAllowedPaths.map(normalizePath);
+    }
+    if (config.commandBlacklist) {
+      this.commandBlacklist = config.commandBlacklist;
+    }
+    if (config.protectedFiles) {
+      this.protectedFiles = config.protectedFiles;
+    }
+  }
+}
+
+/** 权限配置快照（供 JSON-RPC 响应和持久化使用） */
+export interface PermissionSnapshot {
+  /** 允许的目录列表 */
+  allowedPaths: string[];
+  /** 额外允许的路径（精确匹配） */
+  extraAllowedPaths: string[];
+  /** bash 命令黑名单 */
+  commandBlacklist: string[];
+  /** 敏感文件保护列表 */
+  protectedFiles: string[];
 }
 
 // ═══════════════════════════════════════════════════════════════

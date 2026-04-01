@@ -169,3 +169,35 @@ export class RouteError extends Error {
     this.data = data;
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// v6.2: 设置快照（settings.get 响应）
+// ═══════════════════════════════════════════════════════════════
+
+import type { PermissionSnapshot } from '../tools/permissions.js';
+
+/** Web UI 设置页面展示的配置快照 */
+export interface SettingsSnapshot {
+  /** 工作目录 */
+  workDir: string;
+  /** 权限配置快照 */
+  permissions: PermissionSnapshot;
+  /** 已注册工具列表（名称 + 描述 + 参数 schema） */
+  tools: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  }[];
+  /** 网关状态 */
+  gateway: {
+    running: boolean;
+    connections: number;
+    port: number;
+    uptime: number;
+  };
+  /** 模型信息 */
+  model: {
+    name: string;
+    baseURL: string;
+  };
+}

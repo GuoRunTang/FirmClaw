@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 - 单位软件支撑展望 | FirmClaw</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0F172A;--bg2:#1E293B;--accent:#0EA5E9;--accent2:#38BDF8;--text:#F1F5F9;--muted:#94A3B8;--white:#FFF;--danger:#EF4444;--warn:#F59E0B;--safe:#22C55E}
+body{min-height:100vh;background:var(--bg);font-family:'Noto Sans SC',sans-serif;color:var(--text);line-height:1.7}
+.top-nav{position:fixed;top:0;left:0;right:0;height:48px;background:rgba(15,23,42,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(14,165,233,.15);display:flex;align-items:center;padding:0 24px;z-index:100}
+.top-nav a{color:var(--muted);text-decoration:none;font-size:12px;margin-right:16px;transition:color .2s}
+.top-nav a:hover,.top-nav a.active{color:var(--accent2)}
+.top-nav .brand{font-family:'Noto Serif SC',serif;font-weight:700;color:var(--accent2);font-size:14px;margin-right:auto}
+.container{max-width:860px;margin:0 auto;padding:64px 24px 60px}
+.page-title{font-family:'Noto Serif SC',serif;font-size:32px;font-weight:900;color:var(--accent2);margin-bottom:4px}
+.page-sub{font-size:14px;color:var(--muted);margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid rgba(14,165,233,.1)}
+h2{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:700;color:var(--text);margin:40px 0 16px;padding-left:14px;border-left:3px solid var(--accent)}
+h3{font-size:16px;font-weight:600;color:var(--accent2);margin:24px 0 10px}
+p{font-size:14px;color:var(--muted);margin-bottom:12px}
+strong{color:var(--text)}
+code{font-family:Consolas,'Courier New',monospace;font-size:12px;background:rgba(14,165,233,.1);color:var(--accent2);padding:2px 6px;border-radius:3px}
+.card{background:var(--bg2);border-radius:8px;padding:20px 24px;margin:16px 0;border:1px solid rgba(14,165,233,.1)}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.highlight{background:linear-gradient(135deg,rgba(14,165,233,.08) 0%,rgba(14,165,233,.02) 100%);border:1px solid rgba(14,165,233,.2);border-radius:8px;padding:20px 24px;margin:20px 0}
+.highlight p{color:var(--text)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+th{background:var(--bg2);color:var(--accent2);text-align:left;padding:10px 14px;font-weight:600;border-bottom:2px solid var(--accent)}
+td{padding:8px 14px;border-bottom:1px solid rgba(14,165,233,.08);color:var(--muted)}
+tr:hover td{background:rgba(14,165,233,.03)}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:600}
+.tag-safe{background:rgba(34,197,94,.15);color:var(--safe)}
+.tag-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.tag-danger{background:rgba(239,68,68,.15);color:var(--danger)}
+.tag-accent{background:rgba(14,165,233,.15);color:var(--accent2)}
+.step-list{counter-reset:step}
+.step-item{counter-increment:step;display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+.step-item::before{content:counter(step);width:28px;height:28px;border-radius:6px;background:var(--accent);color:var(--white);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-item .step-content{flex:1}
+.step-item .step-content h4{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
+.step-item .step-content p{font-size:12px;color:var(--muted);margin:0}
+.timeline{position:relative;padding-left:30px}
+.timeline::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:2px;background:var(--accent);opacity:.3}
+.timeline-item{position:relative;margin-bottom:20px;padding:14px 18px;background:var(--bg2);border-radius:8px;border:1px solid rgba(14,165,233,.1)}
+.timeline-item::before{content:'';position:absolute;left:-22px;top:18px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+.timeline-item h4{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.timeline-item p{font-size:12px;color:var(--muted);margin:0}
+.bottom-nav{max-width:860px;margin:0 auto;padding:20px 24px 40px;display:flex;justify-content:space-between}
+.bottom-nav a{padding:10px 24px;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600;transition:all .2s}
+.btn-prev{background:var(--bg2);color:var(--muted);border:1px solid rgba(14,165,233,.15)}
+.btn-prev:hover{border-color:var(--accent);color:var(--accent2)}
+.btn-next{background:var(--accent);color:var(--white)}
+.btn-next:hover{background:var(--accent2)}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <span class="brand">FirmClaw</span>
+  <a href="index.html">首页</a>
+  <a href="01-openclaw-principles.html">01 原理</a>
+  <a href="02-firmclaw-detail.html">02 实现</a>
+  <a href="03-enterprise-outlook.html" class="active">03 展望</a>
+  <a href="04-comparison-roadmap.html">04 对比</a>
+  <a href="05-tech-choices.html">05 选型</a>
+</nav>
+
+<div class="container">
+  <div class="page-title">单位软件支撑展望</div>
+  <div class="page-sub">FirmClaw 如何赋能单位现有软件体系——场景、方案与实施路径</div>
+
+  <div class="highlight">
+    <p><strong>核心价值主张：</strong>FirmClaw 不是一个通用的聊天机器人，而是一个<strong>可以执行真实操作</strong>的 AI Agent。它能够读取文件、执行命令、修改代码、调用 API——这意味着它可以深度集成到单位现有的软件体系中。</p>
+  </div>
+
+  <h2>一、适用场景分析</h2>
+  
+  <table>
+    <tr><th>场景</th><th>当前痛点</th><th>FirmClaw 解决方案</th><th>可行性</th></tr>
+    <tr><td>内部文档智能检索</td><td>文档分散在不同系统，检索效率低</td><td>Agent 读取本地文档，用 BM25 搜索，给出精准回答</td><td style="color:var(--safe)">★★★★★</td></tr>
+    <tr><td>自动化运维巡检</td><td>手动检查服务状态、日志</td><td>Agent 定时执行巡检命令（Heartbeat），自动报告异常</td><td style="color:var(--safe)">★★★★★</td></tr>
+    <tr><td>知识库问答助手</td><td>新人不了解业务流程，需要反复询问</td><td>将业务知识写入 MEMORY.md，Agent 随时检索回答</td><td style="color:var(--safe)">★★★★☆</td></tr>
+    <tr><td>代码审查助手</td><td>Code Review 依赖人工，耗时长</td><td>Agent 自动分析 PR diff，检查代码规范和安全问题</td><td style="color:var(--safe)">★★★★☆</td></tr>
+    <tr><td>报表自动生成</td><td>每周手动整理数据、生成报表</td><td>Agent 读取数据源，自动生成 Markdown/HTML 报表</td><td style="color:var(--warn)">★★★☆☆</td></tr>
+    <tr><td>流程自动化</td><td>重复性操作（部署、备份、通知）占用人力</td><td>Agent 按预设流程执行操作，人工审批关键节点</td><td style="color:var(--warn)">★★★☆☆</td></tr>
+    <tr><td>会议纪要整理</td><td>会议录音转文字后需要人工整理</td><td>Agent 接收文本输入，自动生成结构化纪要</td><td style="color:var(--safe)">★★★★☆</td></tr>
+  </table>
+
+  <h2>二、场景一：内部文档智能检索</h2>
+  <p><strong>当前问题：</strong>单位的制度文件、技术文档、操作手册分散在共享盘、Wiki、OA 系统中，查找特定信息需要跨多个系统搜索，效率低下。</p>
+
+  <h3>实现方案</h3>
+  <div class="card">
+    <h3 style="margin-top:0">架构设计</h3>
+    <div class="step-list">
+      <div class="step-item"><div class="step-content"><h4>1. 文档同步</h4><p>编写脚本，定期从各系统拉取文档到本地目录（PDF → 文本、Word → 文本）。FirmClaw 的 bash 工具可以执行 Python 脚本来完成。</p></div></div>
+      <div class="step-item"><div class="step-content"><h4>2. 索引构建</h4><p>利用 FirmClaw 内置的 BM25 搜索引擎，对所有文档建立全文索引。每次文档更新时增量更新索引。</p></div></div>
+      <div class="step-item"><div class="step-content"><h4>3. 智能问答</h4><p>用户提问时，Agent 自动检索相关文档片段，结合 LLM 的理解能力生成精准回答，并引用文档来源。</p></div></div>
+    </div>
+  </div>
+
+  <div class="highlight">
+    <p><strong>优势：</strong>所有数据在本地处理，不经过外部 API。文档内容不会泄露到互联网。</p>
+  </div>
+
+  <h2>三、场景二：自动化运维巡检</h2>
+  <p><strong>当前问题：</strong>运维人员需要每天手动检查服务器状态、数据库连接、日志错误等，耗时且容易遗漏。</p>
+
+  <h3>实现方案</h3>
+  <div class="card">
+    <h3 style="margin-top:0">基于 Heartbeat 的定时巡检</h3>
+    <p>FirmClaw 已内置 Heartbeat 自主循环功能（Phase 5 实现），可以定时执行预设任务。</p>
+    <div class="step-list">
+      <div class="step-item"><div class="step-content"><h4>配置巡检任务</h4><p>在 SOUL.md 中定义巡检规则：检查哪些服务、检查频率、异常阈值</p></div></div>
+      <div class="step-item"><div class="step-content"><h4>Agent 自动执行</h4><p>Heartbeat 触发后，Agent 自动执行 bash 命令检查服务状态（类似 <code>systemctl status xxx</code>）</p></div></div>
+      <div class="step-item"><div class="step-content"><h4>智能分析</h4><p>Agent 分析命令输出，判断是否异常。如果发现异常，通过通知渠道（邮件/消息）报告</p></div></div>
+      <div class="step-item"><div class="step-content"><h4>生成巡检报告</h4><p>每次巡检自动生成 Markdown 格式的巡检报告，存档备查</p></div></div>
+    </div>
+  </div>
+
+  <h2>四、场景三：知识库问答助手</h2>
+  <p><strong>当前问题：</strong>新入职员工不了解单位的业务流程、技术规范、常见问题解答，需要反复询问同事。</p>
+
+  <h3>实现方案</h3>
+  <div class="card">
+    <h3 style="margin-top:0">MEMORY.md 驱动的知识管理</h3>
+    <p>FirmClaw 的 MEMORY.md 是一个结构化的长期记忆文件，天然适合做知识库。</p>
+    <div class="card-grid" style="margin-top:12px">
+      <div class="card" style="background:var(--bg);border-color:rgba(14,165,233,.2)">
+        <h3 style="margin-top:0;font-size:12px">MEMORY.md 示例</h3>
+        <div style="font-family:Consolas,monospace;font-size:11px;color:var(--muted);line-height:1.7">
+## 业务流程<br>
+[B001] 请假流程：OA提交→主管审批→HR备案<br>
+[B002] 报销流程：填写单据→部门审批→财务审核<br><br>
+## 技术规范<br>
+[T001] 内网系统必须使用 VPN 接入<br>
+[T002] 数据库操作必须走审计日志<br><br>
+## 常见问题<br>
+[Q001] VPN 连不上：检查证书是否过期
+        </div>
+      </div>
+      <div class="card" style="background:var(--bg);border-color:rgba(14,165,233,.2)">
+        <h3 style="margin-top:0;font-size:12px">Agent 回答示例</h3>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7">
+<strong style="color:var(--text)">用户：</strong>报销流程是什么？<br><br>
+<strong style="color:var(--accent2)">Agent：</strong>根据知识库记录 [B002]，报销流程为：<br>
+1. 填写报销单据<br>
+2. 部门负责人审批<br>
+3. 财务部审核<br><br>
+如有其他疑问，可以继续问我。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>五、场景四：代码审查助手</h2>
+  <p><strong>当前问题：</strong>Code Review 依赖资深开发者的时间，可能导致代码合并延迟。</p>
+
+  <h3>实现方案</h3>
+  <div class="step-list">
+    <div class="step-item"><div class="step-content"><h4>1. Agent 读取 Git Diff</h4><p>通过 bash 工具执行 <code>git diff main...feature</code>，获取待审查的代码变更</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>2. 逐文件分析</h4><p>Agent 读取变更涉及的源文件，理解上下文和业务逻辑</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>3. 多维度审查</h4><p>检查代码规范、安全漏洞、性能问题、逻辑错误，生成结构化的审查报告</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>4. 自动提交评论</h4><p>（未来通过 MCP 协议集成）将审查结果自动提交为 GitLab/GitHub PR 评论</p></div></div>
+  </div>
+
+  <h2>六、实施路径规划</h2>
+  <p>基于 FirmClaw 的现有能力和单位需求，建议按以下优先级分步实施：</p>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <h4><span class="tag tag-safe">Phase A</span> 基础能力验证（1-2 周）</h4>
+      <p>部署 FirmClaw，接入单位文档系统，验证文档检索和知识库问答的基本功能。选择一个小组进行试点。</p>
+    </div>
+    <div class="timeline-item">
+      <h4><span class="tag tag-accent">Phase B</span> 运维场景落地（2-4 周）</h4>
+      <p>配置 Heartbeat 定时巡检任务，对接服务器监控脚本。建立异常通知机制。</p>
+    </div>
+    <div class="timeline-item">
+      <h4><span class="tag tag-warn">Phase C</span> 开发场景接入（1-2 月）</h4>
+      <p>接入代码审查流程，与 GitLab/GitHub 集成。建立 FirmClaw 的 Web UI，方便团队成员使用。</p>
+    </div>
+    <div class="timeline-item">
+      <h4><span class="tag tag-danger">Phase D</span> 深度集成（2-3 月）</h4>
+      <p>通过 MCP 协议对接 OA、邮件、IM 等系统。实现端到端的流程自动化。建立统一的 AI 工作台。</p>
+    </div>
+  </div>
+
+  <h2>七、安全与合规考量</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3 style="margin-top:0"><span class="tag tag-safe">数据安全</span></h3>
+      <p>FirmClaw 采用<strong>本地优先</strong>架构。所有对话历史、文档索引、记忆文件都存储在本地。可以搭配<strong>本地部署的 LLM</strong>（如 Ollama + Qwen），实现完全离线运行，数据不出内网。</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0"><span class="tag tag-danger">操作安全</span></h3>
+      <p>内置三级权限控制 + 人工审批机制。高危操作（删除文件、执行系统命令）必须经过人工确认。完整的审计日志记录每一次操作，可追溯可审查。</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0"><span class="tag tag-accent">模型安全</span></h3>
+      <p>Prompt Injection 防护机制防止通过工具返回结果进行注入攻击。权限白名单限制 Agent 只能访问授权的目录和服务。</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0"><span class="tag tag-warn">合规建议</span></h3>
+      <p>建议：① 对接本地 LLM 确保数据不出域；② 审计日志接入单位安全平台；③ 定期审查 MEMORY.md 中的敏感信息；④ 为不同用户设置不同的访问权限。</p>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <a href="02-firmclaw-detail.html" class="btn-prev">← 实现详解</a>
+  <a href="04-comparison-roadmap.html" class="btn-next">竞品对比与路线 →</a>
+</div>
+</body>
+</html>

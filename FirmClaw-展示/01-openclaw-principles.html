@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>01 - OpenClaw 技术原理与开发方法 | FirmClaw</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0F172A;--bg2:#1E293B;--accent:#0EA5E9;--accent2:#38BDF8;--text:#F1F5F9;--muted:#94A3B8;--white:#FFF;--danger:#EF4444;--warn:#F59E0B;--safe:#22C55E}
+body{min-height:100vh;background:var(--bg);font-family:'Noto Sans SC',sans-serif;color:var(--text);line-height:1.7}
+/* Top Nav */
+.top-nav{position:fixed;top:0;left:0;right:0;height:48px;background:rgba(15,23,42,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(14,165,233,.15);display:flex;align-items:center;padding:0 24px;z-index:100}
+.top-nav a{color:var(--muted);text-decoration:none;font-size:12px;margin-right:16px;transition:color .2s}
+.top-nav a:hover,.top-nav a.active{color:var(--accent2)}
+.top-nav .brand{font-family:'Noto Serif SC',serif;font-weight:700;color:var(--accent2);font-size:14px;margin-right:auto}
+/* Content */
+.container{max-width:860px;margin:0 auto;padding:64px 24px 60px}
+.page-title{font-family:'Noto Serif SC',serif;font-size:32px;font-weight:900;color:var(--accent2);margin-bottom:4px}
+.page-sub{font-size:14px;color:var(--muted);margin-bottom:40px;padding-bottom:20px;border-bottom:1px solid rgba(14,165,233,.1)}
+h2{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:700;color:var(--text);margin:40px 0 16px;padding-left:14px;border-left:3px solid var(--accent)}
+h3{font-size:16px;font-weight:600;color:var(--accent2);margin:24px 0 10px}
+p{font-size:14px;color:var(--muted);margin-bottom:12px}
+strong{color:var(--text)}
+code{font-family:Consolas,'Courier New',monospace;font-size:12px;background:rgba(14,165,233,.1);color:var(--accent2);padding:2px 6px;border-radius:3px}
+/* Cards */
+.card{background:var(--bg2);border-radius:8px;padding:20px 24px;margin:16px 0;border:1px solid rgba(14,165,233,.1)}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+/* Diagram */
+.diagram{background:#000;border-radius:8px;padding:20px 24px;margin:16px 0;font-family:Consolas,monospace;font-size:12px;color:var(--accent2);line-height:1.6;overflow-x:auto;white-space:pre}
+/* Table */
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+th{background:var(--bg2);color:var(--accent2);text-align:left;padding:10px 14px;font-weight:600;border-bottom:2px solid var(--accent)}
+td{padding:8px 14px;border-bottom:1px solid rgba(14,165,233,.08);color:var(--muted)}
+tr:hover td{background:rgba(14,165,233,.03)}
+/* Tags */
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:600}
+.tag-accent{background:rgba(14,165,233,.15);color:var(--accent2)}
+.tag-safe{background:rgba(34,197,94,.15);color:var(--safe)}
+.tag-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+/* Highlight */
+.highlight{background:linear-gradient(135deg,rgba(14,165,233,.08) 0%,rgba(14,165,233,.02) 100%);border:1px solid rgba(14,165,233,.2);border-radius:8px;padding:20px 24px;margin:20px 0}
+.highlight p{color:var(--text);font-size:14px}
+/* Numbered list */
+.step-list{counter-reset:step}
+.step-item{counter-increment:step;display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+.step-item::before{content:counter(step);width:28px;height:28px;border-radius:6px;background:var(--accent);color:var(--white);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-item .step-content{flex:1}
+.step-item .step-content h4{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
+.step-item .step-content p{font-size:12px;color:var(--muted);margin:0}
+/* Python comparison */
+.python-box{background:#1a1a2e;border-radius:8px;padding:16px 20px;margin:12px 0;font-family:Consolas,monospace;font-size:12px;color:#a8dadc;line-height:1.7;border-left:3px solid var(--accent2)}
+.python-box .comment{color:var(--muted)}
+.python-box .keyword{color:#f72585}
+.python-box .func{color:#4cc9f0}
+.python-box .string{color:#80ed99}
+/* Bottom nav */
+.bottom-nav{max-width:860px;margin:0 auto;padding:20px 24px 40px;display:flex;justify-content:space-between}
+.bottom-nav a{padding:10px 24px;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600;transition:all .2s}
+.btn-prev{background:var(--bg2);color:var(--muted);border:1px solid rgba(14,165,233,.15)}
+.btn-prev:hover{border-color:var(--accent);color:var(--accent2)}
+.btn-next{background:var(--accent);color:var(--white)}
+.btn-next:hover{background:var(--accent2)}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <span class="brand">FirmClaw</span>
+  <a href="index.html">首页</a>
+  <a href="01-openclaw-principles.html" class="active">01 原理</a>
+  <a href="02-firmclaw-detail.html">02 实现</a>
+  <a href="03-enterprise-outlook.html">03 展望</a>
+  <a href="04-comparison-roadmap.html">04 对比</a>
+  <a href="05-tech-choices.html">05 选型</a>
+</nav>
+
+<div class="container">
+  <div class="page-title">OpenClaw 技术原理与开发方法</div>
+  <div class="page-sub">从 ReAct 架构到实际工程实践——理解 FirmClaw 背后的设计哲学</div>
+
+  <h2>一、什么是 AI Agent？</h2>
+  <p>传统 LLM（大语言模型）只能"对话"——你问它答，回答完了就结束。而 <strong>AI Agent（智能体）</strong> 不仅能对话，还能<strong>主动行动</strong>：读文件、执行命令、搜索代码、修改代码、提交 Git 等等。</p>
+
+  <div class="highlight">
+    <p><strong>核心区别：</strong>传统 LLM = "嘴巴"（只能说）；AI Agent = "大脑 + 手脚"（能想、能做）。</p>
+  </div>
+
+  <p>打个比方：如果你让 ChatGPT "帮我修一下这个 Bug"，它只能给你一段代码建议，你自己去改。但如果你让 Claude Code 或 FirmClaw 修 Bug，它会：</p>
+  <div class="step-list">
+    <div class="step-item"><div class="step-content"><h4>读取你的代码文件</h4><p>用 read 工具打开相关源文件</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>分析问题并制定方案</h4><p>理解代码逻辑，定位 Bug 位置</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>直接修改代码</h4><p>用 edit 工具精确修改代码</p></div></div>
+    <div class="step-item"><div class="step-content"><h4>运行测试验证</h4><p>用 bash 工具执行测试命令，确认修复</p></div></div>
+  </div>
+
+  <h2>二、ReAct 架构——Agent 的核心原理</h2>
+  <p>ReAct（Reasoning + Acting）是目前 AI Agent 最主流的架构。OpenClaw、Claude Code、FirmClaw 都采用了这个模式。</p>
+
+  <div class="diagram">┌─────────────────────────────────────────────────────────────┐
+│                     ReAct 循环 (Agent Loop)                    │
+│                                                             │
+│   ┌──────────┐     ┌──────────┐     ┌──────────┐            │
+│   │  Reason   │ ──→ │   Act     │ ──→ │ Observe  │──┐         │
+│   │  (思考)   │     │  (行动)   │     │  (观察)   │  │         │
+│   └──────────┘     └──────────┘     └──────────┘  │         │
+│        ↑                                          │         │
+│        └──────────────────────────────────────────┘         │
+│                   循环直到任务完成                            │
+└─────────────────────────────────────────────────────────────┘</div>
+
+  <h3>2.1 Reason（思考）</h3>
+  <p>LLM 接收当前上下文（用户需求 + 历史对话 + 工具返回的结果），思考下一步该做什么。</p>
+  <p>例如：LLM 看到用户说"帮我列出文件"，它会思考：<code>"用户想看目录内容，我需要执行 ls 命令"</code>。</p>
+
+  <h3>2.2 Act（行动）</h3>
+  <p>LLM 不是直接回复文字，而是<strong>发起一个工具调用</strong>。比如调用 <code>bash</code> 工具执行 <code>ls</code> 命令。</p>
+
+  <h3>2.3 Observe（观察）</h3>
+  <p>工具执行完毕后，结果（如文件列表）被反馈给 LLM。LLM 看到结果后进入下一轮思考——要么继续行动，要么给出最终回复。</p>
+
+  <div class="highlight">
+    <p><strong>关键洞察：</strong>Agent Loop 本质上就是一个 <code>while</code> 循环，里面不断交替执行"调用 LLM 思考"和"执行工具行动"。整个系统的复杂度来自于这个简单循环上的层层增强。</p>
+  </div>
+
+  <!-- Python 对比 -->
+  <div class="card">
+    <h3 style="margin-top:0">用 Python 思维理解 Agent Loop</h3>
+    <p style="margin-bottom:10px">如果你熟悉 Python，可以用伪代码这样理解 Agent Loop 的核心逻辑：</p>
+    <div class="python-box">
+<span class="comment"># Agent Loop 的核心就是一个 while 循环</span>
+<span class="keyword">while</span> <span class="keyword">True</span>:
+    <span class="comment"># 1. 调用 LLM 思考</span>
+    response = llm.chat(messages, tools=<span class="string">["bash", "read", "write", "edit"]</span>)
+    
+    <span class="comment"># 2. 如果 LLM 决定调用工具</span>
+    <span class="keyword">if</span> response.has_tool_calls:
+        <span class="keyword">for</span> tool_call <span class="keyword">in</span> response.tool_calls:
+            <span class="comment"># 3. 执行工具</span>
+            result = <span class="func">execute_tool</span>(tool_call.name, tool_call.args)
+            <span class="comment"># 4. 把结果反馈给 LLM（Observation）</span>
+            messages.append(<span class="func">tool_result</span>(result))
+        <span class="keyword">continue</span>  <span class="comment"># 继续循环</span>
+    
+    <span class="keyword">else</span>:
+        <span class="comment"># 5. LLM 没有要调用的工具了，任务完成</span>
+        <span class="keyword">print</span>(response.text)
+        <span class="keyword">break</span></div>
+    <p style="font-size:11px;color:var(--muted);margin:0">（上面的伪代码展示了 Agent Loop 最核心的逻辑，实际的 FirmClaw/TypeScript 实现在结构上与此完全一致）</p>
+  </div>
+
+  <h2>三、工具系统——Agent 的"手脚"</h2>
+  <p>工具系统决定了 Agent 能做什么。OpenClaw 采用"极简主义"——只用 4 个核心工具就覆盖了绝大多数编程场景：</p>
+
+  <table>
+    <tr><th>工具</th><th>功能</th><th>Python 类比</th><th>关键设计</th></tr>
+    <tr><td><code>bash</code></td><td>执行终端命令</td><td><code>subprocess.run()</code></td><td>流式输出、超时控制、工作目录</td></tr>
+    <tr><td><code>read_file</code></td><td>读取文件</td><td><code>open(f).read()</code></td><td>分段读取、二进制检测、带行号</td></tr>
+    <tr><td><code>write_file</code></td><td>创建/覆写文件</td><td><code>open(f,'w').write()</code></td><td>自动创建父目录</td></tr>
+    <tr><td><code>edit_file</code></td><td>精确编辑</td><td><code>str.replace()</code></td><td>唯一性校验（old_str 只能出现一次）</td></tr>
+  </table>
+
+  <div class="highlight">
+    <p><strong>设计哲学：</strong>"少量工具 + LLM 强大的理解力 > 大量工具"。这 4 个工具的组合足以让 Agent 完成几乎所有编程任务。</p>
+  </div>
+
+  <h2>四、会话管理——记忆的骨架</h2>
+  <p>Agent 需要记住之前的对话。OpenClaw 使用 <strong>JSONL 格式</strong>存储对话历史。</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3 style="margin-top:0">JSONL 格式</h3>
+      <p>每行一条 JSON 记录，append-only 追加写入。类似于 Python 中的：</p>
+      <div class="python-box" style="font-size:11px"><span class="comment"># 每次对话追加一行</span>
+<span class="keyword">with</span> <span class="func">open</span>(<span class="string">"session.jsonl"</span>, <span class="string">"a"</span>) <span class="keyword">as</span> f:
+    json.<span class="func">dump</span>({<span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: msg}, f)
+    f.<span class="func">write</span>(<span class="string">"\n"</span>)</div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">为什么不用数据库？</h3>
+      <p><strong>本地优先</strong>原则：JSONL 文件可以直接用文本编辑器查看、用 Git 追踪变更、跨平台兼容，零运维成本。对于一个个人 Agent 来说，数据库是过度设计。</p>
+    </div>
+  </div>
+
+  <h2>五、上下文压缩——长对话的生存机制</h2>
+  <p>LLM 有 token 上限（如 128K tokens）。长对话会超出限制，必须"压缩"。</p>
+
+  <div class="card">
+    <h3 style="margin-top:0">三级递进压缩策略</h3>
+    <div class="step-list">
+      <div class="step-item"><div class="step-content"><h4><span class="tag tag-safe">L1</span> LLM 摘要压缩</h4><p>把最早的 50 条消息发给 LLM，让它生成一段摘要。50 条消息 ~30,000 tokens 压缩为 ~2,000 tokens（压缩 93%）</p></div></div>
+      <div class="step-item"><div class="step-content"><h4><span class="tag tag-warn">L2</span> 工具结果截断</h4><p>单条工具返回超过 500 tokens 时，只保留开头和结尾的关键部分</p></div></div>
+      <div class="step-item"><div class="step-content"><h4><span class="tag tag-danger">L3</span> 旧消息移除</h4><p>整体仍然超限时，从最早的消息开始移除，确保不超过窗口上限</p></div></div>
+    </div>
+  </div>
+
+  <h2>六、记忆系统——跨会话的知识积累</h2>
+  <p>会话内的记忆靠 JSONL，但跨会话的记忆需要专门的系统。</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3 style="margin-top:0">MEMORY.md</h3>
+      <p>在工作区 <code>.firmclaw/</code> 目录下维护一个结构化 Markdown 文件，记录用户偏好、技术决策、待办事项等。每条记忆有唯一 ID、内容、时间戳。</p>
+      <div class="python-box" style="font-size:11px"><span class="comment"># MEMORY.md 示例</span>
+<span class="string">## 偏好
+[P001] 用户偏好 pnpm 而非 npm (2026-03-28)
+## 技术决策
+[T001] 项目使用 TypeScript strict 模式</span></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">BM25 全文搜索</h3>
+      <p>纯 JavaScript 实现的搜索引擎（类似 Python 的 <code>whoosh</code>），支持中文分词。每次对话时自动检索相关记忆，注入到系统提示词中。</p>
+      <p style="font-size:11px;color:var(--muted);margin:0">没有使用向量数据库或 embedding，而是用更轻量的关键词匹配。</p>
+    </div>
+  </div>
+
+  <h2>七、安全机制——让 Agent 可控可信</h2>
+  <div class="card-grid">
+    <div class="card">
+      <h3 style="margin-top:0"><span class="tag tag-danger">HITL</span> 人工审批</h3>
+      <p>危险操作（如 <code>rm -rf</code>）在执行前暂停，等待用户确认。通过 Promise + 回调实现异步等待——类似 Python 的 <code>input("确认执行？")</code>。</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0"><span class="tag tag-warn">GUARD</span> Prompt Injection 防护</h3>
+      <p>扫描工具返回结果中可能包含的注入攻击（如"忽略之前的指令"），用 <code>[REDACTED]</code> 替换可疑内容。不阻断执行，但净化输入。</p>
+    </div>
+    <div class="card" style="grid-column:span 2">
+      <h3 style="margin-top:0"><span class="tag tag-accent">AUDIT</span> 审计日志</h3>
+      <p>全量操作记录存储在 <code>~/.firmclaw/audit.jsonl</code>（append-only），记录每次工具执行的操作类型、参数、风险等级、审批来源、执行结果和耗时。支持查询和 CSV 导出。</p>
+    </div>
+  </div>
+
+  <h2>八、开发方法论——OpenClaw 的工程哲学</h2>
+
+  <div class="card">
+    <h3 style="margin-top:0">OpenClaw 教给我们的 5 条工程原则</h3>
+    <div class="step-list">
+      <div class="step-item"><div class="step-content"><h4>1. 最小可用优先（MVP）</h4><p>先做一个能跑的 ReAct 循环，再逐步叠加功能。不要一开始就设计完美的架构。</p></div></div>
+      <div class="step-item"><div class="step-content"><h4>2. 渐进式架构（6 阶段）</h4><p>每个阶段有明确的目标和验证标准。完成一个阶段再进入下一个，避免"大爆炸"式开发。</p></div></div>
+      <div class="step-item"><div class="step-content"><h4>3. 本地优先（Local-First）</h4><p>所有数据存本地文件，不依赖外部服务。用户对自己的数据拥有完全控制权。</p></div></div>
+      <div class="step-item"><div class="step-content"><h4>4. 零外部依赖策略</h4><p>核心功能只用 Node.js 内置模块。外部依赖（如 openai SDK）仅用于必须的 API 调用。</p></div></div>
+      <div class="step-item"><div class="step-content"><h4>5. 可观测性优先</h4><p>Agent 的每一步操作都应该能被追踪：事件流、审计日志、流式输出。</p></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <a href="index.html" class="btn-prev">← 返回首页</a>
+  <a href="02-firmclaw-detail.html" class="btn-next">FirmClaw 实现详解 →</a>
+</div>
+</body>
+</html>

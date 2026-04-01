@@ -169,13 +169,55 @@ export class AgentLoop {
       }
 
       // ──── Step 1: 调用 LLM ────
-      const response = await this.llm.chat(
-        allMessages,
-        this.tools,
-        (delta) => {
-          this.events.emit('thinking_delta', delta);
-        },
-      );
+      let response: Message;
+      try {
+        response = await this.llm.chat(
+          allMessages,
+          this.tools,
+          (delta) => {
+            this.events.emit('thinking_delta', delta);
+          },
+        );
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        this.events.emit('error', `LLM API error: ${errMsg}`);
+
+        // 如果是上下文过长等致命错误，尝试裁剪后重试一次
+        const isRetryable = errMsg.includes('token') || errMsg.includes('context')
+          || errMsg.includes('length') || errMsg.includes('too large')
+          || errMsg.includes('max') || errMsg.includes('limit');
+
+        if (isRetryable && this.tokenCounter) {
+          this.events.emit('error', 'Context may be too long, trimming and retrying...');
+          const result = this.tokenCounter.trimMessages(allMessages, {
+            ...this.config.trimConfig,
+            maxTokens: Math.floor((this.config.trimConfig.maxTokens || 8000) * 0.6),
+          });
+          allMessages.length = 0;
+          allMessages.push(...result.messages);
+
+          try {
+            response = await this.llm.chat(allMessages, this.tools, (delta) => {
+              this.events.emit('thinking_delta', delta);
+            });
+          } catch (retryError: unknown) {
+            const retryMsg = retryError instanceof Error ? retryError.message : String(retryError);
+            this.events.emit('error', `LLM API retry also failed: ${retryMsg}`);
+            const fallbackText = `Sorry, I encountered an API error and could not complete the request. Error: ${retryMsg}`;
+            roundMessages.push({ role: 'assistant', content: fallbackText });
+            await this.persistRound(userMessage, allMessages, roundMessages);
+            this.events.emit('message_end', fallbackText);
+            return { text: fallbackText, turns, toolCalls: totalToolCalls };
+          }
+        } else {
+          // 非重试错误，直接返回错误信息给用户
+          const fallbackText = `Sorry, I encountered an API error: ${errMsg}`;
+          roundMessages.push({ role: 'assistant', content: fallbackText });
+          await this.persistRound(userMessage, allMessages, roundMessages);
+          this.events.emit('message_end', fallbackText);
+          return { text: fallbackText, turns, toolCalls: totalToolCalls };
+        }
+      }
 
       // 将 LLM 回复加入消息历史
       allMessages.push(response);

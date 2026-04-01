@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>从零开始构建FirmClaw - AI智能体框架</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #ffffff; overflow: hidden; }
+        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 80px 120px; display: none; animation: fadeIn 0.5s; }
+        .slide.active { display: flex; flex-direction: column; justify-content: center; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .slide h1 { font-size: 3.5em; color: #2c3e50; margin-bottom: 20px; font-weight: bold; }
+        .slide h2 { font-size: 2.5em; color: #34495e; margin-bottom: 30px; font-weight: bold; }
+        .slide h3 { font-size: 1.8em; color: #3498db; margin: 20px 0 15px 0; font-weight: bold; }
+        .slide p { font-size: 1.4em; color: #34495e; line-height: 1.8; margin: 10px 0; }
+        .slide ul { list-style: none; margin: 20px 0; }
+        .slide ul li { font-size: 1.3em; color: #34495e; line-height: 1.8; padding: 8px 0; padding-left: 30px; position: relative; }
+        .slide ul li::before { content: '✓'; position: absolute; left: 0; color: #3498db; font-weight: bold; }
+        .nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; z-index: 1000; }
+        .nav-btn { background: #3498db; border: 2px solid #2980b9; color: white; padding: 12px 30px; font-size: 1.2em; border-radius: 25px; cursor: pointer; transition: all 0.3s; }
+        .nav-btn:hover { background: #2980b9; transform: scale(1.05); }
+        .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .page-indicator { position: fixed; bottom: 20px; right: 20px; color: #7f8c8d; font-size: 1.2em; background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .feature-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 30px 0; }
+        .feature { background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px; transition: all 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .feature:hover { border-color: #3498db; transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .feature h4 { color: #2980b9; margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
+        .feature p { font-size: 1em; color: #555; line-height: 1.6; }
+        .step-by-step { display: flex; flex-direction: column; gap: 20px; margin: 30px 0; }
+        .step { display: flex; align-items: center; gap: 20px; padding: 20px; background: #f8f9fa; border-radius: 15px; transition: all 0.3s; border-left: 4px solid #3498db; }
+        .step:hover { background: #e8f4f8; }
+        .step-number { background: #3498db; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5em; font-weight: bold; flex-shrink: 0; }
+        .step-content { flex: 1; }
+        .step-content h4 { color: #2c3e50; margin-bottom: 10px; font-size: 1.3em; font-weight: bold; }
+        .step-content p { font-size: 1em; color: #555; }
+        .step-code { background: #282c34; border-radius: 10px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.9em; color: #e0e0e0; margin-top: 10px; }
+        .tech-stack { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 30px 0; }
+        .tech-item { background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px; text-align: center; transition: all 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tech-item:hover { border-color: #3498db; transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .tech-item h4 { color: #2980b9; margin-bottom: 10px; font-size: 1.3em; font-weight: bold; }
+        .tech-item p { font-size: 1em; color: #555; }
+        .tech-item .icon { font-size: 2em; margin-bottom: 10px; }
+        .why-section { display: flex; flex-direction: column; gap: 20px; margin: 30px 0; }
+        .why-item { display: flex; align-items: center; gap: 20px; padding: 20px; background: #f8f9fa; border-radius: 15px; transition: all 0.3s; border-left: 4px solid #3498db; }
+        .why-item:hover { background: #e8f4f8; }
+        .why-number { background: #3498db; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2em; font-weight: bold; flex-shrink: 0; }
+        .why-content { flex: 1; }
+        .why-content h4 { color: #2c3e50; margin-bottom: 8px; font-size: 1.2em; font-weight: bold; }
+        .why-content p { font-size: 1em; color: #555; line-height: 1.6; }
+        .react-diagram { display: flex; align-items: center; justify-content: center; gap: 15px; margin: 30px 0; flex-wrap: wrap; }
+        .react-box { background: white; border: 2px solid #3498db; border-radius: 10px; padding: 15px 25px; min-width: 100px; text-align: center; transition: all 0.3s; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .react-box:hover { background: #f0f8ff; transform: scale(1.05); }
+        .react-box h4 { color: #2980b9; margin-bottom: 8px; font-size: 1.1em; font-weight: bold; }
+        .react-box p { font-size: 0.9em; color: #555; }
+        .react-arrow { font-size: 2em; color: #3498db; }
+        .architecture-diagram { display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 30px 0; }
+        .arch-box { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border: 2px solid #2980b9; border-radius: 12px; padding: 15px 25px; min-width: 120px; text-align: center; transition: all 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .arch-box:hover { transform: scale(1.05); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .arch-box h4 { color: white; margin-bottom: 5px; font-size: 1.1em; font-weight: bold; }
+        .arch-box p { font-size: 0.9em; color: #ecf0f1; }
+        .conclusion { text-align: center; margin: 40px 0; }
+        .conclusion h2 { font-size: 3em; color: #2c3e50; margin-bottom: 30px; font-weight: bold; }
+        .conclusion p { font-size: 1.5em; color: #555; line-height: 2; margin: 20px 0; }
+        .conclusion .highlight { color: #2980b9; font-weight: bold; }
+        .example-box { background: #282c34; border-radius: 10px; padding: 20px; margin: 20px 0; font-family: 'Courier New', monospace; font-size: 1em; }
+        .example-box .line { padding: 3px 10px; margin: 2px 0; border-radius: 3px; }
+        .example-box .comment { color: #6a9955; font-style: italic; }
+        .example-box .type { color: #4ec9b0; }
+        .example-box .function { color: #dcdcaa; }
+        .example-box .string { color: #ce9178; }
+        .example-box .number { color: #b5cea8; }
+        .example-box .keyword { color: #c586c0; }
+        .example-box .control { color: #c586c0; }
+        .example-box .class { color: #4ec9b0; }
+        .example-box .method { color: #dcdcaa; }
+        .example-box .highlight { background: rgba(255,255,255,0.2); border-radius: 3px; padding: 2px 5px; }
+        .example-box .highlight-line { background: rgba(255,215,0,0.2); border-left: 4px solid #ffd700; padding-left: 15px; }
+    </style>
+</head>
+<body>
+    <!-- Slide 1: 封面 -->
+    <div class="slide active" id="slide1">
+        <h1>从零开始构建FirmClaw</h1>
+        <p>—— AI智能体框架的完整解析</p>
+        <p style="margin-top: 50px; font-size: 1.5em;">一个基于TypeScript和ReAct架构的本地AI助手</p>
+        <p style="margin-top: 30px; font-size: 1.2em;">适合完全零基础的你，一步步理解AI智能体的构建原理</p>
+    </div>
+
+    <!-- Slide 2: 什么是AI智能体？ -->
+    <div class="slide" id="slide2">
+        <h2>什么是AI智能体（Agent）？</h2>
+        <p>想象一下，你有一个AI助手，它不仅能和你对话，还能：</p>
+        <div class="feature-list">
+            <div class="feature">
+                <h4>📖 读取文件</h4>
+                <p>自动读取项目中的代码、文档，理解项目结构</p>
+            </div>
+            <div class="feature">
+                <h4>📝 写入文件</h4>
+                <p>创建新文件，添加代码、文档或配置</p>
+            </div>
+            <div class="feature">
+                <h4>✏️ 编辑文件</h4>
+                <p>精确修改文件中的特定部分，而不影响其他内容</p>
+            </div>
+            <div class="feature">
+                <h4>💻 执行命令</h4>
+                <p>运行终端命令，安装依赖、构建项目、运行测试</p>
+            </div>
+        </div>
+        <p style="margin-top: 30px;">这就是AI智能体——它不只是聊天机器人，而是一个能实际完成任务的数字助手。</p>
+    </div>
+
+    <!-- Slide 3: 为什么需要FirmClaw？ -->
+    <div class="slide" id="slide3">
+        <h2>为什么需要FirmClaw？</h2>
+        <div class="why-section">
+            <div class="why-item">
+                <div class="why-number">1</div>
+                <div class="why-content">
+                    <h4>LLM的局限性</h4>
+                    <p>大型语言模型（如GPT、Claude）本身只能"思考"和"对话"，但无法直接操作你的电脑。它们没有"手"来写代码、读文件或执行命令。</p>
+                </div>
+            </div>
+            <div class="why-item">
+                <div class="why-number">2</div>
+                <div class="why-content">
+                    <h4>工具调用（Function Calling）</h4>
+                    <p>为了解决这个问题，LLM提供了"工具调用"功能。你可以告诉模型："我有这些工具可用：read_file、write_file、bash"，当模型需要时，它会请求使用这些工具。</p>
+                </div>
+            </div>
+            <div class="why-item">
+                <div class="why-number">3</div>
+                <div class="why-content">
+                    <h4>ReAct架构</h4>
+                    <p>FirmClaw实现了ReAct（Reasoning + Acting）架构，让AI智能体能够：思考 → 选择工具 → 执行工具 → 观察结果 → 再思考，循环往复直到完成任务。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: ReAct架构详解 -->
+    <div class="slide" id="slide4">
+        <h2>ReAct架构：AI智能体的核心</h2>
+        <div class="react-diagram">
+            <div class="react-box">
+                <h4>1. 思考</h4>
+                <p>分析用户需求</p>
+            </div>
+            <div class="react-arrow">→</div>
+            <div class="react-box">
+                <h4>2. 选择工具</h4>
+                <p>决定使用哪个工具</p>
+            </div>
+            <div class="react-arrow">→</div>
+            <div class="react-box">
+                <h4>3. 执行工具</h4>
+                <p>读取/写入/编辑/命令</p>
+            </div>
+            <div class="react-arrow">→</div>
+            <div class="react-box">
+                <h4>4. 观察</h4>
+                <p>查看工具执行结果</p>
+            </div>
+            <div class="react-arrow">→</div>
+            <div class="react-box">
+                <h4>5. 再思考</h4>
+                <p>根据结果调整策略</p>
+            </div>
+        </div>
+        <p style="margin-top: 30px;">这个循环会持续进行，直到AI智能体认为任务已经完成。</p>
+        <div class="example-box">
+            <div class="line"><span class="comment">// 示例：用户说"帮我创建一个README.md"</span></div>
+            <div class="line"><span class="type">思考</span>: 用户需要一个README文件，我应该使用write_file工具</div>
+            <div class="line"><span class="type">选择工具</span>: write_file</div>
+            <div class="line"><span class="type">执行工具</span>: write_file(path="README.md", content="# 项目名称")</div>
+            <div class="line"><span class="type">观察</span>: 文件创建成功</div>
+            <div class="line"><span class="type">再思考</span>: 任务完成，向用户汇报</div>
+        </div>
+    </div>
+
+    <!-- Slide 5: 项目结构概览 -->
+    <div class="slide" id="slide5">
+        <h2>FirmClaw项目结构</h2>
+        <div class="example-box">
+            <div class="line"><span class="keyword">src</span>/</div>
+            <div class="line">├── <span class="function">index.ts</span>                    <span class="comment">// 入口文件</span></div>
+            <div class="line">├── <span class="type">agent</span>/</div>
+            <div class="line">│   ├── <span class="function">agent-loop.ts</span>         <span class="comment">// ReAct循环核心</span></div>
+            <div class="line">│   └── <span class="function">subagent-manager.ts</span>   <span class="comment">// 子智能体管理</span></div>
+            <div class="line">├── <span class="type">tools</span>/</div>
+            <div class="line">│   ├── <span class="function">read.ts</span>              <span class="comment">// 读取文件工具</span></div>
+            <div class="line">│   ├── <span class="function">write.ts</span>             <span class="comment">// 写入文件工具</span></div>
+            <div class="line">│   ├── <span class="function">edit.ts</span>              <span class="comment">// 编辑文件工具</span></div>
+            <div class="line">│   └── <span class="function">bash.ts</span>              <span class="comment">// 执行命令工具</span></div>
+            <div class="line">├── <span class="type">session</span>/</div>
+            <div class="line">│   ├── <span class="function">manager.ts</span>           <span class="comment">// 会话管理</span></div>
+            <div class="line">│   ├── <span class="function">context-builder.ts</span>    <span class="comment">// 系统提示词构建</span></div>
+            <div class="line">│   └── <span class="function">memory-manager.ts</span>     <span class="comment">// 记忆管理</span></div>
+            <div class="line">├── <span class="type">llm</span>/</div>
+            <div class="line">│   └── <span class="function">client.ts</span>            <span class="comment">// LLM客户端</span></div>
+            <div class="line">└── <span class="type">gateway</span>/</div>
+            <div class="line">    └── <span class="function">server.ts</span>            <span class="comment">// WebSocket网关</span></div>
+        </div>
+        <p style="margin-top: 30px;">每个模块都有明确的职责，像搭积木一样组合成完整的AI智能体系统。</p>
+    </div>
+
+    <!-- Slide 6: TypeScript基础 -->
+    <div class="slide" id="slide6">
+        <h2>TypeScript基础</h2>
+        <p>TypeScript是JavaScript的"超集"，添加了<strong>类型系统</strong>。让我们对比一下：</p>
+        <div class="example-box">
+            <div class="line"><span class="comment">// JavaScript没有类型检查</span></div>
+            <div class="line"><span class="keyword">function</span> <span class="function">add</span>(a, b) {</div>
+            <div class="line">  <span class="keyword">return</span> a + b;</div>
+            <div class="line">}</div>
+            <div class="line"><span class="comment">// 这样调用不会报错，但逻辑错误</span></div>
+            <div class="line"><span class="keyword">const</span> result = <span class="function">add</span>(<span class="string">"hello"</span>, <span class="number">5</span>);</div>
+        </div>
+        <div class="example-box" style="margin-top: 20px;">
+            <div class="line"><span class="comment">// TypeScript有类型检查</span></div>
+            <div class="line"><span class="keyword">function</span> <span class="function">add</span>(a: <span class="type">number</span>, b: <span class="type">number</span>): <span class="type">number</span> {</div>
+            <div class="line">  <span class="keyword">return</span> a + b;</div>
+            <div class="line">}</div>
+            <div class="line"><span class="comment">// 这样会报错：参数类型不匹配</span></div>
+            <div class="line"><span class="keyword">const</span> result = <span class="function">add</span>(<span class="string">"hello"</span>, <span class="number">5</span>);</div>
+        </div>
+        <p style="margin-top: 30px;">TypeScript在编译时就能发现错误，让代码更可靠、更易维护。</p>
+    </div>
+
+    <!-- Slide 7: TypeScript核心概念 -->
+    <div class="slide" id="slide7">
+        <h2>TypeScript核心概念</h2>
+        <div class="step-by-step">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>接口（Interface）</h4>
+                    <p>定义对象的"形状"，告诉TypeScript这个对象应该有哪些属性</p>
+                    <div class="step-code">
+                        <div><span class="keyword">interface</span> <span class="class">User</span> {</div>
+                        <div>  <span class="method">name</span>: <span class="type">string</span>;</div>
+                        <div>  <span class="method">age</span>: <span class="type">number</span>;</div>
+                        <div>  <span class="method">email</span>: <span class="type">string</span>;</div>
+                        <div>}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>类（Class）</h4>
+                    <p>面向对象编程的基础，封装数据和操作</p>
+                    <div class="step-code">
+                        <div><span class="keyword">class</span> <span class="class">Agent</span> {</div>
+                        <div>  <span class="keyword">private</span> <span class="method">name</span>: <span class="type">string</span>;</div>
+                        <div></div>
+                        <div>  <span class="control">constructor</span>(name: <span class="type">string</span>) {</div>
+                        <div>    <span class="keyword">this</span>.<span class="method">name</span> = name;</div>
+                        <div>  }</div>
+                        <div></div>
+                        <div>  <span class="keyword">public</span> <span class="method">greet</span>(): <span class="type">void</span> {</div>
+                        <div>    <span class="keyword">console</span>.<span class="method">log</span>(<span class="string">`Hello, I'm <span class="highlight">{this.name}</span>`</span>);</div>
+                        <div>  }</div>
+                        <div>}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>异步编程（Async/Await）</h4>
+                    <p>处理耗时操作（如文件读取、网络请求）的优雅方式</p>
+                    <div class="step-code">
+                        <div><span class="control">async</span> <span class="keyword">function</span> <span class="function">loadFile</span>(path: <span class="type">string</span>): <span class="type">Promise</span>&lt;<span class="type">string</span>&gt; {</div>
+                        <div>  <span class="keyword">const</span> content = <span class="keyword">await</span> fs.<span class="method">readFile</span>(path, <span class="string">'utf-8'</span>);</div>
+                        <div>  <span class="keyword">return</span> content;</div>
+                        <div>}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: LLM客户端 -->
+    <div class="slide" id="slide8">
+        <h2>LLM客户端：连接AI大脑</h2>
+        <p>LLMClient是FirmClaw与大型语言模型通信的桥梁。它负责：</p>
+        <div class="feature-list">
+            <div class="feature">
+                <h4>发送请求</h4>
+                <p>将用户消息和工具定义发送给LLM API</p>
+            </div>
+            <div class="feature">
+                <h4>接收响应</h4>
+                <p>解析LLM返回的思考和工具调用请求</p>
+            </div>
+            <div class="feature">
+                <h4>格式转换</h4>
+                <p>在内部格式和OpenAI格式之间转换</p>
+            </div>
+        </div>
+        <div class="example-box">
+            <div class="line"><span class="comment">// 简化的LLMClient使用示例</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="keyword">const</span> llm = <span class="keyword">new</span> <span class="class">LLMClient</span>(apiKey, baseURL, model);</div>
+            <div class="line"></div>
+            <div class="line"><span class="comment">// 发送消息，获取LLM的思考和工具调用请求</span></div>
+            <div class="line"><span class="keyword">const</span> response = <span class="keyword">await</span> llm.<span class="method">chat</span>([</div>
+            <div class="line">  { <span class="method">role</span>: <span class="string">'system'</span>, <span class="method">content</span>: <span class="string">'你是一个AI助手...'</span> },</div>
+            <div class="line">  { <span class="method">role</span>: <span class="string">'user'</span>, <span class="method">content</span>: <span class="string">'帮我创建一个README.md'</span> }</div>
+            <div class="line">]);</div>
+            <div class="line"></div>
+            <div class="line"><span class="comment">// LLM可能返回：{"tool_calls": [{"name": "write_file", "arguments": {...}}]}</span></div>
+        </div>
+        <p style="margin-top: 30px;">LLMClient隐藏了API调用的细节，让上层代码只关注业务逻辑。</p>
+    </div>
+
+    <!-- Slide 9: 工具系统 -->
+    <div class="slide" id="slide9">
+        <h2>工具系统：AI的"手"</h2>
+        <p>工具是AI智能体实际执行操作的方式。FirmClaw提供了4个核心工具：</p>
+        <div class="architecture-diagram">
+            <div class="arch-box">
+                <h4>read_file</h4>
+                <p>读取文件内容</p>
+            </div>
+            <div class="arch-box">
+                <h4>write_file</h4>
+                <p>写入新文件</p>
+            </div>
+            <div class="arch-box">
+                <h4>edit_file</h4>
+                <p>编辑现有文件</p>
+            </div>
+            <div class="arch-box">
+                <h4>bash</h4>
+                <p>执行终端命令</p>
+            </div>
+        </div>
+        <div class="example-box">
+            <div class="line"><span class="comment">// 读取文件工具的定义</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="keyword">const</span> readTool = {</div>
+            <div class="line">  <span class="method">name</span>: <span class="string">'read_file'</span>,</div>
+            <div class="line">  <span class="method">description</span>: <span class="string">'读取文件内容'</span>,</div>
+            <div class="line">  <span class="method">parameters</span>: {</div>
+            <div class="line">    <span class="method">type</span>: <span class="string">'object'</span>,</div>
+            <div class="line">    <span class="method">properties</span>: {</div>
+            <div class="line">      <span class="method">path</span>: { <span class="method">type</span>: <span class="string">'string'</span>, <span class="method">description</span>: <span class="string">'文件路径'</span> }</div>
+            <div class="line">    },</div>
+            <div class="line">    <span class="method">required</span>: [<span class="string">'path'</span>]</div>
+            <div class="line">  },</div>
+            <div class="line">  <span class="method">run</span>: <span class="control">async</span> (<span class="method">path</span>: <span class="type">string</span>) => {</div>
+            <div class="line">    <span class="keyword">return</span> <span class="keyword">await</span> fs.<span class="method">readFile</span>(path, <span class="string">'utf-8'</span>);</div>
+            <div class="line">  }</div>
+            <div class="line">};</div>
+        </div>
+        <p style="margin-top: 30px;">每个工具都有名称、描述、参数定义和执行函数。</p>
+    </div>
+
+    <!-- Slide 10: 工具注册中心 -->
+    <div class="slide" id="slide10">
+        <h2>工具注册中心（ToolRegistry）</h2>
+        <p>ToolRegistry是工具的"管理员"，负责：</p>
+        <div class="feature-list">
+            <div class="feature">
+                <h4>注册工具</h4>
+                <p>添加新工具到系统中</p>
+            </div>
+            <div class="feature">
+                <h4>验证参数</h4>
+                <p>确保调用工具时传入正确的参数</p>
+            </div>
+            <div class="feature">
+                <h4>执行工具</h4>
+                <p>安全地调用工具的执行函数</p>
+            </div>
+            <div class="feature">
+                <h4>权限检查</h4>
+                <p>确保工具调用符合安全策略</p>
+            </div>
+        </div>
+        <div class="example-box">
+            <div class="line"><span class="comment">// 注册工具的示例</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="keyword">const</span> tools = <span class="keyword">new</span> <span class="class">ToolRegistry</span>();</div>
+            <div class="line"></div>
+            <div class="line"><span class="comment">// 注册4个核心工具</span></div>
+            <div class="line">tools.<span class="method">register</span>(readTool);</div>
+            <div class="line">tools.<span class="method">register</span>(writeTool);</div>
+            <div class="line">tools.<span class="method">register</span>(editTool);</div>
+            <div class="line">tools.<span class="method">register</span>(bashTool);</div>
+            <div class="line"></div>
+            <div class="line"><span class="comment">// 执行工具</span></div>
+            <div class="line"><span class="keyword">const</span> result = <span class="keyword">await</span> tools.<span class="method">execute</span>(<span class="string">'read_file'</span>, { <span class="method">path</span>: <span class="string">'./README.md'</span> });</div>
+        </div>
+    </div>
+
+    <!-- Slide 11: AgentLoop核心 -->
+    <div class="slide" id="slide11">
+        <h2>AgentLoop：智能体的核心大脑</h2>
+        <p>AgentLoop实现了ReAct架构的核心循环。让我们看看它的简化代码：</p>
+        <div class="example-box">
+            <div class="line"><span class="keyword">class</span> <span class="class">AgentLoop</span> {</div>
+            <div class="line">  <span class="keyword">async</span> <span class="method">run</span>(userMessage: <span class="type">string</span>) {</div>
+            <div class="line">    <span class="comment">// 1. 构建上下文（包含历史消息、系统提示词）</span></div>
+            <div class="line">    <span class="keyword">const</span> context = <span class="keyword">await</span> <span class="method">buildContext</span>(userMessage);</div>
+            <div class="line"></div>
+            <div class="line">    <span class="comment">// 2. 调用LLM，获取思考和工具调用请求</span></div>
+            <div class="line">    <span class="keyword">const</span> llmResponse = <span class="keyword">await</span> llm.<span class="method">chat</span>(context);</div>
+            <div class="line"></div>
+            <div class="line">    <span class="comment">// 3. 解析LLM响应，执行工具</span></div>
+            <div class="line">    <span class="keyword">for</span> (<span class="keyword">const</span> toolCall <span class="keyword">of</span> llmResponse.<span class="method">tool_calls</span>) {</div>
+            <div class="line">      <span class="keyword">const</span> result = <span class="keyword">await</span> tools.<span class="method">execute</span>(toolCall.<span class="method">name</span>, toolCall.<span class="method">arguments</span>);</div>
+            <div class="line"></div>
+            <div class="line">      <span class="comment">// 4. 将工具结果添加到上下文</span></div>
+            <div class="line">      context.<span class="method">push</span>({ <span class="method">role</span>: <span class="string">'tool'</span>, <span class="method">content</span>: result });</div>
+            <div class="line">    }</div>
+            <div class="line"></div>
+            <div class="line">    <span class="comment">// 5. 再次调用LLM，生成最终答案</span></div>
+            <div class="line">    <span class="keyword">const</span> finalResponse = <span class="keyword">await</span> llm.<span class="method">chat</span>(context);</div>
+            <div class="line">    <span class="keyword">return</span> finalResponse;<span class="comment">// 返回最终结果</span></div>
+            <div class="line">  }</div>
+            <div class="line">}</div>
+        </div>
+        <p style="margin-top: 30px;">这个循环会持续进行，直到AI智能体认为任务已经完成。</p>
+    </div>
+
+    <!-- Slide 12: 会话管理 -->
+    <div class="slide" id="slide12">
+        <h2>会话管理：记住对话历史</h2>
+        <p>如果没有会话管理，每次对话都是新的，AI无法记住之前的对话内容。会话管理系统负责：</p>
+        <div class="feature-list">
+            <div class="feature">
+                <h4>持久化存储</h4>
+                <p>将对话保存到文件，重启后可以恢复</p>
+            </div>
+            <div class="feature">
+                <h4>多会话支持</h4>
+                <p>同时管理多个对话，切换自如</p>
+            </div>
+            <div class="feature">
+                <h4>上下文裁剪</h4>
+                <p>自动删除旧消息，避免token消耗过多</p>
+            </div>
+            <div class="feature">
+                <h4>摘要压缩</h4>
+                <p>用摘要代替长对话，节省token</p>
+            </div>
+        </div>
+        <div class="example-box">
+            <div class="line"><span class="comment">// 会话管理的使用示例</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="comment">// 创建新会话</span></div>
+            <div class="line"><span class="keyword">const</span> session = <span class="keyword">await</span> sessionManager.<span class="method">create</span>(workDir, userMessage);</div>
+            <div class="line"><span class="comment">// 会话ID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="comment">// 恢复会话</span></div>
+            <div class="line"><span class="keyword">await</span> sessionManager.<span class="method">resume</span>(<span class="string">'a1b2c3d4-e5f6-7890-abcd-ef1234567890'</span>);</div>
+            <div class="line"></div>
+            <div class="line"><span class="comment">// 列出所有会话</span></div>
+            <div class="line"><span class="keyword">const</span> sessions = <span class="keyword">await</span> sessionManager.<span class="method">listSessions</span>();</div>
+        </div>
+    </div>
+
+    <!-- Slide 13: 系统提示词构建器 -->
+    <div class="slide" id="slide13">
+        <h2>系统提示词构建器（ContextBuilder）</h2>
+        <p>系统提示词告诉AI智能体"你是谁"和"你能做什么"。ContextBuilder动态生成这个提示词，包括：</p>
+        <div class="feature-list">
+            <div class="feature">
+                <h4>SOUL.md</h4>
+                <p>智能体的"灵魂"，定义其性格和行为准则</p>
+            </div>
+            <div class="feature">
+                <h4>工具定义</h4>
+                <p>告诉AI有哪些工具可用</p>
+            </div>
+            <div class="feature">
+                <h4>会话信息</h4>
+                <p>当前会话的上下文信息</p>
+            </div>
+            <div class="feature">
+                <h4>长期记忆</h4>
+                <p>AI记住的用户偏好、技术决策等</p>
+            </div>
+        </div>
+        <div class="example-box">
+            <div class="line"><span class="comment">// 系统提示词示例</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="string">你是一个本地AI智能体助手，可以读取/写入/编辑文件和执行终端命令来帮助用户完成任务。</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="string">## 可用工具</span></div>
+            <div class="line"><span class="string">- read_file: 读取文件内容</span></div>
+            <div class="line"><span class="string">- write_file: 写入新文件</span></div>
+            <div class="line"><span class="string">- edit_file: 编辑现有文件</span></div>
+            <div class="line"><span class="string">- bash: 执行终端命令</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="string">## 当前会话</span></div>
+            <div class="line"><span class="string">- 会话ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890</span></div>
+            <div class="line"><span class="string">- 工作目录: /path/to/project</span></div>
+        </div>
+    </div>
+
+    <!-- Slide 14: 记忆系统 -->
+    <div class="slide" id="slide14">
+        <h2>记忆系统：AI的长期记忆</h2>
+        <p>就像人类有长期记忆一样，AI智能体也需要记住一些重要信息。记忆系统负责：</p>
+        <div class="feature-list">
+            <div class="feature">
+                <h4>偏好记忆</h4>
+                <p>用户喜欢用pnpm而不是npm</p>
+            </div>
+            <div class="feature">
+                <h4>技术决策</h4>
+                <p>项目使用TypeScript strict模式</p>
+            </div>
+            <div class="feature">
+                <h4>待办事项</h4>
+                <p>需要完成的任务列表</p>
+            </div>
+            <div class="feature">
+                <h4>知识记忆</h4>
+                <p>项目相关的技术知识</p>
+            </div>
+        </div>
+        <div class="example-box">
+            <div class="line"><span class="comment">// MEMORY.md 文件内容</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="string"># 长期记忆</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="string">## 偏好</span></div>
+            <div class="line"><span class="string">- [P001] 用户偏好pnpm而非npm (2026-03-28)</span></div>
+            <div class="line"><span class="string">- [P002] 代码注释使用中文 (2026-03-28)</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="string">## 技术决策</span></div>
+            <div class="line"><span class="string">- [T001] 项目使用TypeScript strict模式 (2026-03-28)</span></div>
+            <div class="line"></div>
+            <div class="line"><span class="string">## 待办</span></div>
+            <div class="line"><span class="string">- [D001] 实现向量搜索模块 (2026-03-28)</span></div>
+        </div>
+        <p style="margin-top: 30px;">这些记忆会被注入到系统提示词中，让AI在对话时参考。</p>
+    </div>
+
+    <!-- Slide 15: 完整运行流程 -->
+    <div class="slide" id="slide15">
+        <h2>完整运行流程</h2>
+        <div class="architecture-diagram">
+            <div class="arch-box">
+                <h4>用户输入</h4>
+                <p>"帮我创建README"</p>
+            </div>
+            <div class="react-arrow">↓</div>
+            <div class="arch-box">
+                <h4>SessionManager</h4>
+                <p>创建/恢复会话</p>
+            </div>
+            <div class="react-arrow">↓</div>
+            <div class="arch-box">
+                <h4>ContextBuilder</h4>
+                <p>构建系统提示词</p>
+            </div>
+            <div class="react-arrow">↓</div>
+            <div class="arch-box">
+                <h4>AgentLoop</h4>
+                <p>ReAct循环开始</p>
+            </div>
+            <div class="react-arrow">↓</div>
+            <div class="arch-box">
+                <h4>LLMClient</h4>
+                <p>调用AI模型</p>
+            </div>
+            <div class="react-arrow">↓</div>
+            <div class="arch-box">
+                <h4>ToolRegistry</h4>
+                <p>执行工具调用</p>
+            </div>
+            <div class="react-arrow">↓</div>
+            <div class="arch-box">
+                <h4>工具执行</h4>
+                <p>read/write/edit/bash</p>
+            </div>
+            <div class="react-arrow">↓</div>
+            <div class="arch-box">
+                <h4>返回结果</h4>
+                <p>任务完成</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 16: 实际示例 -->
+    <div class="slide" id="slide16">
+        <h2>实际示例：用户说"帮我创建README.md"</h2>
+        <div class="step-by-step">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>用户输入</h4>
+                    <p>用户在命令行输入："帮我创建README.md"</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>构建上下文</h4>
+                    <p>ContextBuilder组装系统提示词，包含工具定义、会话信息等</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>第一次调用LLM</h4>
+                    <p>LLM分析需求，决定使用write_file工具</p>
+                    <div class="step-code">
+                        <div>{</div>
+                        <div>  <span class="method">"tool_calls"</span>: [{</div>
+                        <div>    <span class="method">"name"</span>: <span class="string">"write_file"</span>,</div>
+                        <div>    <span class="method">"arguments"</span>: <span class="string">"{path: 'README.md', content: '# 项目名称'}"</span></div>
+                        <div>  }]</div>
+                        <div>}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>执行工具</h4>
+                    <p>ToolRegistry执行write_file工具，创建README.md文件</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <h4>第二次调用LLM</h4>
+                    <p>将工具执行结果告诉LLM，让LLM生成最终回复</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <h4>返回结果</h4>
+                    <p>LLM回复："README.md已创建成功！"</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 17: 为什么这样设计？ -->
+    <div class="slide" id="slide17">
+        <h2>为什么这样设计？</h2>
+        <div class="why-section">
+            <div class="why-item">
+                <div class="why-number">1</div>
+                <div class="why-content">
+                    <h4>模块化设计</h4>
+                    <p>每个模块职责单一，易于理解和维护。就像搭积木一样，可以单独替换或升级某个模块。</p>
+                </div>
+            </div>
+            <div class="why-item">
+                <div class="why-number">2</div>
+                <div class="why-content">
+                    <h4>类型安全</h4>
+                    <p>TypeScript的类型系统在编译时就能发现错误，避免运行时崩溃。</p>
+                </div>
+            </div>
+            <div class="why-item">
+                <div class="why-number">3</div>
+                <div class="why-content">
+                    <h4>可扩展性</h4>
+                    <p>可以轻松添加新工具、新功能，而不会影响现有代码。</p>
+                </div>
+            </div>
+            <div class="why-item">
+                <div class="why-number">4</div>
+                <div class="why-content">
+                    <h4>可测试性</h4>
+                    <p>每个模块都可以独立测试，确保功能正确。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 18: 技术选型原因 -->
+    <div class="slide" id="slide18">
+        <h2>技术选型原因</h2>
+        <div class="tech-stack">
+            <div class="tech-item">
+                <div class="icon"> TypeScript</div>
+                <h4>为什么选TypeScript？</h4>
+                <p>类型安全、代码可维护性高、IDE智能提示、编译时检查错误</p>
+            </div>
+            <div class="tech-item">
+                <div class="icon"> Node.js</div>
+                <h4>为什么选Node.js？</h4>
+                <p>跨平台、丰富的npm生态、异步I/O适合文件和网络操作、适合CLI工具</p>
+            </div>
+            <div class="tech-item">
+                <div class="icon"> OpenAI SDK</div>
+                <h4>为什么用OpenAI SDK？</h4>
+                <p>兼容性强、支持函数调用、文档完善、社区活跃</p>
+            </div>
+            <div class="tech-item">
+                <div class="icon"> WebSocket</div>
+                <h4>为什么用WebSocket？</h4>
+                <p>实时通信、双向通信、低延迟、适合交互式应用</p>
+            </div>
+            <div class="tech-item">
+                <div class="icon"> dotenv</div>
+                <h4>为什么用dotenv？</h4>
+                <p>环境变量管理、配置与代码分离、安全性高</p>
+            </div>
+            <div class="tech-item">
+                <div class="icon"> tsx</div>
+                <h4>为什么用tsx？</h4>
+                <p>直接运行TypeScript、无需编译、开发体验好</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 19: 如何运行FirmClaw -->
+    <div class="slide" id="slide19">
+        <h2>如何运行FirmClaw</h2>
+        <div class="step-by-step">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>安装Node.js</h4>
+                    <p>访问 https://nodejs.org 下载并安装Node.js（>=18.0.0）</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>克隆项目</h4>
+                    <div class="step-code">
+                        <div>git clone https://github.com/your-username/FirmClaw.git</div>
+                        <div>cd FirmClaw</div>
+                    </div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>安装依赖</h4>
+                    <div class="step-code">
+                        <div>npm install</div>
+                    </div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>配置环境变量</h4>
+                    <div class="step-code">
+                        <div><span class="comment">// 创建 .env 文件</span></div>
+                        <div>LLM_API_KEY=your-api-key-here</div>
+                        <div>LLM_BASE_URL=https://api.minimax.chat/v1</div>
+                        <div>LLM_MODEL=MiniMax-M2.7</div>
+                    </div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <h4>运行项目</h4>
+                    <div class="step-code">
+                        <div>npm run dev</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 20: 常用命令 -->
+    <div class="slide" id="slide20">
+        <h2>常用命令</h2>
+        <div class="feature-list">
+            <div class="feature">
+                <h4>普通对话</h4>
+                <p>直接输入问题或指令，如："帮我分析这个项目"</p>
+            </div>
+            <div class="feature">
+                <h4>/new</h4>
+                <p>创建新会话</p>
+            </div>
+            <div class="feature">
+                <h4>/sessions</h4>
+                <p>列出所有会话</p>
+            </div>
+            <div class="feature">
+                <h4>/resume [id]</h4>
+                <p>恢复指定会话</p>
+            </div>
+            <div class="feature">
+                <h4>/memory</h4>
+                <p>查看记忆</p>
+            </div>
+            <div class="feature">
+                <h4>/remember &lt;text&gt;</h4>
+                <p>保存记忆</p>
+            </div>
+            <div class="feature">
+                <h4>/search &lt;query&gt;</h4>
+                <p>搜索内容</p>
+            </div>
+            <div class="feature">
+                <h4>/serve [port]</h4>
+                <p>启动WebSocket服务器</p>
+            </div>
+            <div class="feature">
+                <h4>/help</h4>
+                <p>显示帮助</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 21: 项目价值 -->
+    <div class="slide" id="slide21">
+        <h2>项目价值</h2>
+        <div class="feature-list">
+            <div class="feature">
+                <h4>本地优先</h4>
+                <p>数据存储在本地，保护隐私</p>
+            </div>
+            <div class="feature">
+                <h4>模块化设计</h4>
+                <p>易于扩展和定制</p>
+            </div>
+            <div class="feature">
+                <h4>功能丰富</h4>
+                <p>支持多种工具和功能</p>
+            </div>
+            <div class="feature">
+                <h4>类型安全</h4>
+                <p>TypeScript保证代码质量</p>
+            </div>
+            <div class="feature">
+                <h4>ReAct架构</h4>
+                <p>业界标准的智能体架构</p>
+            </div>
+            <div class="feature">
+                <h4>可扩展</h4>
+                <p>可以添加更多工具和功能</p>
+            </div>
+        </div>
+        <p style="margin-top: 30px;">FirmClaw不仅是一个AI助手，更是一个学习AI智能体架构的绝佳范例。</p>
+    </div>
+
+    <!-- Slide 22: 总结 -->
+    <div class="slide" id="slide22">
+        <h2>总结</h2>
+        <div class="conclusion">
+            <p>通过本教程，您已经了解了：</p>
+            <div class="feature-list">
+                <div class="feature">
+                    <h4>1. AI智能体是什么</h4>
+                    <p>能思考、能行动的数字助手</p>
+                </div>
+                <div class="feature">
+                    <h4>2. ReAct架构</h4>
+                    <p>思考 → 选择工具 → 执行 → 观察 → 再思考</p>
+                </div>
+                <div class="feature">
+                    <h4>3. TypeScript基础</h4>
+                    <p>类型系统、接口、类、异步编程</p>
+                </div>
+                <div class="feature">
+                    <h4>4. FirmClaw架构</h4>
+                    <p>LLM客户端、工具系统、会话管理、记忆系统</p>
+                </div>
+                <div class="feature">
+                    <h4>5. 如何运行</h4>
+                    <p>安装、配置、运行的完整流程</p>
+                </div>
+                <div class="feature">
+                    <h4>6. 技术选型</h4>
+                    <p>为什么选择这些技术</p>
+                </div>
+            </div>
+            <p style="margin-top: 50px;">现在您可以：</p>
+            <p style="font-size: 1.5em; margin-top: 20px;" class="highlight">1. 运行FirmClaw，体验AI智能体的魅力</p>
+            <p style="font-size: 1.5em; margin-top: 20px;" class="highlight">2. 阅读源码，深入理解每个模块的实现</p>
+        </div>
+    </div>
+
+    <!-- 导航按钮 -->
+    <div class="nav">
+        <button class="nav-btn" id="prevBtn" onclick="prevSlide()" disabled>上一页</button>
+        <button class="nav-btn" id="nextBtn" onclick="nextSlide()">下一页</button>
+    </div>
+    <div class="page-indicator" id="pageIndicator">1 / 22</div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 22;
+
+        function showSlide(n) {
+            document.querySelectorAll('.slide').forEach(slide => slide.classList.remove('active'));
+            document.getElementById('slide' + n).classList.add('active');
+            document.getElementById('prevBtn').disabled = n === 1;
+            document.getElementById('nextBtn').disabled = n === totalSlides;
+            document.getElementById('pageIndicator').textContent = n + ' / ' + totalSlides;
+            currentSlide = n;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                showSlide(currentSlide + 1);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 1) {
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                prevSlide();
+            }
+        });
+
+        showSlide(1);
+    </script>
+</body>
+</html>

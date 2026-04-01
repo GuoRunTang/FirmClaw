@@ -57,6 +57,11 @@ export class ToolRegistry {
     this.policy = policy;
   }
 
+  /** v6.2: 获取权限策略 */
+  getPolicy(): PermissionPolicy | null {
+    return this.policy;
+  }
+
   /** v4.2: 设置 Prompt Injection 防护 */
   setPromptGuard(guard: PromptGuard): void {
     this.promptGuard = guard;
