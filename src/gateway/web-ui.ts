@@ -265,20 +265,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Micr
 <div class="header">
   <h1>FirmClaw</h1>
   <div class="header-actions">
-    <button class="header-btn theme-toggle" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">☀</button>
-    <button class="header-btn" onclick="togglePanel('settings')" title="Settings">Settings</button>
-    <button class="header-btn" onclick="togglePanel('about')" title="About">About</button>
+    <button class="header-btn theme-toggle" onclick="toggleTheme()" title="切换主题" id="themeBtn">☀</button>
+    <button class="header-btn" onclick="togglePanel('settings')" title="设置">设置</button>
+    <button class="header-btn" onclick="togglePanel('about')" title="关于">关于</button>
   </div>
   <div class="status">
     <div class="dot" id="statusDot"></div>
-    <span id="statusText">Disconnected</span>
+    <span id="statusText">连接断开</span>
   </div>
 </div>
 
 <div class="main">
   <div class="sidebar">
     <div class="new-session">
-      <button onclick="newSession()">+ New Session</button>
+      <button onclick="newSession()">+ 新建会话</button>
     </div>
     <div class="session-list" id="sessionList"></div>
   </div>
@@ -289,16 +289,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Micr
       <div class="message system">
         <div class="message-avatar"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7"/></svg></div>
         <div class="message-content">
-          <div class="message-role">System</div>
-          <div class="bubble">Connecting to FirmClaw...</div>
+          <div class="message-role" id="roleSystem">系统</div>
+          <div class="bubble">正在连接...</div>
         </div>
       </div>
       </div>
     </div>
     <div class="input-area">
       <div class="input-row">
-        <textarea id="input" placeholder="Type a message... (Enter to send, Shift+Enter for newline)" rows="1" onkeydown="handleKey(event)"></textarea>
-        <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+        <textarea id="input" placeholder="输入消息... (Enter 发送，Shift+Enter 换行)" rows="1" onkeydown="handleKey(event)"></textarea>
+        <button id="sendBtn" onclick="sendMessage()" disabled>发送</button>
       </div>
     </div>
   </div>
@@ -307,8 +307,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Micr
   <div class="panel" id="sidePanel" style="display:none;">
     <div class="panel-header">
       <div class="panel-tabs">
-        <button class="panel-tab" data-tab="settings" onclick="switchPanelTab('settings')">Settings</button>
-        <button class="panel-tab" data-tab="about" onclick="switchPanelTab('about')">About</button>
+        <button class="panel-tab" data-tab="settings" onclick="switchPanelTab('settings')">设置</button>
+        <button class="panel-tab" data-tab="about" onclick="switchPanelTab('about')">关于</button>
       </div>
       <button class="panel-close" onclick="togglePanel()">&times;</button>
     </div>
@@ -316,43 +316,43 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Micr
     <!-- Settings Tab -->
     <div class="panel-body" id="tab-settings">
       <div class="setting-group">
-        <label>Workspace Directory</label>
+        <label>工作目录</label>
         <input type="text" id="cfgWorkDir" readonly>
       </div>
       <div class="setting-group">
-        <label>Allowed Paths (one per line)</label>
+        <label>允许路径（每行一个）</label>
         <textarea id="cfgAllowedPaths" rows="4" placeholder="D:\code\project1&#10;D:\code\project2"></textarea>
-        <div class="setting-hint">File operations restricted to these directories.</div>
+        <div class="setting-hint">文件操作仅限这些目录。</div>
       </div>
       <div class="setting-group">
-        <label>Protected Files (one per line)</label>
+        <label>受保护文件（每行一个）</label>
         <textarea id="cfgProtectedFiles" rows="3" placeholder=".env&#10;credentials.json"></textarea>
-        <div class="setting-hint">These files cannot be written or edited.</div>
+        <div class="setting-hint">这些文件无法被写入或编辑。</div>
       </div>
       <div class="setting-group">
-        <label>Command Blacklist (one per line)</label>
+        <label>命令黑名单（每行一个）</label>
         <textarea id="cfgCommandBlacklist" rows="3" placeholder="rm -rf /&#10;format"></textarea>
-        <div class="setting-hint">Commands matching these patterns will be blocked.</div>
+        <div class="setting-hint">匹配这些模式的命令将被阻止。</div>
       </div>
-      <button class="panel-save" onclick="saveSettings()">Save Settings</button>
+      <button class="panel-save" onclick="saveSettings()">保存设置</button>
     </div>
 
     <!-- About Tab -->
     <div class="panel-body" id="tab-about" style="display:none;">
       <div class="about-section">
-        <h3>Registered Tools</h3>
+        <h3>已注册工具</h3>
         <div id="toolList"></div>
       </div>
       <div class="about-section">
-        <h3>Permission Summary</h3>
+        <h3>权限摘要</h3>
         <div id="permSummary"></div>
       </div>
       <div class="about-section">
-        <h3>Gateway Status</h3>
+        <h3>网关状态</h3>
         <div id="gatewayInfo"></div>
       </div>
       <div class="about-section">
-        <h3>Model</h3>
+        <h3>模型</h3>
         <div id="modelInfo"></div>
       </div>
     </div>
@@ -360,6 +360,134 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Micr
 </div>
 
 <script>
+var I18N = {
+  zh: {
+    disconnected: '连接断开',
+    connected: '已连接',
+    connecting: '正在连接...',
+    newSession: '+ 新建会话',
+    noSessions: '暂无会话',
+    inputPlaceholder: '输入消息... (Enter 发送，Shift+Enter 换行)',
+    send: '发送',
+    settings: '设置',
+    about: '关于',
+    workspaceDir: '工作目录',
+    allowedPathsLabel: '允许路径（每行一个）',
+    allowedPathsHint: '文件操作仅限这些目录。',
+    protectedFilesLabel: '受保护文件（每行一个）',
+    protectedFilesHint: '这些文件无法被写入或编辑。',
+    commandBlacklistLabel: '命令黑名单（每行一个）',
+    commandBlacklistHint: '匹配这些模式的命令将被阻止。',
+    saveSettings: '保存设置',
+    registeredTools: '已注册工具',
+    noTools: '暂无工具',
+    permissionSummary: '权限摘要',
+    allowedPaths: '允许路径',
+    protectedFiles: '受保护文件',
+    blockedCommands: '阻止的命令',
+    gatewayStatus: '网关状态',
+    running: '运行中',
+    stopped: '已停止',
+    port: '端口',
+    connections: '连接数',
+    uptime: '运行时间',
+    model: '模型',
+    api: '接口地址',
+    deleteSession: '删除会话',
+    system: '系统',
+    you: '你',
+    firmclaw: 'FirmClaw',
+    tool: '工具',
+    result: '结果',
+    copy: '复制',
+    copied: '已复制！',
+    confirmDelete: '确定删除该会话？此操作不可撤销。',
+    // Notifications
+    connectedToFirmClaw: '已连接到 FirmClaw。',
+    newSessionCreated: '新会话已创建',
+    sessionDeleted: '会话已删除：',
+    activeSessionDeleted: '当前会话已删除，请新建或选择其他会话。',
+    settingsSaved: '设置已保存。',
+    error: '错误：',
+    reconnecting: '连接断开（code: %s），3秒后重新连接...',
+    wsError: 'WebSocket 连接错误，请查看浏览器控制台（F12）了解详情。',
+    contextTrimmed: '上下文压缩：%s -> %s tokens',
+    summaryGen: '摘要生成：压缩了 %s 条消息',
+    memorySaved: '记忆已保存：[%s]',
+    approvalRequested: '等待审批：%s',
+    noMessages: '该会话暂无消息',
+    switchingTo: '正在切换到会话：%s',
+  },
+  en: {
+    disconnected: 'Disconnected',
+    connected: 'Connected',
+    connecting: 'Connecting to FirmClaw...',
+    newSession: '+ New Session',
+    noSessions: 'No sessions',
+    inputPlaceholder: 'Type a message... (Enter to send, Shift+Enter for newline)',
+    send: 'Send',
+    settings: 'Settings',
+    about: 'About',
+    workspaceDir: 'Workspace Directory',
+    allowedPathsLabel: 'Allowed Paths (one per line)',
+    allowedPathsHint: 'File operations restricted to these directories.',
+    protectedFilesLabel: 'Protected Files (one per line)',
+    protectedFilesHint: 'These files cannot be written or edited.',
+    commandBlacklistLabel: 'Command Blacklist (one per line)',
+    commandBlacklistHint: 'Commands matching these patterns will be blocked.',
+    saveSettings: 'Save Settings',
+    registeredTools: 'Registered Tools',
+    noTools: 'No tools',
+    permissionSummary: 'Permission Summary',
+    allowedPaths: 'Allowed Paths',
+    protectedFiles: 'Protected Files',
+    blockedCommands: 'Blocked Commands',
+    gatewayStatus: 'Gateway Status',
+    running: 'Running',
+    stopped: 'Stopped',
+    port: 'Port',
+    connections: 'Connections',
+    uptime: 'Uptime',
+    model: 'Model',
+    api: 'API',
+    deleteSession: 'Delete session',
+    system: 'System',
+    you: 'You',
+    firmclaw: 'FirmClaw',
+    tool: 'Tool',
+    result: 'Result',
+    copy: 'Copy',
+    copied: 'Copied!',
+    confirmDelete: 'Delete this session? This action cannot be undone.',
+    connectedToFirmClaw: 'Connected to FirmClaw.',
+    newSessionCreated: 'New session created',
+    sessionDeleted: 'Session deleted: ',
+    activeSessionDeleted: 'Active session deleted. Create or select another session.',
+    settingsSaved: 'Settings saved successfully.',
+    error: 'Error: ',
+    reconnecting: 'Connection lost (code: %s). Reconnecting in 3s...',
+    wsError: 'WebSocket connection error. Check browser console (F12) for details.',
+    contextTrimmed: 'Context trimmed: %s -> %s tokens',
+    summaryGen: 'Summary: %s msgs compressed',
+    memorySaved: 'Memory saved: [%s]',
+    approvalRequested: 'Approval requested: %s',
+    noMessages: 'No messages in this session',
+    switchingTo: 'Switching to session: %s',
+  }
+};
+
+var LANG = 'zh';
+
+function t(key, ...args) {
+  var str = I18N[LANG][key] || I18N['en'][key] || key;
+  if (args.length > 0) {
+    for (var i = 0; i < args.length; i++) {
+      str = str.replace('%s', args[i]);
+    }
+  }
+  return str;
+}
+
 let ws = null;
 let requestId = 0;
 let currentSessionId = null;
@@ -398,26 +526,26 @@ function connect(url) {
 
   ws.onopen = () => {
     document.getElementById('statusDot').classList.add('connected');
-    document.getElementById('statusText').textContent = 'Connected';
+    document.getElementById('statusText').textContent = t('connected');
     document.getElementById('sendBtn').disabled = false;
-    setSystemMsg('Connected to FirmClaw.');
+    setSystemMsg(t('connectedToFirmClaw'));
     refreshSessions();
   };
 
   ws.onclose = (ev) => {
     document.getElementById('statusDot').classList.remove('connected');
-    document.getElementById('statusText').textContent = 'Disconnected';
+    document.getElementById('statusText').textContent = t('disconnected');
     document.getElementById('sendBtn').disabled = true;
     var reason = ev.reason || 'Unknown';
     var code = ev.code || 0;
     console.warn('[FirmClaw] WebSocket closed:', code, reason);
-    setSystemMsg('Connection lost (code: ' + code + '). Reconnecting in 3s...');
+    setSystemMsg(t('reconnecting', String(code)));
     setTimeout(function() { connect(url); }, 3000);
   };
 
   ws.onerror = function(ev) {
     console.error('[FirmClaw] WebSocket error:', ev);
-    setSystemMsg('WebSocket connection error. Check browser console (F12) for details.');
+    setSystemMsg(t('wsError'));
   };
 
   ws.onmessage = function(event) {
@@ -446,7 +574,7 @@ function handleMessage(msg) {
     delete pendingRequests[msg.id];
 
     if (msg.error) {
-      appendSystem('Error: ' + (msg.error.message || JSON.stringify(msg.error)));
+      appendSystem(t('error') + (msg.error.message || JSON.stringify(msg.error)));
       return;
     }
 
@@ -460,30 +588,29 @@ function handleMessage(msg) {
     } else if (reqMethod === 'session.new' && msg.result && msg.result.id) {
       currentSessionId = msg.result.id;
       clearMessages();
-      appendSystem('New session created');
+      appendSystem(t('newSessionCreated'));
       refreshSessions();
     } else if (reqMethod === 'session.resume' && msg.result && msg.result.id) {
       currentSessionId = msg.result.id;
       refreshSessions();
-      // 自动拉取该会话的消息历史
       loadSessionMessages(msg.result.id);
     } else if (reqMethod === 'session.messages' && msg.result && Array.isArray(msg.result.messages)) {
       renderHistoryMessages(msg.result.messages);
     } else if (reqMethod === 'session.delete' && msg.result && msg.result.success) {
-      appendSystem('Session deleted: ' + msg.result.deletedId);
+      appendSystem(t('sessionDeleted') + msg.result.deletedId);
       if (currentSessionId === msg.result.deletedId) {
         currentSessionId = null;
         clearMessages();
-        appendSystem('Active session deleted. Create or select another session.');
+        appendSystem(t('activeSessionDeleted'));
       }
       refreshSessions();
     } else if (reqMethod === 'gateway.status' && msg.result) {
-      appendSystem('Gateway: ' + msg.result.connections + ' connections, uptime: ' + Math.round(msg.result.uptime / 1000) + 's');
+      appendSystem('网关: ' + msg.result.connections + ' 连接, 运行时间: ' + Math.round(msg.result.uptime / 1000) + '秒');
     } else if (reqMethod === 'settings.get' && msg.result) {
       fillSettingsForm(msg.result);
       renderAboutPage(msg.result);
     } else if (reqMethod === 'settings.update' && msg.result && msg.result.success) {
-      appendSystem('Settings saved successfully.');
+      appendSystem(t('settingsSaved'));
     }
     return;
   }
@@ -507,16 +634,16 @@ function handleMessage(msg) {
         appendSystem(String(msg.params));
         break;
       case 'agent.context_trimmed':
-        appendSystem('Context trimmed: ' + msg.params.originalTokens + ' -> ' + msg.params.trimmedTokens + ' tokens');
+        appendSystem(t('contextTrimmed', String(msg.params.originalTokens), String(msg.params.trimmedTokens)));
         break;
       case 'agent.summary_generated':
-        appendSystem('Summary: ' + msg.params.compressedCount + ' msgs compressed');
+        appendSystem(t('summaryGen', String(msg.params.compressedCount)));
         break;
       case 'agent.memory_saved':
-        appendSystem('Memory saved: [' + msg.params.id + ']');
+        appendSystem(t('memorySaved', msg.params.id));
         break;
       case 'agent.approval_requested':
-        appendSystem('Approval requested: ' + (msg.params.toolName || ''));
+        appendSystem(t('approvalRequested', msg.params.toolName || ''));
         break;
       case 'session.started':
         if (msg.params && msg.params.id) {
@@ -545,7 +672,7 @@ function appendSystem(text) {
   var div = document.createElement('div');
   div.className = 'message system';
   div.innerHTML = '<div class="message-avatar"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7"/></svg></div>'
-    + '<div class="message-content"><div class="message-role">System</div><div class="bubble">' + escapeHtml(text) + '</div></div>';
+    + '<div class="message-content"><div class="message-role">' + t('system') + '</div><div class="bubble">' + escapeHtml(text) + '</div></div>';
   el.appendChild(div);
   scrollToBottom();
 }
@@ -571,7 +698,7 @@ function renderHistoryMessages(messages) {
   clearMessages();
   var el = getInner();
   if (!messages || messages.length === 0) {
-    appendSystem('No messages in this session');
+    appendSystem(t('noMessages'));
     return;
   }
   for (var i = 0; i < messages.length; i++) {
@@ -604,7 +731,7 @@ function createUserMsg(text) {
   var div = document.createElement('div');
   div.className = 'message user';
   div.innerHTML = '<div class="message-avatar">U</div>'
-    + '<div class="message-content"><div class="message-role">You</div>'
+    + '<div class="message-content"><div class="message-role">' + t('you') + '</div>'
     + '<div class="bubble">' + escapeHtml(text).replace(/\\n/g, '<br>') + '</div></div>';
   return div;
 }
@@ -614,7 +741,7 @@ function createAssistantMsg(text) {
   var div = document.createElement('div');
   div.className = 'message assistant';
   div.innerHTML = '<div class="message-avatar"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a6.5 6.5 0 0 0-6.5 6.5c0 1.8.7 3.4 1.9 4.6l-.4 2.2 2.4-1.2A6.5 6.5 0 0 0 8 14a6.5 6.5 0 0 0 6.5-6.5A6.5 6.5 0 0 0 8 1z"/></svg></div>'
-    + '<div class="message-content"><div class="message-role">FirmClaw</div>'
+    + '<div class="message-content"><div class="message-role">' + t('firmclaw') + '</div>'
     + '<div class="bubble md-content">' + renderMarkdown(text) + '</div></div>';
   return div;
 }
@@ -633,7 +760,7 @@ function createToolMsg(toolCalls) {
     if (j < toolCalls.length - 1) toolHtml += '\\n---\\n';
   }
   div.innerHTML = '<div class="message-avatar"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-.5-.5h-3zM6 7.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zM1 11.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5z"/></svg></div>'
-    + '<div class="message-content"><div class="message-role">Tool</div>'
+    + '<div class="message-content"><div class="message-role">' + t('tool') + '</div>'
     + '<div class="bubble"><pre>' + toolHtml + '</pre></div></div>';
   return div;
 }
@@ -643,9 +770,9 @@ function createToolResultMsg(content) {
   if (!content) return null;
   var div = document.createElement('div');
   div.className = 'message tool';
-  var short = content.length > 500 ? content.substring(0, 500) + '\\n... (truncated)' : content;
+  var short = content.length > 500 ? content.substring(0, 500) + '\\n... (已截断)' : content;
   div.innerHTML = '<div class="message-avatar"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-.5-.5h-3z"/></svg></div>'
-    + '<div class="message-content"><div class="message-role">Result</div>'
+    + '<div class="message-content"><div class="message-role">' + t('result') + '</div>'
     + '<div class="bubble"><span class="tool-result">' + escapeHtml(short) + '</span></div></div>';
   return div;
 }
@@ -659,7 +786,7 @@ function appendThinking(text) {
     thinkingEl = document.createElement('div');
     thinkingEl.className = 'message assistant';
     thinkingEl.innerHTML = '<div class="message-avatar"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a6.5 6.5 0 0 0-6.5 6.5c0 1.8.7 3.4 1.9 4.6l-.4 2.2 2.4-1.2A6.5 6.5 0 0 0 8 14a6.5 6.5 0 0 0 6.5-6.5A6.5 6.5 0 0 0 8 1z"/></svg></div>'
-      + '<div class="message-content"><div class="message-role">FirmClaw</div>'
+      + '<div class="message-content"><div class="message-role">' + t('firmclaw') + '</div>'
       + '<div class="bubble thinking md-content"></div></div>';
     el.appendChild(thinkingEl);
   }
@@ -710,8 +837,8 @@ function copyCode(btn) {
   if (!codeEl) return;
   var text = codeEl.textContent || codeEl.innerText;
   navigator.clipboard.writeText(text).then(function() {
-    btn.textContent = 'Copied!';
-    setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+    btn.textContent = t('copied');
+    setTimeout(function() { btn.textContent = t('copy'); }, 1500);
   });
 }
 
@@ -745,14 +872,14 @@ function newSession() {
 
 function switchSession(sessionId) {
   currentSessionId = sessionId;
-  setSystemMsg('Switching to session: ' + sessionId);
+  setSystemMsg(t('switchingTo', sessionId));
   sendRequest('session.resume', { sessionId: sessionId });
   document.querySelectorAll('.session-item').forEach(function(el) { el.classList.remove('active'); });
   if (event && event.target) event.target.classList.add('active');
 }
 
 function deleteSession(sessionId) {
-  if (!confirm('Delete this session? This action cannot be undone.')) return;
+  if (!confirm(t('confirmDelete'))) return;
   sendRequest('session.delete', { sessionId: sessionId });
 }
 
@@ -796,27 +923,27 @@ function renderAboutPage(data) {
     toolsHtml += '<div class="tool-card"><div class="tool-name">' + escapeHtml(t.name)
       + '</div><div class="tool-desc">' + escapeHtml(t.description) + '</div></div>';
   });
-  document.getElementById('toolList').innerHTML = toolsHtml || '<div style="color:#484f58">No tools</div>';
+  document.getElementById('toolList').innerHTML = toolsHtml || '<div style="color:var(--text-muted)">' + t('noTools') + '</div>';
 
   // 渲染权限摘要
   var perm = data.permissions || {};
   document.getElementById('permSummary').innerHTML =
-    '<div class="info-row"><span class="label">Allowed Paths</span><span class="value">' + (perm.allowedPaths?.length || 0) + ' directories</span></div>'
-    + '<div class="info-row"><span class="label">Protected Files</span><span class="value">' + (perm.protectedFiles?.length || 0) + ' files</span></div>'
-    + '<div class="info-row"><span class="label">Blocked Commands</span><span class="value">' + (perm.commandBlacklist?.length || 0) + ' patterns</span></div>';
+    '<div class="info-row"><span class="label">' + t('allowedPaths') + '</span><span class="value">' + (perm.allowedPaths?.length || 0) + ' 目录</span></div>'
+    + '<div class="info-row"><span class="label">' + t('protectedFiles') + '</span><span class="value">' + (perm.protectedFiles?.length || 0) + ' 文件</span></div>'
+    + '<div class="info-row"><span class="label">' + t('blockedCommands') + '</span><span class="value">' + (perm.commandBlacklist?.length || 0) + ' 模式</span></div>';
 
   // 渲染网关信息
   var gw = data.gateway || {};
   var model = data.model || {};
   document.getElementById('gatewayInfo').innerHTML =
-    '<div class="info-row"><span class="label">Status</span><span class="value">' + (gw.running ? 'Running' : 'Stopped') + '</span></div>'
-    + '<div class="info-row"><span class="label">Port</span><span class="value">' + (gw.port || '-') + '</span></div>'
-    + '<div class="info-row"><span class="label">Connections</span><span class="value">' + (gw.connections || 0) + '</span></div>'
-    + '<div class="info-row"><span class="label">Uptime</span><span class="value">' + Math.round((gw.uptime || 0) / 1000) + 's</span></div>';
+    '<div class="info-row"><span class="label">状态</span><span class="value">' + (gw.running ? t('running') : t('stopped')) + '</span></div>'
+    + '<div class="info-row"><span class="label">' + t('port') + '</span><span class="value">' + (gw.port || '-') + '</span></div>'
+    + '<div class="info-row"><span class="label">' + t('connections') + '</span><span class="value">' + (gw.connections || 0) + '</span></div>'
+    + '<div class="info-row"><span class="label">' + t('uptime') + '</span><span class="value">' + Math.round((gw.uptime || 0) / 1000) + '秒</span></div>';
 
   document.getElementById('modelInfo').innerHTML =
-    '<div class="info-row"><span class="label">Model</span><span class="value">' + escapeHtml(model.name || '-') + '</span></div>'
-    + '<div class="info-row"><span class="label">API</span><span class="value">' + escapeHtml(model.baseURL || '-') + '</span></div>';
+    '<div class="info-row"><span class="label">' + t('model') + '</span><span class="value">' + escapeHtml(model.name || '-') + '</span></div>'
+    + '<div class="info-row"><span class="label">' + t('api') + '</span><span class="value">' + escapeHtml(model.baseURL || '-') + '</span></div>';
 }
 
 function saveSettings() {
@@ -838,7 +965,7 @@ function renderSessions(sessions) {
   var list = document.getElementById('sessionList');
   list.innerHTML = '';
   if (!sessions || sessions.length === 0) {
-    list.innerHTML = '<div style="padding: 12px; color: #484f58; font-size: 13px;">No sessions</div>';
+    list.innerHTML = '<div style="padding: 12px; color: var(--text-muted); font-size: 13px;">' + t('noSessions') + '</div>';
     return;
   }
   sessions.forEach(function(s) {
@@ -847,7 +974,7 @@ function renderSessions(sessions) {
     item.dataset.sessionId = s.id;
     item.innerHTML = '<div class="session-item-inner">'
       + '<span class="session-item-title">' + escapeHtml(s.title || s.id) + '</span>'
-      + '<button class="session-item-delete" title="Delete session">&times;</button>'
+      + '<button class="session-item-delete" title="' + t('deleteSession') + '">&times;</button>'
       + '</div>';
     item.querySelector('.session-item-title').onclick = function(e) {
       e.stopPropagation();
