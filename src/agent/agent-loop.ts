@@ -21,7 +21,7 @@
 import type { Message } from '../llm/client.js';
 import type { ToolRegistry } from '../tools/registry.js';
 import type { ToolContext } from '../tools/context.js';
-import { EventStream } from '../utils/event-stream.js';
+import { EventStream, type AgentStatusType } from '../utils/event-stream.js';
 import type { AgentConfig, AgentResult } from './types.js';
 import type { SessionManager } from '../session/manager.js';
 import type { ContextBuilder } from '../session/context-builder.js';
@@ -76,6 +76,11 @@ export class AgentLoop {
   /** 获取事件流（供 CLI 等外部模块订阅） */
   getEvents(): EventStream {
     return this.events;
+  }
+
+  /** v7.2: 发射 Agent 状态变更事件 */
+  private emitStatus(status: AgentStatusType, detail?: string, toolName?: string): void {
+    this.events.emit('agent_status', { status, ...(detail !== undefined ? { detail } : {}), ...(toolName !== undefined ? { toolName } : {}) });
   }
 
   /** v7.0: 设置技能管理器 */
@@ -183,6 +188,7 @@ export class AgentLoop {
     // Phase 4: LLM 摘要压缩（优先于简单裁剪）
     // ═══════════════════════════════════════════════════════
     if (this.summarizer && this.summarizer.shouldSummarize(historyMessages)) {
+      this.emitStatus('summarizing');
       const summaryResult = await this.summarizer.summarize(historyMessages);
       if (summaryResult.summarized) {
         historyMessages = summaryResult.messages;
@@ -216,11 +222,14 @@ export class AgentLoop {
     // ═══════════════════════════════════════════════════════
     // ReAct 循环开始
     // ═══════════════════════════════════════════════════════
+    this.emitStatus('thinking');
+
     while (turns < this.config.maxTurns) {
       turns++;
 
       // ──── Phase 3: 上下文裁剪 ────
       if (this.tokenCounter) {
+        this.emitStatus('trimming');
         const result = this.tokenCounter.trimMessages(allMessages, this.config.trimConfig);
         if (result.trimmedTokens < result.originalTokens) {
           allMessages.length = 0;
@@ -235,6 +244,7 @@ export class AgentLoop {
       }
 
       // ──── Step 1: 调用 LLM ────
+      this.emitStatus(turns === 1 ? 'thinking' : 'analyzing');
       let response: Message;
       try {
         response = await this.llm.chat(
@@ -255,6 +265,7 @@ export class AgentLoop {
 
         if (isRetryable && this.tokenCounter) {
           this.events.emit('error', 'Context may be too long, trimming and retrying...');
+          this.emitStatus('retrying');
           const result = this.tokenCounter.trimMessages(allMessages, {
             ...this.config.trimConfig,
             maxTokens: Math.floor((this.config.trimConfig.maxTokens || 8000) * 0.6),
@@ -269,6 +280,7 @@ export class AgentLoop {
           } catch (retryError: unknown) {
             const retryMsg = retryError instanceof Error ? retryError.message : String(retryError);
             this.events.emit('error', `LLM API retry also failed: ${retryMsg}`);
+            this.emitStatus('error');
             const fallbackText = `Sorry, I encountered an API error and could not complete the request. Error: ${retryMsg}`;
             roundMessages.push({ role: 'assistant', content: fallbackText });
             await this.persistRound(userMessage, allMessages, roundMessages);
@@ -277,6 +289,7 @@ export class AgentLoop {
           }
         } else {
           // 非重试错误，直接返回错误信息给用户
+          this.emitStatus('error');
           const fallbackText = `Sorry, I encountered an API error: ${errMsg}`;
           roundMessages.push({ role: 'assistant', content: fallbackText });
           await this.persistRound(userMessage, allMessages, roundMessages);
@@ -290,6 +303,7 @@ export class AgentLoop {
 
       // ──── Step 2: 判断是否需要调工具 ────
       if (!response.tool_calls || response.tool_calls.length === 0) {
+        this.emitStatus('idle');
         // 将最终 assistant 回复加入 roundMessages 以便持久化
         roundMessages.push({
           role: 'assistant',
@@ -331,6 +345,7 @@ export class AgentLoop {
 
         // 通知外部：工具开始执行
         this.events.emit('tool_start', { toolName, args: toolArgs });
+        this.emitStatus('tool_executing', undefined, toolName);
 
         // 查找工具
         if (!this.tools.has(toolName)) {
@@ -348,6 +363,7 @@ export class AgentLoop {
         // ──── v4.1: 人工审批 ────
         if (this.approvalGateway) {
           const riskLevel = this.assessRiskLevel(toolName, toolArgs, toolContext);
+          this.emitStatus('approving', undefined, toolName);
           this.events.emit('approval_requested', {
             toolName,
             args: toolArgs,
@@ -383,6 +399,7 @@ export class AgentLoop {
           totalToolCalls++;
 
           this.events.emit('tool_end', { toolName, result: result.content, isError: result.isError });
+          this.emitStatus('tool_completed', undefined, toolName);
 
           const toolMsg = {
             role: 'tool' as const,
@@ -408,6 +425,7 @@ export class AgentLoop {
 
     // 超过最大轮次
     const warning = `[Reached max turns (${this.config.maxTurns})]`;
+    this.emitStatus('max_turns');
     await this.persistRound(userMessage, allMessages, roundMessages);
     this.events.emit('message_end', warning);
     return { text: warning, turns, toolCalls: totalToolCalls };

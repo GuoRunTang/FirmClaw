@@ -24,9 +24,29 @@
  * v3.2: 新增 memory_saved
  * v4.1: 新增 approval_requested / approval_granted / approval_denied
  * v4.2: 新增 prompt_injection_detected
+ * v7.2: 新增 agent_status（丰富状态指示）
  */
 
 import { EventEmitter } from 'node:events';
+
+/**
+ * v7.2: Agent 状态类型
+ *
+ * 参考 Claude Code 的多维度状态反馈，比简单的 busy/idle 更生动。
+ * 每种状态都对应 Web UI 中不同的图标、动画和文案。
+ */
+export type AgentStatusType =
+  | 'idle'                     // 空闲，等待用户输入
+  | 'thinking'                 // 正在调用 LLM（首次或再次思考）
+  | 'analyzing'                // 正在分析工具结果 / 规划下一步
+  | 'tool_executing'           // 正在执行工具
+  | 'tool_completed'           // 工具执行完成，准备继续
+  | 'summarizing'              // 正在生成摘要压缩上下文
+  | 'trimming'                 // 正在裁剪上下文
+  | 'retrying'                 // API 错误后正在重试
+  | 'approving'                // 等待人工审批
+  | 'error'                    // 执行出错
+  | 'max_turns';               // 达到最大循环轮次
 
 /** 所有事件类型 */
 export type AgentEventType =
@@ -42,7 +62,8 @@ export type AgentEventType =
   | 'approval_requested'            // v4.1: 审批请求 { id, toolName, args, riskLevel }
   | 'approval_granted'              // v4.1: 审批通过 { toolName, args }
   | 'approval_denied'               // v4.1: 审批拒绝 { toolName, args, reason }
-  | 'prompt_injection_detected';    // v4.2: 注入检测 { toolName, matchTypes }
+  | 'prompt_injection_detected'     // v4.2: 注入检测 { toolName, matchTypes }
+  | 'agent_status';                 // v7.2: Agent 状态变更 { status, detail?, toolName? }
 
 /** 事件对象 */
 export interface AgentEvent {

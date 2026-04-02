@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AutoResearchClaw 技术架构解析与 FirmClaw 融合方案</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
 <style>
 :root {
   --bg: #070B14;
@@ -444,46 +444,60 @@ footer {
 /* Scroll padding for anchor links */
 section[id] { scroll-margin-top: 80px; }
 
-/* ===== MERMAID DIAGRAMS ===== */
-.mermaid-container {
+/* ===== FLOWCHART DIAGRAMS ===== */
+.flowchart {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 16px;
+  padding: 20px;
   margin: 12px 0;
   overflow-x: auto;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 12px;
 }
-.mermaid {
-  font-size: 13px;
-}
-.mermaid svg {
-  max-width: 100%;
-  height: auto;
-}
-
-/* Stage diagram legend */
-.stage-legend {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 8px 12px;
-  background: var(--bg2);
-  border-radius: 6px;
-  margin-bottom: 12px;
-  font-size: 11px;
-}
-.stage-legend-item {
+.flowchart-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
+  margin-bottom: 8px;
 }
-.stage-legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
+.flowchart-row:last-child {
+  margin-bottom: 0;
 }
-.stage-legend-arrow {
-  color: var(--muted);
+.fc-box {
+  padding: 8px 14px;
+  border-radius: 6px;
+  text-align: center;
+  min-width: 90px;
+  max-width: 160px;
+  flex-shrink: 0;
+}
+.fc-box-input { background: #1E293B; border: 1px solid #3B82F6; color: #F1F5F9; }
+.fc-box-process { background: #0F172A; border: 1px solid #8B5CF6; color: #F1F5F9; }
+.fc-box-action { background: #0F172A; border: 1px solid #22C55E; color: #F1F5F9; }
+.fc-box-decision { background: #0F172A; border: 2px solid #F59E0B; color: #F1F5F9; border-radius: 20px; }
+.fc-box-error { background: #0F172A; border: 1px solid #EF4444; color: #EF4444; }
+.fc-box-success { background: #22C55E; border: 1px solid #22C55E; color: #0F172A; font-weight: 700; }
+.fc-box-warning { background: #F59E0B; border: 1px solid #F59E0B; color: #0F172A; }
+.fc-arrow { color: #94A3B8; font-size: 16px; flex-shrink: 0; }
+.fc-arrow-down { color: #94A3B8; font-size: 16px; width: 100%; text-align: center; margin: 4px 0; }
+.fc-label { font-size: 10px; color: #94A3B8; margin: 0 4px; }
+.fc-label-yes { color: #22C55E; font-size: 10px; margin: 0 4px; }
+.fc-label-no { color: #EF4444; font-size: 10px; margin: 0 4px; }
+.fc-branch {
+  display: flex;
+  gap: 24px;
+  margin-left: 20px;
+  padding-left: 16px;
+  border-left: 2px dashed #334155;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+.fc-sublabel {
+  font-size: 9px;
+  color: #64748B;
+  margin-top: 2px;
 }
 
 .kbd {
@@ -1795,25 +1809,33 @@ setTimeout(renderDiagramsIfNeeded, 500);
             <span class="kbd">LLM chat</span> <span class="kbd">hardware detect</span>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 用户输入</b><br/>research_topic"] --> B["<b>🔍 检测硬件</b><br/>GPU型号/内存/CPU"]
-    B --> C{"llm available?"}
-    C -->|Yes| D["<b>🤖 LLM 生成</b><br/>SMART Goal 格式"]
-    C -->|No| E["<b>📄 默认 Goal</b><br/>模板生成"]
-    D --> F["<b>📝 输出</b><br/>goal.md"]
-    E --> F
-    F --> G["<b>💾 保存</b><br/>hardware_profile.json"]
-    G --> H["<b>✅ 完成</b><br/>StageResult DONE"]
-    
-    style A fill:#1E293B,stroke:#3B82F6,color:#F1F5F9
-    style B fill:#0F172A,stroke:#22C55E,color:#94A3B8
-    style D fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style E fill:#0F172A,stroke:#6366F1,color:#94A3B8
-    style F fill:#0F172A,stroke:#F59E0B,color:#F1F5F9
-    style G fill:#0F172A,stroke:#F59E0B,color:#F1F5F9
-    style H fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>用户输入</b><div class="fc-sublabel">research_topic</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">🔍 <b>检测硬件</b><div class="fc-sublabel">GPU/内存/CPU</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-decision">❓ llm可用?</div>
+          </div>
+          <div class="fc-branch">
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-yes">Yes →</span>
+              <div class="fc-box fc-box-process">🤖 <b>LLM生成</b><div class="fc-sublabel">SMART Goal格式</div></div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-no">No →</span>
+              <div class="fc-box fc-box-action" style="border-color:#6366F1">📄 <b>默认Goal</b><div class="fc-sublabel">模板生成</div></div>
+            </div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">goal.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">💾 <b>保存</b><div class="fc-sublabel">hardware_profile.json</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -1848,22 +1870,33 @@ graph TD
             <span style="font-size:12px;color:var(--muted);margin-left:12px">🔧 操作：</span><span class="kbd">LLM chat</span> <span class="kbd">tree parsing</span>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>goal.md"] --> B["<b>🔍 加载领域</b><br/>domains 配置"]
-    B --> C{"llm available?"}
-    C -->|Yes| D["<b>🤖 LLM 分解</b><br/>递归分解问题"]
-    C -->|No| E["<b>📄 默认树</b><br/>模板生成"]
-    D --> F["<b>🌳 解析树</b><br/>识别变量依赖"]
-    E --> F
-    F --> G["<b>📝 输出</b><br/>problem_tree.md"]
-    G --> H["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#3B82F6,color:#F1F5F9
-    style D fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style F fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style H fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">goal.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">🔍 <b>加载领域</b><div class="fc-sublabel">domains配置</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-decision">❓ llm可用?</div>
+          </div>
+          <div class="fc-branch">
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-yes">Yes →</span>
+              <div class="fc-box fc-box-process">🤖 <b>LLM分解</b><div class="fc-sublabel">递归分解问题</div></div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-no">No →</span>
+              <div class="fc-box fc-box-action">📄 <b>默认树</b><div class="fc-sublabel">模板生成</div></div>
+            </div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🌳 <b>解析树</b><div class="fc-sublabel">识别变量依赖</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">problem_tree.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -1907,26 +1940,36 @@ graph TD
             <span style="font-size:12px;color:var(--muted);margin-left:12px">🔧 操作：</span><span class="kbd">LLM chat</span> <span class="kbd">web fetch</span> <span class="kbd">network test</span>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>goal.md"] --> B["<b>🤖 LLM 生成</b><br/>多角度搜索查询"]
-    B --> C["<b>🔄 查询扩展</b><br/>expand_search_queries"]
-    C --> D["<b>🌐 验证数据源</b><br/>arxiv/semantic_scholar/google_scholar"]
-    D --> E["<b>❓ 源可用?</b>"]
-    E -->|Yes| F["<b>✅ 记录可用源</b>"]
-    E -->|No| G["<b>⚠️ 标记不可用</b>"]
-    F --> H["<b>🔄 构建回退方案</b><br/>fallback queries"]
-    G --> H
-    H --> I["<b>📝 输出</b><br/>search_queries.json"]
-    I --> J["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#3B82F6,color:#F1F5F9
-    style B fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style D fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style E fill:#0F172A,stroke:#F59E0B,color:#F1F5F9
-    style G fill:#0F172A,stroke:#EF4444,color:#94A3B8
-    style J fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">goal.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🤖 <b>LLM生成</b><div class="fc-sublabel">多角度搜索查询</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">🔄 <b>查询扩展</b><div class="fc-sublabel">expand_search_queries</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🌐 <b>验证数据源</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-decision">❓ 源可用?</div>
+            <div class="fc-arrow">→</div>
+            <span class="fc-label-yes">Yes</span>
+            <div class="fc-box fc-box-process">✅ <b>记录可用源</b></div>
+            <span class="fc-label-no">No</span>
+            <div class="fc-box fc-box-error">⚠️ <b>标记不可用</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🔄 <b>构建回退方案</b><div class="fc-sublabel">fallback queries</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">search_queries.json</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -1968,22 +2011,32 @@ graph TD
             <span style="font-size:12px;color:var(--muted);margin-left:12px">🔧 操作：</span><span class="kbd">web_search</span> <span class="kbd">web_fetch</span> <span class="kbd">dedup</span>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>search_queries.json"] --> B["<b>🔍 遍历查询词</b><br/>for query in queries"]
-    B --> C["<b>🌐 并行搜索</b><br/>web_search 多源"]
-    C --> D["<b>📄 解析结果</b><br/>标题/作者/venue/摘要"]
-    D --> E["<b>📚 添加到候选</b>"]
-    E --> B
-    B -.->|所有查询完成| F["<b>🔗 去重</b><br/>相同 arXiv ID 去重"]
-    F --> G["<b>📝 输出</b><br/>papers.jsonl"]
-    G --> H["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#8B5CF6,color:#F1F5F9
-    style C fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style F fill:#0F172A,stroke:#F59E0B,color:#F1F5F9
-    style H fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">search_queries.json</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔍 <b>遍历查询词</b><div class="fc-sublabel">for query in queries</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-action">🌐 <b>并行搜索</b><div class="fc-sublabel">web_search 多源</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">📄 <b>解析结果</b><div class="fc-sublabel">标题/作者/venue/摘要</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📚 <b>添加到候选</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↺</div>
+            <span class="fc-label">返回遍历</span>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🔗 <b>去重</b><div class="fc-sublabel">相同 arXiv ID</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">papers.jsonl</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2022,32 +2075,50 @@ graph TD
             <span style="font-size:12px;color:var(--yellow)">BLOCKED → 等待人工审批 | REJECTED → 回滚 Stage 04 重新收集</span>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>papers.jsonl"] --> B["<b>🔍 遍历论文</b><br/>for paper in papers"]
-    B --> C["<b>⭐ 第一轮 LLM</b><br/>相关性评分 1-5"]
-    C --> D["<b>⭐ 第二轮 LLM</b><br/>质量评估"]
-    D --> E["<b>📊 计算综合分</b><br/>(相关性+质量)/2"]
-    E --> F["<b>❓ 分数≥阈值?</b>"]
-    F -->|Yes| G["<b>✅ 保留论文</b>"]
-    F -->|No| H["<b>❌ 过滤论文</b>"]
-    G --> B
-    H --> B
-    B -.->|所有论文处理完| I["<b>🚪 需要人工审批?</b>"]
-    I -->|Yes| J["<b>⏸️ 阻塞等待</b><br/>BLOCKED_APPROVAL"]
-    I -->|No| K["<b>📝 输出</b><br/>screened_papers.jsonl"]
-    J --> L["<b>👤 人工审批</b>"]
-    L -->|通过| K
-    L -->|拒绝| M["<b>🔄 回滚 Stage 04</b>"]
-    K --> N["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#F59E0B,color:#F1F5F9
-    style C fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style F fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style J fill:#F59E0B,stroke:#F59E0B,color:#0F172A
-    style M fill:#EF4444,stroke:#EF4444,color:#F1F5F9
-    style N fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">papers.jsonl</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔍 <b>遍历论文</b><div class="fc-sublabel">for paper in papers</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">⭐ <b>第一轮 LLM</b><div class="fc-sublabel">相关性评分 1-5</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">⭐ <b>第二轮 LLM</b><div class="fc-sublabel">质量评估</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">📊 <b>计算综合分</b><div class="fc-sublabel">(相关性+质量)/2</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-decision">❓ 分数≥阈值?</div>
+            <div class="fc-arrow">→</div>
+            <span class="fc-label-yes">Yes</span>
+            <div class="fc-box fc-box-success">✅ 保留</div>
+            <span class="fc-label-no">No</span>
+            <div class="fc-box fc-box-error">❌ 过滤</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↺</div>
+            <span class="fc-label">返回遍历</span>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-decision">🚪 需要人工审批?</div>
+            <div class="fc-arrow">→</div>
+            <span class="fc-label-yes">Yes</span>
+            <div class="fc-box fc-box-warning">⏸️ <b>阻塞等待</b></div>
+            <span class="fc-label-no">No</span>
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">screened_papers.jsonl</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2108,20 +2179,29 @@ graph TD
     (stage_dir/<span class="str">"synthesis.md"</span>).write_text(synthesis)
     <span class="kw">return</span> StageResult(artifacts=(<span class="str">"synthesis.md"</span>,))</div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>knowledge_cards/"] --> B["<b>📚 加载所有知识卡</b>"]
-    B --> C["<b>🤖 LLM 综合</b><br/>cluster + gap_analysis"]
-    C --> D["<b>🔍 识别主题聚类</b>"]
-    D --> E["<b>🎯 发现研究空白</b><br/>已知/未知边界"]
-    E --> F["<b>📝 输出</b><br/>synthesis.md"]
-    F --> G["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#EC4899,color:#F1F5F9
-    style C fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style E fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style G fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">knowledge_cards/</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📚 <b>加载所有知识卡</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🤖 <b>LLM 综合</b><div class="fc-sublabel">cluster + gap_analysis</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔍 <b>识别主题聚类</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🎯 <b>发现研究空白</b><div class="fc-sublabel">已知/未知边界</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">synthesis.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2144,22 +2224,29 @@ graph TD
     (stage_dir/<span class="str">"hypothesis.md"</span>).write_text(validated)
     <span class="kw">return</span> StageResult(artifacts=(<span class="str">"hypothesis.md"</span>,))</div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>synthesis.md"] --> B["<b>🤖 LLM 生成</b><br/>生成 3 个候选假设"]
-    B --> C["<b>✅ 验证可操作性</b><br/>每个假设必须可证伪"]
-    C --> D["<b>❓ 所有假设有效?</b>"]
-    D -->|Yes| E["<b>📝 输出</b><br/>hypothesis.md"]
-    D -->|No| F["<b>🔄 重新生成</b>"]
-    F --> B
-    E --> G["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#EC4899,color:#F1F5F9
-    style B fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style C fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style F fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style G fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">synthesis.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🤖 <b>LLM 生成</b><div class="fc-sublabel">生成 3 个候选假设</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">✅ <b>验证可操作性</b><div class="fc-sublabel">每个假设必须可证伪</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-decision">❓ 所有假设有效?</div>
+            <div class="fc-arrow">→</div>
+            <span class="fc-label-yes">Yes</span>
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">hypothesis.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
+          </div>
+          <div class="flowchart-row">
+            <span class="fc-label-no">No →</span>
+            <div class="fc-box fc-box-error">🔄 <b>重新生成</b></div>
+            <div class="fc-arrow">↺</div>
           </div>
         </div>
       </div>
@@ -2204,28 +2291,38 @@ graph TD
             <span style="font-size:12px;color:var(--muted);margin-left:12px">⚠️ 失败→回滚 Stage 08</span>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>hypothesis.md + synthesis.md"] --> B["<b>🤖 LLM 生成</b><br/>实验计划草稿"]
-    B --> C["<b>📋 解析 YAML</b><br/>exp_plan_raw → exp_plan"]
-    C --> D["<b>✅ 验证完整性</b><br/>datasets/baselines/metrics/split"]
-    D --> E{"验证通过?"}
-    E -->|Yes| F["<b>🚪 需要人工审批?</b>"]
-    E -->|No| G["<b>❌ 缺少必填字段</b><br/>抛出 ValueError"]
-    G --> H["<b>🔄 回滚 Stage 08</b>"]
-    F -->|Yes| I["<b>⏸️ 阻塞</b><br/>BLOCKED_APPROVAL"]
-    F -->|No| J["<b>📝 输出</b><br/>exp_plan.yaml"]
-    I -->|通过| J
-    I -->|拒绝| H
-    J --> K["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#F59E0B,color:#F1F5F9
-    style B fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style E fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style G fill:#EF4444,stroke:#EF4444,color:#F1F5F9
-    style I fill:#F59E0B,stroke:#F59E0B,color:#0F172A
-    style K fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">hypothesis.md + synthesis.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🤖 <b>LLM 生成</b><div class="fc-sublabel">实验计划草稿</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📋 <b>解析 YAML</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">✅ <b>验证完整性</b><div class="fc-sublabel">datasets/baselines/metrics/split</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-decision">❓ 验证通过?</div>
+          </div>
+          <div class="fc-branch">
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-yes">Yes →</span>
+              <div class="fc-box fc-box-decision">🚪 需要人工审批?</div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-no">No →</span>
+              <div class="fc-box fc-box-error">❌ <b>缺少必填字段</b></div>
+              <div class="fc-arrow">→</div>
+              <div class="fc-box fc-box-error">🔄 <b>回滚 Stage 08</b></div>
+            </div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">exp_plan.yaml</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2341,19 +2438,25 @@ graph TD
     (stage_dir/<span class="str">"schedule.json"</span>).write_text(json.dumps(schedule))
     <span class="kw">return</span> StageResult(artifacts=(<span class="str">"schedule.json"</span>,))</div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>exp_plan.yaml + hardware_profile.json"] --> B["<b>📊 分析实验依赖图</b>"]
-    B --> C["<b>🖥️ GPU 分配</b><br/>确定并行任务数"]
-    C --> D["<b>⏱️ 计算预算分配</b>"]
-    D --> E["<b>🤖 LLM 规划调度</b><br/>生成最优 schedule"]
-    E --> F["<b>📝 输出</b><br/>schedule.json"]
-    F --> G["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#F59E0B,color:#F1F5F9
-    style E fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style G fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">exp_plan.yaml + hardware_profile.json</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">📊 <b>分析实验依赖图</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🖥️ <b>GPU 分配</b><div class="fc-sublabel">确定并行任务数</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">⏱️ <b>计算预算分配</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🤖 <b>LLM 规划调度</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">schedule.json</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2405,30 +2508,43 @@ graph TD
             <span class="kbd">SUMMARY condition=baseline mean=0.891 std=0.012</span>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>code_files + schedule.json"] --> B{"执行模式?"}
-    B -->|sandbox| C["<b>🐍 .venv 环境</b><br/>确保依赖安装"]
-    B -->|docker| D["<b>🐳 Docker 容器</b>"]
-    B -->|simulated| E["<b>🎭 模拟运行</b><br/>生成假数据"]
-    C --> F["<b>🚀 执行主循环</b><br/>遍历 conditions"]
-    D --> F
-    E --> J["<b>📝 输出假结果</b>"]
-    F --> G["<b>⏱️ 运行实验</b><br/>subprocess.Popen"]
-    G --> H["<b>📊 解析 stdout</b><br/>metric_name: value"]
-    H --> I["<b>💾 保存结果</b><br/>results/{condition}.json"]
-    I --> F
-    F -.->|所有条件完成| J["<b>📂 results/ 目录</b>"]
-    J --> K["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#22C55E,color:#F1F5F9
-    style C fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style D fill:#0F172A,stroke:#3B82F6,color:#F1F5F9
-    style E fill:#0F172A,stroke:#6366F1,color:#F1F5F9
-    style G fill:#0F172A,stroke:#F59E0B,color:#F1F5F9
-    style H fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style K fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">code_files + schedule.json</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-decision">❓ 执行模式?</div>
+          </div>
+          <div class="fc-branch">
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label">sandbox →</span>
+              <div class="fc-box fc-box-action" style="border-color:#22C55E">🐍 <b>.venv 环境</b></div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label">docker →</span>
+              <div class="fc-box fc-box-action" style="border-color:#3B82F6">🐳 <b>Docker 容器</b></div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label">simulated →</span>
+              <div class="fc-box fc-box-action" style="border-color:#6366F1">🎭 <b>模拟运行</b></div>
+            </div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🚀 <b>执行主循环</b><div class="fc-sublabel">遍历 conditions</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">⏱️ <b>运行实验</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">📊 <b>解析 stdout</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">💾 <b>保存结果</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↺</div>
+            <span class="fc-label">返回循环</span>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-action">📂 <b>results/ 目录</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2478,28 +2594,44 @@ graph TD
             <div style="font-size:12px;color:var(--muted)">Passed → 直接进入 Stage 14 (RESULT_ANALYSIS) | 未达标 → 修改代码继续跑 | 全部迭代耗尽 → Stage 15 (PIVOT/REFINE)</div>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>hypothesis.md + stage-12/results"] --> B["<b>🔄 迭代循环</b><br/>max_iterations 次"]
-    B --> C["<b>📊 Step 1: 评估结果</b><br/>LLM 判断假设是否被支持"]
-    C --> D{"结果达标?"}
-    D -->|Yes| E["<b>📋 生成 summary</b><br/>experiment_summary.json"]
-    D -->|No| F["<b>🔍 Step 2: LLM 诊断</b><br/>分析问题原因"]
-    F --> G["<b>🔧 Step 3: LLM 建议补丁</b><br/>修改代码"]
-    G --> H["<b>🔄 Step 4: 重新运行</b>"]
-    H --> B
-    B -.->|迭代次数耗尽| I["<b>⚠️ 触发 Stage 15</b><br/>REFINE 决策"]
-    E --> J["<b>✅ 完成</b><br/>进入 Stage 14"]
-    I --> K["<b>❌ FAILED</b>"]
-    
-    style A fill:#1E293B,stroke:#22C55E,color:#F1F5F9
-    style C fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style F fill:#0F172A,stroke:#F59E0B,color:#F1F5F9
-    style G fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style I fill:#F59E0B,stroke:#F59E0B,color:#0F172A
-    style J fill:#22C55E,stroke:#22C55E,color:#0F172A
-    style K fill:#EF4444,stroke:#EF4444,color:#F1F5F9
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">hypothesis.md + stage-12/results</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔄 <b>迭代循环</b><div class="fc-sublabel">max_iterations 次</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">📊 <b>Step 1: 评估结果</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-decision">❓ 结果达标?</div>
+          </div>
+          <div class="fc-branch">
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-yes">Yes →</span>
+              <div class="fc-box fc-box-action">📋 <b>生成 summary</b></div>
+              <div class="fc-arrow">→</div>
+              <div class="fc-box fc-box-success">✅ 进入 Stage 14</div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-no">No →</span>
+              <div class="fc-box fc-box-process">🔍 <b>Step 2: LLM 诊断</b></div>
+              <div class="fc-arrow">→</div>
+              <div class="fc-box fc-box-process">🔧 <b>Step 3: LLM 建议补丁</b></div>
+              <div class="fc-arrow">→</div>
+              <div class="fc-box fc-box-process">🔄 <b>Step 4: 重新运行</b></div>
+            </div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↺</div>
+            <span class="fc-label">返回迭代</span>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-warning">⚠️ 迭代耗尽 → 触发 Stage 15 REFINE 决策</div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-error">❌ FAILED</div>
           </div>
         </div>
       </div>
@@ -2538,21 +2670,25 @@ graph TD
 
     <span class="kw">return</span> StageResult(artifacts=(<span class="str">"experiment_summary.json"</span>, <span class="str">"results_table.tex"</span>, <span class="str">"charts/"</span>))</div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>stage-12/results/"] --> B["<b>📊 收集所有实验结果</b>"]
-    B --> C["<b>📈 统计分析</b><br/>计算均值/标准差"]
-    C --> D["<b>📋 生成 LaTeX 表格</b><br/>results_table.tex"]
-    D --> E["<b>📉 生成 matplotlib 代码</b><br/>charts/main.py"]
-    E --> F["<b>💾 保存 JSON</b><br/>experiment_summary.json"]
-    F --> G["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#14B8A6,color:#F1F5F9
-    style C fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style D fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style E fill:#0F172A,stroke:#F59E0B,color:#F1F5F9
-    style G fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">stage-12/results/</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📊 <b>收集所有实验结果</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">📈 <b>统计分析</b><div class="fc-sublabel">计算均值/标准差</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">📋 <b>生成 LaTeX 表格</b><div class="fc-sublabel">results_table.tex</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">📉 <b>生成 matplotlib 代码</b><div class="fc-sublabel">charts/main.py</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">💾 <b>保存 JSON</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2584,27 +2720,30 @@ graph TD
     <span class="kw">else</span>:  <span class="cm"># REFINE</span>
         <span class="kw">return</span> StageResult(next_stage=Stage.ITERATIVE_REFINE, decision=<span class="str">"refine"</span>)</div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>experiment_summary.json + hypothesis.md"] --> B["<b>🤖 LLM 决策</b><br/>PROCEED | PIVOT | REFINE"]
-    B --> C{"决策结果?"}
-    C -->|PROCEED| D["<b>📝 进入 Stage 16</b><br/>PAPER_OUTLINE"]
-    C -->|PIVOT| E{"PIVOT 次数 < 2?"}
-    C -->|REFINE| F["<b>🔄 返回 Stage 13</b><br/>ITERATIVE_REFINE"]
-    E -->|Yes| G["<b>🔄 回滚 Stage 08</b><br/>HYPOTHESIS_GEN"]
-    E -->|No| H["<b>❌ 终止</b><br/>最多 PIVOT 2 次"]
-    D --> I["<b>✅ 完成</b>"]
-    G --> I
-    F --> J["<b>🔄 继续迭代</b>"]
-    
-    style A fill:#1E293B,stroke:#14B8A6,color:#F1F5F9
-    style B fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style C fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style F fill:#F59E0B,stroke:#F59E0B,color:#0F172A
-    style G fill:#F59E0B,stroke:#F59E0B,color:#0F172A
-    style H fill:#EF4444,stroke:#EF4444,color:#F1F5F9
-    style I fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">experiment_summary.json + hypothesis.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🤖 <b>LLM 决策</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-decision">❓ 决策结果?</div>
+          </div>
+          <div class="fc-branch">
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-yes">PROCEED →</span>
+              <div class="fc-box fc-box-action">📝 <b>进入 Stage 16</b><div class="fc-sublabel">PAPER_OUTLINE</div></div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-no">PIVOT →</span>
+              <div class="fc-box fc-box-decision">PIVOT 次数 < 2?</div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label">REFINE →</span>
+              <div class="fc-box fc-box-warning">🔄 <b>返回 Stage 13</b></div>
+            </div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2630,19 +2769,23 @@ graph TD
     (stage_dir/<span class="str">"paper_outline.md"</span>).write_text(outline)
     <span class="kw">return</span> StageResult(artifacts=(<span class="str">"paper_outline.md"</span>,))</div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>decision.md + analysis"] --> B["<b>🔍 构建上下文</b><br/>include_experiment_data"]
-    B --> C["<b>🤖 LLM 生成</b><br/>生成论文大纲"]
-    C --> D["<b>🎯 识别论文类型</b><br/>technical/empirical/theory"]
-    D --> E["<b>📝 输出</b><br/>paper_outline.md"]
-    E --> F["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#EF4444,color:#F1F5F9
-    style C fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style E fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style F fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">decision.md + analysis</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">🔍 <b>构建上下文</b><div class="fc-sublabel">include_experiment_data</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🤖 <b>LLM 生成</b><div class="fc-sublabel">生成论文大纲</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🎯 <b>识别论文类型</b><div class="fc-sublabel">technical/empirical/theory</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">paper_outline.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2696,27 +2839,38 @@ graph TD
             <div style="font-size:12px;color:var(--muted);margin-top:4px">若 LLM 在论文中写入 summary 中不存在的指标 → <strong style="color:#EF4444">_validate_data_consistency() 抛出异常</strong>，阻止生成脏数据</div>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>paper_outline.md + experiment_summary.json"] --> B["<b>🛡️ 数据驱动检查</b><br/>必须有实验数据"]
-    B --> C{"有 summary?"}
-    C -->|No| D["<b>❌ 抛出异常</b><br/>禁止无数据生成"]
-    C -->|Yes| E["<b>📋 分章节生成</b><br/>遍历 8 个章节"]
-    E --> F["<b>🤖 LLM 生成章节</b><br/>注入真实实验数据"]
-    F --> G["<b>✅ 数据一致性校验</b><br/>不能出现捏造指标"]
-    G --> H["<b>📄 追加到全文</b>"]
-    H --> E
-    E -.->|所有章节完成| I["<b>📊 生成图表</b><br/>matplotlib"]
-    I --> J["<b>📝 编译 LaTeX</b><br/>paper.tex + paper_final.md"]
-    J --> K["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#EF4444,color:#F1F5F9
-    style B fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style D fill:#EF4444,stroke:#EF4444,color:#F1F5F9
-    style F fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style G fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style K fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">paper_outline.md + experiment_summary.json</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🛡️ <b>数据驱动检查</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-decision">❓ 有 summary?</div>
+          </div>
+          <div class="fc-branch">
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-no">No →</span>
+              <div class="fc-box fc-box-error">❌ <b>抛出异常</b><div class="fc-sublabel">禁止无数据生成</div></div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-yes">Yes →</span>
+              <div class="fc-box fc-box-process">📋 <b>分章节生成</b><div class="fc-sublabel">遍历 8 个章节</div></div>
+            </div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🤖 <b>LLM 生成章节</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ <b>数据一致性校验</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📄 <b>追加到全文</b></div>
+            <div class="fc-arrow">↺</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">📊 <b>生成图表</b><div class="fc-sublabel">matplotlib</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📝 <b>编译 LaTeX</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2747,27 +2901,41 @@ graph TD
     (stage_dir/<span class="str">"review_feedback.json"</span>).write_text(json.dumps(all_reviews))
     <span class="kw">return</span> StageResult(artifacts=(<span class="str">"review_feedback.json"</span>,))</div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>paper_final.md"] --> B["<b>🔄 多轮评审</b><br/>默认 2 轮"]
-    B --> C["<b>🤖 LLM 评审</b><br/>7 维度评分"]
-    C --> D["<b>🔍 AI Slop 检测</b><br/>段落长度/模板词密度"]
-    D --> E{"检测到 AI Slop?"}
-    E -->|Yes| F["<b>⚠️ 记录警告</b>"]
-    E -->|No| G["<b>✅ 继续</b>"]
-    F --> G
-    G --> H["<b>🔄 修订论文</b><br/>apply_review_to_paper"]
-    H --> B
-    B -.->|评审轮次完成| I["<b>📝 输出</b><br/>review_feedback.json"]
-    I --> J["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#EF4444,color:#F1F5F9
-    style C fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style D fill:#0F172A,stroke:#F59E0B,color:#F1F5F9
-    style E fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style F fill:#F59E0B,stroke:#F59E0B,color:#0F172A
-    style J fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">paper_final.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔄 <b>多轮评审</b><div class="fc-sublabel">默认 2 轮</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🤖 <b>LLM 评审</b><div class="fc-sublabel">7 维度评分</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔍 <b>AI Slop 检测</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-decision">❓ 检测到 AI Slop?</div>
+          </div>
+          <div class="fc-branch">
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-yes">Yes →</span>
+              <div class="fc-box fc-box-warning">⚠️ <b>记录警告</b></div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-no">No →</span>
+              <div class="fc-box fc-box-success">✅ 继续</div>
+            </div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🔄 <b>修订论文</b></div>
+            <div class="fc-arrow">↺</div>
+            <span class="fc-label">返回评审循环</span>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">review_feedback.json</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2802,26 +2970,36 @@ graph TD
     (stage_dir/<span class="str">"paper_revised.tex"</span>).write_text(paper)
     <span class="kw">return</span> StageResult(artifacts=(<span class="str">"paper_revised.tex"</span>,))</div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>paper_final.md + review_feedback.json"] --> B["<b>🔍 遍历评审意见</b><br/>for review_item"]
-    B --> C["<b>🤖 LLM 修订</b><br/>逐条对应修订"]
-    C --> D["<b>🔄 应用补丁</b><br/>apply_patch"]
-    D --> B
-    B -.->|所有评审处理完| E["<b>⚠️ 检测矛盾</b><br/>实验数据 vs 论文叙述"]
-    E --> F{"发现矛盾?"}
-    F -->|Yes| G["<b>❌ 记录错误</b>"]
-    F -->|No| H["<b>✅ 无矛盾</b>"]
-    G --> H
-    H --> I["<b>📝 输出</b><br/>paper_revised.tex"]
-    I --> J["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#EF4444,color:#F1F5F9
-    style C fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style E fill:#0F172A,stroke:#F59E0B,color:#F1F5F9
-    style G fill:#EF4444,stroke:#EF4444,color:#F1F5F9
-    style J fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">paper_final.md + review_feedback.json</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔍 <b>遍历评审意见</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🤖 <b>LLM 修订</b><div class="fc-sublabel">逐条对应修订</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔄 <b>应用补丁</b></div>
+            <div class="fc-arrow">↺</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">⚠️ <b>检测矛盾</b><div class="fc-sublabel">实验数据 vs 论文叙述</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-decision">❓ 发现矛盾?</div>
+            <div class="fc-arrow">→</div>
+            <span class="fc-label-no">Yes →</span>
+            <div class="fc-box fc-box-error">❌ <b>记录错误</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">paper_revised.tex</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2854,30 +3032,34 @@ graph TD
     <span class="kw">return</span> StageResult(status=<span class="str">DONE</span>, artifacts=(<span class="str">"quality_report.json"</span>,))</div>
           <div style="margin-top:12px"><span style="font-size:12px;color:var(--yellow)">⚠️ 失败 → 回滚 Stage 16 重新写论文</span></div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>paper_final.md"] --> B["<b>✅ 执行质量检查</b>"]
-    B --> C["<b>📋 格式检查</b><br/>_check_venue_format"]
-    B --> D["<b>📚 引用完整性</b><br/>_check_citation_completeness"]
-    B --> E["<b>📊 结果一致性</b><br/>_check_results_in_text"]
-    B --> F["<b>🔍 幻觉检测</b><br/>_detect_hallucination"]
-    C --> G["<b>📋 汇总结果</b>"]
-    D --> G
-    E --> G
-    F --> G
-    G --> H{"所有检查通过?"}
-    H -->|Yes| I["<b>✅ 输出</b><br/>quality_report.json"]
-    H -->|No| J["<b>⛔ 门控失败</b><br/>BLOCKED_APPROVAL"]
-    J --> K["<b>🔄 回滚 Stage 16</b><br/>重新写论文"]
-    I --> L["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#F59E0B,color:#F1F5F9
-    style B fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style H fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style J fill:#EF4444,stroke:#EF4444,color:#F1F5F9
-    style K fill:#F59E0B,stroke:#F59E0B,color:#0F172A
-    style L fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">paper_final.md</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">✅ <b>执行质量检查</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">📋 <b>格式检查</b></div>
+            <div class="fc-box fc-box-process">📚 <b>引用完整性</b></div>
+            <div class="fc-box fc-box-process">📊 <b>结果一致性</b></div>
+            <div class="fc-box fc-box-process">🔍 <b>幻觉检测</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-decision">❓ 所有检查通过?</div>
+            <div class="fc-arrow">→</div>
+            <span class="fc-label-yes">Yes →</span>
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">quality_report.json</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
+          </div>
+          <div class="flowchart-row">
+            <span class="fc-label-no">No →</span>
+            <div class="fc-box fc-box-error">⛔ <b>门控失败</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-warning">🔄 <b>回滚 Stage 16</b></div>
           </div>
         </div>
       </div>
@@ -2898,17 +3080,17 @@ graph TD
     (stage_dir/<span class="str">"knowledge_base/"</span>).write_text(archive)
     <span class="kw">return</span> StageResult(artifacts=(<span class="str">"knowledge_base/"</span>,))</div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>pipeline_log"] --> B["<b>📝 收集运行日志</b><br/>_collect_pipeline_log"]
-    B --> C["<b>🤖 LLM 提炼</b><br/>总结经验教训"]
-    C --> D["<b>💾 归档知识库</b><br/>knowledge_base/"]
-    D --> E["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#6366F1,color:#F1F5F9
-    style C fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style E fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">pipeline_log</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📝 <b>收集运行日志</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🤖 <b>LLM 提炼</b><div class="fc-sublabel">总结经验教训</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">💾 <b>归档知识库</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2951,26 +3133,43 @@ graph TD
             <span class="kbd">paper.pdf</span> <span class="kbd">code.zip</span> <span class="kbd">archive.tar.gz</span> <span class="kbd">supplementary.pdf</span>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>paper_final.md + target_venue"] --> B["<b>📝 渲染 LaTeX</b><br/>生成 paper.tex"]
-    B --> C["<b>🔄 XeLaTeX 编译</b><br/>最多 3 次重试"]
-    C --> D{"编译成功?"}
-    D -->|Yes| E["<b>✅ 继续</b>"]
-    D -->|No| F["<b>🔍 解析错误</b>"]
-    F --> G["<b>🤖 LLM 修复</b><br/>_fix_latex_errors"]
-    G --> C
-    E --> H["<b>📦 打包代码</b><br/>_package_code"]
-    H --> I["<b>📄 生成 README</b><br/>llm.generate_readme"]
-    I --> J["<b>📦 打包提交物</b><br/>archive.tar.gz"]
-    J --> K["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#6366F1,color:#F1F5F9
-    style B fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style D fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style G fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style K fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">paper_final.md + target_venue</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📝 <b>渲染 LaTeX</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔄 <b>XeLaTeX 编译</b><div class="fc-sublabel">最多 3 次重试</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-decision">❓ 编译成功?</div>
+            <div class="fc-arrow">→</div>
+            <span class="fc-label-yes">Yes →</span>
+            <div class="fc-box fc-box-success">✅ 继续</div>
+          </div>
+          <div class="fc-branch">
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-no">No →</span>
+              <div class="fc-box fc-box-process">🔍 <b>解析错误</b></div>
+              <div class="fc-arrow">→</div>
+              <div class="fc-box fc-box-process">🤖 <b>LLM 修复</b></div>
+            </div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↺</div>
+            <span class="fc-label">返回编译循环</span>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-action">📦 <b>打包代码</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">📄 <b>生成 README</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📦 <b>打包提交物</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -3017,37 +3216,45 @@ graph TD
             <div style="font-size:12px;color:var(--muted);margin-top:4px">发现幻觉引用（bib存在但正文未引用）→ <strong style="color:#EF4444">RuntimeError，阻止导出</strong>。必须修复引用后才能重新导出。</div>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>paper.tex + references.bib"] --> B["<b>🔍 遍历引用</b><br/>for bib_key in refs"]
-    B --> C["<b>❓ 正文引用?</b><br/>_check_bib_key_cited"]
-    C -->|未引用| D["<b>⚠️ 标记 unused</b>"]
-    C -->|已引用| E["<b>✅ 验证准确性</b><br/>LLM verify_citation"]
-    E --> F{"引用准确?"}
-    F -->|Yes| G["<b>✅ 通过</b>"]
-    F -->|No| H["<b>⚠️ 标记 mismatch</b>"]
-    D --> B
-    G --> B
-    H --> B
-    B -.->|所有引用检查完| I["<b>📊 统计幻觉引用</b>"]
-    I --> J{"有幻觉引用?"}
-    J -->|No| K["<b>✅ 验证通过</b><br/>verification_report.json"]
-    J -->|Yes| L["<b>🔒 阻止导出</b><br/>RuntimeError"]
-    K --> M["<b>✅ 完成</b>"]
-    L --> N["<b>❌ 终止</b><br/>必须修复引用"]
-    
-    style A fill:#1E293B,stroke:#EF4444,color:#F1F5F9
-    style C fill:#0F172A,stroke:#F59E0B,color:#F1F5F9
-    style D fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style E fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style F fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style H fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style J fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style L fill:#EF4444,stroke:#EF4444,color:#F1F5F9
-    style K fill:#22C55E,stroke:#22C55E,color:#0F172A
-    style M fill:#22C55E,stroke:#22C55E,color:#0F172A
-    style N fill:#EF4444,stroke:#EF4444,color:#F1F5F9
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">paper.tex + references.bib</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔍 <b>遍历引用</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-decision">❓ 正文引用?</div>
+            <div class="fc-arrow">→</div>
+            <span class="fc-label-no">未引用 →</span>
+            <div class="fc-box fc-box-error">⚠️ <b>标记 unused</b></div>
+            <span class="fc-label-yes">已引用 →</span>
+            <div class="fc-box fc-box-process">✅ <b>验证准确性</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↺</div>
+            <span class="fc-label">返回遍历</span>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">📊 <b>统计幻觉引用</b></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-decision">❓ 有幻觉引用?</div>
+          </div>
+          <div class="fc-branch">
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-yes">Yes →</span>
+              <div class="fc-box fc-box-error">🔒 <b>阻止导出</b></div>
+              <div class="fc-arrow">→</div>
+              <div class="fc-box fc-box-error">❌ <b>终止</b></div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-no">No →</span>
+              <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">verification_report.json</div></div>
+              <div class="fc-arrow">→</div>
+              <div class="fc-box fc-box-success">✅ 完成</div>
+            </div>
           </div>
         </div>
       </div>

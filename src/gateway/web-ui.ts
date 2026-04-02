@@ -262,6 +262,35 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Micr
 /* Settings section title */
 .setting-section-title { font-size: 13px; font-weight: 700; color: var(--text-link); margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border-muted); }
 .setting-section-title:first-child { margin-top: 0; }
+
+/* === v7.2: Agent Status Indicator === */
+.agent-status { display: flex; align-items: center; gap: 10px; padding: 8px 24px; font-size: 13px; color: var(--text-secondary); background: var(--bg-secondary); border-top: 1px solid var(--border-default); min-height: 36px; transition: all 0.2s; }
+.agent-status.hidden { display: none; }
+.agent-status .status-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.agent-status .status-label { color: var(--text-secondary); white-space: nowrap; }
+.agent-status .status-detail { color: var(--text-link); font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 12px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-status .status-turn { color: var(--text-muted); font-size: 11px; margin-left: auto; white-space: nowrap; }
+
+/* Status-specific styles */
+.agent-status[data-status="thinking"] .status-icon { animation: pulse 1.2s ease-in-out infinite; }
+.agent-status[data-status="analyzing"] .status-icon { animation: pulse 1.2s ease-in-out infinite; }
+.agent-status[data-status="tool_executing"] .status-label { color: var(--accent-blue); }
+.agent-status[data-status="tool_completed"] .status-label { color: var(--accent-green); }
+.agent-status[data-status="summarizing"] .status-icon { animation: spin 1s linear infinite; }
+.agent-status[data-status="trimming"] .status-icon { animation: spin 1s linear infinite; }
+.agent-status[data-status="retrying"] .status-icon { animation: spin 0.6s linear infinite; }
+.agent-status[data-status="retrying"] .status-label { color: var(--accent-red); }
+.agent-status[data-status="approving"] .status-icon { animation: pulse 1.5s ease-in-out infinite; }
+.agent-status[data-status="approving"] .status-label { color: #d29922; }
+.agent-status[data-status="error"] .status-label { color: var(--accent-red); }
+.agent-status[data-status="max_turns"] .status-label { color: #d29922; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Send button busy state */
+.input-row button.busy { background: var(--bg-tertiary); color: var(--text-muted); cursor: not-allowed; position: relative; padding-left: 36px; }
+.input-row button.busy::before { content: ''; position: absolute; left: 12px; top: 50%; width: 14px; height: 14px; margin-top: -7px; border: 2px solid var(--text-muted); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
 </style>
 </head>
 <body>
@@ -298,6 +327,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Micr
         </div>
       </div>
       </div>
+    </div>
+    <div class="agent-status hidden" id="agentStatus" data-status="idle">
+      <div class="status-icon" id="agentStatusIcon">...</div>
+      <span class="status-label" id="agentStatusLabel"></span>
+      <span class="status-detail" id="agentStatusDetail"></span>
+      <span class="status-turn" id="agentStatusTurn"></span>
     </div>
     <div class="input-area">
       <div class="input-row">
@@ -459,6 +494,21 @@ var I18N = {
     approvalRequested: '等待审批：%s',
     noMessages: '该会话暂无消息',
     switchingTo: '正在切换到会话：%s',
+    // v7.2: Agent status
+    statusThinking: '正在思考',
+    statusAnalyzing: '正在分析',
+    statusToolExecuting: '正在执行',
+    statusToolCompleted: '已完成',
+    statusSummarizing: '正在压缩上下文',
+    statusTrimming: '正在裁剪上下文',
+    statusRetrying: '正在重试',
+    statusApproving: '等待审批',
+    statusError: '执行出错',
+    statusMaxTurns: '达到最大轮次',
+    statusIdle: '就绪',
+    sendBusy: '处理中',
+    waitHint: 'Agent 正在处理，请等待...',
+    turnInfo: '第 %s 轮',
   },
   en: {
     disconnected: 'Disconnected',
@@ -515,6 +565,21 @@ var I18N = {
     approvalRequested: 'Approval requested: %s',
     noMessages: 'No messages in this session',
     switchingTo: 'Switching to session: %s',
+    // v7.2: Agent status
+    statusThinking: 'Thinking',
+    statusAnalyzing: 'Analyzing',
+    statusToolExecuting: 'Executing',
+    statusToolCompleted: 'Completed',
+    statusSummarizing: 'Compressing context',
+    statusTrimming: 'Trimming context',
+    statusRetrying: 'Retrying',
+    statusApproving: 'Awaiting approval',
+    statusError: 'Error',
+    statusMaxTurns: 'Max turns reached',
+    statusIdle: 'Ready',
+    sendBusy: 'Working',
+    waitHint: 'Agent is processing, please wait...',
+    turnInfo: 'Turn %s',
   }
 };
 
@@ -534,6 +599,7 @@ let ws = null;
 let requestId = 0;
 let currentSessionId = null;
 let pendingRequests = {};  // id -> method (用于识别响应来源)
+var agentBusy = false;     // v7.2: Agent 是否正在处理
 
 // ──── Init ────
 
@@ -617,14 +683,27 @@ function handleMessage(msg) {
 
     if (msg.error) {
       appendSystem(t('error') + (msg.error.message || JSON.stringify(msg.error)));
+      if (reqMethod === 'agent.chat') {
+        setAgentBusy(false);
+        var statusBar3 = document.getElementById('agentStatus');
+        if (statusBar3) statusBar3.classList.add('hidden');
+      }
       return;
     }
 
     if (reqMethod === 'agent.chat' && msg.result) {
-      // agent.chat 响应包含最终文本
+      // agent.chat 响应包含最终文本 — 确保重置忙碌状态
+      setAgentBusy(false);
+      var statusBar = document.getElementById('agentStatus');
+      if (statusBar) statusBar.classList.add('hidden');
       if (msg.result.text) {
         finishThinking(msg.result.text);
       }
+    } else if (reqMethod === 'agent.chat') {
+      // agent.chat 无 result（错误时），重置忙碌状态
+      setAgentBusy(false);
+      var statusBar2 = document.getElementById('agentStatus');
+      if (statusBar2) statusBar2.classList.add('hidden');
     } else if (reqMethod === 'session.list' && Array.isArray(msg.result)) {
       renderSessions(msg.result);
     } else if (reqMethod === 'session.new' && msg.result && msg.result.id) {
@@ -686,6 +765,9 @@ function handleMessage(msg) {
         break;
       case 'agent.approval_requested':
         appendSystem(t('approvalRequested', msg.params.toolName || ''));
+        break;
+      case 'agent.status':
+        updateAgentStatus(msg.params);
         break;
       case 'session.started':
         if (msg.params && msg.params.id) {
@@ -895,14 +977,101 @@ function scrollToBottom() {
   el.scrollTop = el.scrollHeight;
 }
 
+// ──── v7.2: Agent Status Management ────
+
+var STATUS_ICONS = {
+  thinking: '\\u{1F4AD}',
+  analyzing: '\\u{1F50D}',
+  tool_executing: '\\u2699\\uFE0F',
+  tool_completed: '\\u2705',
+  summarizing: '\\u{1F4C4}',
+  trimming: '\\u2702\\uFE0F',
+  retrying: '\\u{1F504}',
+  approving: '\\u23F3',
+  error: '\\u26A0\\uFE0F',
+  max_turns: '\\u{1F6AB}',
+};
+
+var STATUS_I18N_KEYS = {
+  thinking: 'statusThinking',
+  analyzing: 'statusAnalyzing',
+  tool_executing: 'statusToolExecuting',
+  tool_completed: 'statusToolCompleted',
+  summarizing: 'statusSummarizing',
+  trimming: 'statusTrimming',
+  retrying: 'statusRetrying',
+  approving: 'statusApproving',
+  error: 'statusError',
+  max_turns: 'statusMaxTurns',
+};
+
+/** Set agent busy state and update send button */
+function setAgentBusy(busy) {
+  agentBusy = busy;
+  var btn = document.getElementById('sendBtn');
+  var input = document.getElementById('input');
+  if (busy) {
+    btn.disabled = true;
+    btn.textContent = t('sendBusy');
+    btn.classList.add('busy');
+    input.setAttribute('placeholder', t('waitHint'));
+  } else {
+    btn.disabled = !ws || ws.readyState !== WebSocket.OPEN;
+    btn.textContent = t('send');
+    btn.classList.remove('busy');
+    input.setAttribute('placeholder', t('inputPlaceholder'));
+  }
+}
+
+/** Update agent status indicator */
+function updateAgentStatus(data) {
+  var statusEl = document.getElementById('agentStatus');
+  var iconEl = document.getElementById('agentStatusIcon');
+  var labelEl = document.getElementById('agentStatusLabel');
+  var detailEl = document.getElementById('agentStatusDetail');
+  var turnEl = document.getElementById('agentStatusTurn');
+
+  var status = data.status || 'idle';
+
+  if (status === 'idle') {
+    statusEl.classList.add('hidden');
+    statusEl.setAttribute('data-status', 'idle');
+    setAgentBusy(false);
+    return;
+  }
+
+  statusEl.classList.remove('hidden');
+  statusEl.setAttribute('data-status', status);
+  setAgentBusy(true);
+
+  iconEl.textContent = STATUS_ICONS[status] || '\\u2022';
+  labelEl.textContent = t(STATUS_I18N_KEYS[status]) || status;
+
+  // Tool name detail
+  if (data.toolName) {
+    detailEl.textContent = data.toolName;
+    detailEl.style.display = 'inline';
+  } else {
+    detailEl.textContent = '';
+    detailEl.style.display = 'none';
+  }
+
+  // Detail text (for retrying, error, etc.)
+  if (data.detail) {
+    detailEl.textContent = data.detail;
+    detailEl.style.display = 'inline';
+  }
+}
+
 // ──── User Actions ────
 
 function sendMessage() {
   var input = document.getElementById('input');
   var text = input.value.trim();
-  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+  if (!text || !ws || ws.readyState !== WebSocket.OPEN || agentBusy) return;
 
   appendUserMsg(text);
+  setAgentBusy(true);
   sendRequest('agent.chat', { message: text });
   input.value = '';
   input.style.height = 'auto';

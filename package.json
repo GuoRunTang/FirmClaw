@@ -21,6 +21,7 @@
     "test:renderer": "tsx src/tests/test-cli-renderer.ts",
     "test:subagent": "tsx src/tests/test-subagent.ts",
     "test:web": "tsx src/tests/test-web-ui.ts",
+    "test:agent-status": "tsx src/tests/test-agent-status.ts",
     "test:integration": "tsx src/tests/test-gateway-integration.ts",
     "test:all": "tsx src/tests/test-v1.6-permissions.ts && tsx src/tests/test-approval-gateway.ts && tsx src/tests/test-prompt-guard.ts && tsx src/tests/test-audit-logger.ts && tsx src/tests/test-heartbeat.ts && tsx src/tests/test-hook-manager.ts && tsx src/tests/test-session-branch.ts && tsx src/tests/test-ws-gateway.ts && tsx src/tests/test-cli-renderer.ts && tsx src/tests/test-subagent.ts && tsx src/tests/test-web-ui.ts"
   },

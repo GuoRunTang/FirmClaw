@@ -143,6 +143,7 @@ export const EVENT_TO_NOTIFICATION_METHOD: Record<AgentEventType, string> = {
   approval_granted: 'agent.approval_granted',
   approval_denied: 'agent.approval_denied',
   prompt_injection_detected: 'agent.prompt_injection_detected',
+  agent_status: 'agent.status',
 };
 
 // ═══════════════════════════════════════════════════════════════
