@@ -40,6 +40,8 @@ import { AuthGuard } from './gateway/auth.js';
 import { Renderer } from './cli/renderer.js';
 import { ProgressIndicator } from './cli/progress.js';
 import { SubagentManager } from './agent/subagent-manager.js';
+import { SkillManager } from './skills/skill-manager.js';
+import { MCPClientManager } from './mcp/mcp-client-manager.js';
 
 // ═══════════════════════════════════════════════════════════════
 // 主函数
@@ -57,7 +59,7 @@ async function main(): Promise<void> {
 
   const workDir = process.cwd();
 
-  console.log(`FirmClaw v6.0.0`);
+  console.log(`FirmClaw v7.0.0`);
   console.log(`Model: ${model}`);
   console.log(`API: ${baseURL}`);
   console.log(`WorkDir: ${workDir}`);
@@ -116,7 +118,7 @@ async function main(): Promise<void> {
     tokenCounter,
     trimConfig: {
       maxTokens: 128000,
-      maxToolResultTokens: 500,
+      maxToolResultTokens: 4000,
     },
     summarizer,
   }, {
@@ -125,9 +127,36 @@ async function main(): Promise<void> {
     defaultMaxTurns: 5,
   });
 
+  // ═══════════════════════════════════════════════════
+  // v7.0: 初始化 Skill 系统
+  // ═══════════════════════════════════════════════════
+  const skillManager = new SkillManager();
+  const skillCount = await skillManager.loadFromDirs([
+    { path: path.join(workDir, '.claude'), type: 'project' },
+    { path: path.join(workDir, '.firmclaw'), type: 'project' },
+    { path: path.join(os.homedir(), '.firmclaw'), type: 'user' },
+  ]);
+  if (skillCount > 0) {
+    console.log(`Skills loaded: ${skillCount}`);
+  }
+
+  // ═══════════════════════════════════════════════════
+  // v7.0: 初始化 MCP Client 系统
+  // ═══════════════════════════════════════════════════
+  const mcpManager = new MCPClientManager();
+  const mcpConfigPath = path.join(workDir, '.firmclaw', 'mcp-servers.yaml');
+  if (fs.existsSync(mcpConfigPath)) {
+    await mcpManager.loadConfig(mcpConfigPath);
+    await mcpManager.autoConnect(tools);
+    const connectedCount = mcpManager.getStatus().filter(s => s.connected).length;
+    if (connectedCount > 0) {
+      console.log(`MCP servers connected: ${connectedCount}`);
+    }
+  }
+
   const agent = new AgentLoop(llm, tools, {
     systemPrompt: '', // 由 ContextBuilder 动态生成
-    maxTurns: 10,
+    maxTurns: 20,
     workDir,
     sessionManager,
     contextBuilder,
@@ -139,6 +168,10 @@ async function main(): Promise<void> {
     summarizer,
     subagentManager,
   });
+
+  // v7.0: 注入 Skill 管理器
+  contextBuilder.setSkillManager(skillManager);
+  agent.setSkillManager(skillManager);
 
   // ──── 3. 启动时自动恢复上次会话 ────
   try {
@@ -193,6 +226,12 @@ async function main(): Promise<void> {
   events.on('memory_saved', (e) => {
     const data = e.data as { id: string; tag: string };
     console.log(`\n${renderer.renderSystem(`Memory saved: [${data.id}] (${data.tag})`)}`);
+  });
+
+  // v7.0: Skill 激活事件
+  events.on('skill_activated', (e) => {
+    const data = e.data as { name: string; source: string };
+    console.log(`\n${renderer.renderSystem(`Skill activated: ${data.name} (${data.source})`)}`);
   });
 
   // ──── 5. 启动命令行交互 ────
@@ -261,6 +300,11 @@ Available commands:
   /search <query>   Full-text search across sessions and memories
   /compact          Manually trigger context compression
   /index            Show search index statistics
+  /skill-list       List all available skills
+  /skill <name> [args]  Activate a skill manually
+  /mcp-list         Show MCP server connection status
+  /mcp-connect <name>  Connect to an MCP server
+  /mcp-disconnect <name>  Disconnect from an MCP server
   /serve [port]     Start WebSocket server (default: 3000)
   /serve stop       Stop WebSocket server
   /serve status     Show server status
@@ -507,14 +551,14 @@ Available commands:
         gateway.setSummarizer(summarizer);
         gateway.setAgentConfig({
           systemPrompt: '',
-          maxTurns: 10,
+          maxTurns: 20,
           workDir,
           sessionManager,
           contextBuilder,
           tokenCounter,
           trimConfig: {
             maxTokens: 128000,
-            maxToolResultTokens: 500,
+            maxToolResultTokens: 4000,
           },
           summarizer,
         });
@@ -522,6 +566,105 @@ Available commands:
         await gateway.start();
         console.log(`\n  WebSocket: wscat -c ws://localhost:${port}?token=${token}`);
         console.log(`  Web UI:    http://localhost:${port}?token=${token}`);
+        break;
+      }
+
+      // ──── v7.0: Skill 命令 ────
+
+      case '/skill-list': {
+        const skills = skillManager.listUserInvocable();
+        if (skills.length === 0) {
+          console.log('No skills available. Place SKILL.md files in .claude/skills/ or ~/.firmclaw/skills/');
+        } else {
+          console.log(`\nAvailable Skills (${skills.length}):`);
+          skills.forEach((s, i) => {
+            const source = s.source === 'project' ? 'project' : 'user';
+            console.log(`  [${i + 1}] ${s.meta.name} (${source}) - ${s.meta.description}`);
+            if (s.meta.argumentHint) {
+              console.log(`      Usage: /skill ${s.meta.name} ${s.meta.argumentHint}`);
+            }
+          });
+        }
+        break;
+      }
+
+      case '/skill': {
+        if (!arg) {
+          console.log('Usage: /skill <name> [args]');
+          const skills = skillManager.listUserInvocable();
+          if (skills.length > 0) {
+            console.log(`\nAvailable skills: ${skills.map(s => s.meta.name).join(', ')}`);
+          }
+          break;
+        }
+        const skillParts = arg.split(/\s+/);
+        const skillName = skillParts[0];
+        const skillArgs = skillParts.slice(1).join(' ');
+        const result = skillManager.activateSkill(skillName, skillArgs);
+        if (result.success) {
+          console.log(`Skill "${skillName}" activated.`);
+          if (result.requiredMCPServers && result.requiredMCPServers.length > 0) {
+            for (const serverName of result.requiredMCPServers) {
+              if (!mcpManager.isConnected(serverName)) {
+                try {
+                  const regResult = await mcpManager.connect(serverName);
+                  mcpManager.syncToolsToRegistry(serverName, tools);
+                  console.log(`  MCP server "${serverName}" connected: ${regResult.count} tools registered.`);
+                } catch (error) {
+                  console.log(`  MCP server "${serverName}" connection failed: ${error instanceof Error ? error.message : String(error)}`);
+                }
+              }
+            }
+          }
+        } else {
+          console.log(`Error: ${result.error}`);
+        }
+        break;
+      }
+
+      // ──── v7.0: MCP 命令 ────
+
+      case '/mcp-list': {
+        const statuses = mcpManager.getStatus();
+        if (statuses.length === 0) {
+          console.log('No MCP servers configured. Create .firmclaw/mcp-servers.yaml to configure.');
+        } else {
+          console.log(`\nMCP Servers:`);
+          statuses.forEach(s => {
+            const status = s.connected ? `\u2713 (${s.toolCount} tools)` : `\u2717 ${s.error || 'disconnected'}`;
+            console.log(`  ${s.name}: ${status} [${s.transport}]`);
+          });
+        }
+        break;
+      }
+
+      case '/mcp-connect': {
+        if (!arg) {
+          console.log('Usage: /mcp-connect <server-name>');
+          const configured = mcpManager.getConfiguredServers();
+          if (configured.length > 0) {
+            console.log(`\nConfigured servers: ${configured.join(', ')}`);
+          }
+          break;
+        }
+        try {
+          const result = await mcpManager.connect(arg);
+          mcpManager.syncToolsToRegistry(arg, tools);
+          console.log(`Connected to "${arg}": ${result.count} tools registered.`);
+          result.toolNames.forEach(n => console.log(`  - ${n}`));
+        } catch (error) {
+          console.log(`Failed to connect: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        break;
+      }
+
+      case '/mcp-disconnect': {
+        if (!arg) {
+          console.log('Usage: /mcp-disconnect <server-name>');
+          break;
+        }
+        await mcpManager.disconnect(arg);
+        console.log(`Disconnected from "${arg}".`);
         break;
       }
 

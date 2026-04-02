@@ -200,4 +200,16 @@ export interface SettingsSnapshot {
     name: string;
     baseURL: string;
   };
+  /** v7.1: Agent 运行时配置 */
+  agent?: {
+    maxTurns: number;
+    maxTokens?: number;
+    maxToolResultTokens?: number;
+  };
+  /** v7.1: 摘要配置 */
+  summarizer?: {
+    summarizeThreshold: number;
+    maxMessagesToSummarize: number;
+    maxSummaryTokens: number;
+  };
 }

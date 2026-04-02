@@ -22,6 +22,7 @@ import type { SessionMeta } from './types.js';
 import { renderTemplate } from '../utils/prompt-template.js';
 import type { MemoryManager } from './memory-manager.js';
 import type { SearchEngine } from './search-engine.js';
+import type { SkillManager } from '../skills/skill-manager.js';
 
 /** ContextBuilder 配置 */
 export interface ContextBuilderConfig {
@@ -80,6 +81,7 @@ export class ContextBuilder {
   private config: ContextBuilderConfig;
   private memoryManager?: MemoryManager;
   private searchEngine?: SearchEngine;
+  private skillManager?: SkillManager;
 
   constructor(config: ContextBuilderConfig) {
     this.config = config;
@@ -95,14 +97,27 @@ export class ContextBuilder {
     this.searchEngine = engine;
   }
 
+  /** 设置技能管理器（v7.0） */
+  setSkillManager(manager: SkillManager): void {
+    this.skillManager = manager;
+  }
+
   /**
    * 构建完整的系统提示词
    *
    * @param tools - 工具注册表（用于注入工具定义）
    * @param sessionMeta - 当前会话元数据（可选）
    * @param query - 用户查询（v3.3: 用于搜索相关记忆）
+   * @param activeSkillName - v7.0: 当前激活的技能名称
+   * @param skillArgs - v7.0: 技能参数
    */
-  async build(tools: ToolRegistry, sessionMeta?: SessionMeta, query?: string): Promise<string> {
+  async build(
+    tools: ToolRegistry,
+    sessionMeta?: SessionMeta,
+    query?: string,
+    activeSkillName?: string,
+    skillArgs?: string,
+  ): Promise<string> {
     // 加载模板
     const template = await this.loadTemplate();
 
@@ -152,6 +167,22 @@ export class ContextBuilder {
     };
 
     return renderTemplate(template, context);
+  }
+
+  /**
+   * v7.0: 获取激活技能的 prompt 片段
+   *
+   * 如果有激活的技能，返回用于追加到 system prompt 末尾的技能指令。
+   * 如果无激活技能或激活失败，返回 null。
+   */
+  getSkillPrompt(activeSkillName: string, skillArgs?: string): string | null {
+    if (!this.skillManager) return null;
+
+    const result = this.skillManager.activateSkill(activeSkillName, skillArgs);
+    if (result.success && result.prompt) {
+      return `\n\n## 当前激活的技能: ${activeSkillName}\n${result.prompt}`;
+    }
+    return null;
   }
 
   /** 加载模板（自定义 > 内置） */

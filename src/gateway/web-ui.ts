@@ -258,6 +258,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Micr
 .info-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
 .info-row .label { color: var(--text-secondary); }
 .info-row .value { color: var(--text-primary); }
+
+/* Settings section title */
+.setting-section-title { font-size: 13px; font-weight: 700; color: var(--text-link); margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border-muted); }
+.setting-section-title:first-child { margin-top: 0; }
 </style>
 </head>
 <body>
@@ -315,25 +319,63 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Micr
 
     <!-- Settings Tab -->
     <div class="panel-body" id="tab-settings">
+      <div class="setting-section-title">工作目录</div>
       <div class="setting-group">
         <label>工作目录</label>
         <input type="text" id="cfgWorkDir" readonly>
       </div>
+
+      <div class="setting-section-title">权限配置</div>
       <div class="setting-group">
         <label>允许路径（每行一个）</label>
-        <textarea id="cfgAllowedPaths" rows="4" placeholder="D:\code\project1&#10;D:\code\project2"></textarea>
+        <textarea id="cfgAllowedPaths" rows="3" placeholder="D:\\code\\project1&#10;D:\\code\\project2"></textarea>
         <div class="setting-hint">文件操作仅限这些目录。</div>
       </div>
       <div class="setting-group">
         <label>受保护文件（每行一个）</label>
-        <textarea id="cfgProtectedFiles" rows="3" placeholder=".env&#10;credentials.json"></textarea>
+        <textarea id="cfgProtectedFiles" rows="2" placeholder=".env&#10;credentials.json"></textarea>
         <div class="setting-hint">这些文件无法被写入或编辑。</div>
       </div>
       <div class="setting-group">
         <label>命令黑名单（每行一个）</label>
-        <textarea id="cfgCommandBlacklist" rows="3" placeholder="rm -rf /&#10;format"></textarea>
+        <textarea id="cfgCommandBlacklist" rows="2" placeholder="rm -rf /&#10;format"></textarea>
         <div class="setting-hint">匹配这些模式的命令将被阻止。</div>
       </div>
+
+      <div class="setting-section-title">Agent 配置</div>
+      <div class="setting-group">
+        <label>最大循环轮次</label>
+        <input type="number" id="cfgMaxTurns" min="1" max="100" placeholder="20">
+        <div class="setting-hint">Agent 单次对话的最大思考-行动循环次数。</div>
+      </div>
+      <div class="setting-group">
+        <label>上下文窗口上限 (tokens)</label>
+        <input type="number" id="cfgMaxTokens" min="1000" max="2000000" step="1000" placeholder="128000">
+        <div class="setting-hint">LLM 上下文窗口大小。超过时将触发裁剪或摘要。</div>
+      </div>
+      <div class="setting-group">
+        <label>工具结果上限 (tokens)</label>
+        <input type="number" id="cfgMaxToolResultTokens" min="100" max="100000" step="100" placeholder="4000">
+        <div class="setting-hint">单条工具返回结果的最大 token 数。超出将被截断。</div>
+      </div>
+
+      <div class="setting-section-title">摘要配置</div>
+      <div class="setting-group">
+        <label>摘要触发阈值 (tokens)</label>
+        <input type="number" id="cfgSummarizeThreshold" min="1000" max="500000" step="1000" placeholder="80000">
+        <div class="setting-hint">历史消息 token 数超过此值时触发 LLM 摘要压缩。</div>
+      </div>
+      <div class="setting-group">
+        <label>每次摘要消息上限 (条)</label>
+        <input type="number" id="cfgMaxMessagesToSummarize" min="5" max="200" placeholder="50">
+        <div class="setting-hint">每次摘要压缩处理的最大消息条数。</div>
+      </div>
+      <div class="setting-group">
+        <label>摘要最大长度 (tokens)</label>
+        <input type="number" id="cfgMaxSummaryTokens" min="100" max="10000" step="100" placeholder="2000">
+        <div class="setting-hint">生成摘要的最大 token 数。</div>
+      </div>
+
       <button class="panel-save" onclick="saveSettings()">保存设置</button>
     </div>
 
@@ -913,6 +955,16 @@ function fillSettingsForm(data) {
   document.getElementById('cfgAllowedPaths').value = (perm.allowedPaths || []).join('\\n');
   document.getElementById('cfgProtectedFiles').value = (perm.protectedFiles || []).join('\\n');
   document.getElementById('cfgCommandBlacklist').value = (perm.commandBlacklist || []).join('\\n');
+  // v7.1: Agent \u914d\u7f6e
+  var agent = data.agent || {};
+  if (agent.maxTurns) document.getElementById('cfgMaxTurns').value = agent.maxTurns;
+  if (agent.maxTokens) document.getElementById('cfgMaxTokens').value = agent.maxTokens;
+  if (agent.maxToolResultTokens) document.getElementById('cfgMaxToolResultTokens').value = agent.maxToolResultTokens;
+  // v7.1: \u6458\u8981\u914d\u7f6e
+  var summ = data.summarizer || {};
+  if (summ.summarizeThreshold) document.getElementById('cfgSummarizeThreshold').value = summ.summarizeThreshold;
+  if (summ.maxMessagesToSummarize) document.getElementById('cfgMaxMessagesToSummarize').value = summ.maxMessagesToSummarize;
+  if (summ.maxSummaryTokens) document.getElementById('cfgMaxSummaryTokens').value = summ.maxSummaryTokens;
 }
 
 function renderAboutPage(data) {
@@ -954,11 +1006,31 @@ function saveSettings() {
   var commandBlacklist = document.getElementById('cfgCommandBlacklist').value
     .split('\\n').map(function(s) { return s.trim(); }).filter(Boolean);
 
-  sendRequest('settings.update', {
+  // v7.1: Agent \u914d\u7f6e
+  var maxTurns = parseInt(document.getElementById('cfgMaxTurns').value);
+  var maxTokens = parseInt(document.getElementById('cfgMaxTokens').value);
+  var maxToolResultTokens = parseInt(document.getElementById('cfgMaxToolResultTokens').value);
+
+  // v7.1: \u6458\u8981\u914d\u7f6e
+  var summarizeThreshold = parseInt(document.getElementById('cfgSummarizeThreshold').value);
+  var maxMessagesToSummarize = parseInt(document.getElementById('cfgMaxMessagesToSummarize').value);
+  var maxSummaryTokens = parseInt(document.getElementById('cfgMaxSummaryTokens').value);
+
+  var payload = {
     allowedPaths: allowedPaths,
     protectedFiles: protectedFiles,
     commandBlacklist: commandBlacklist,
-  });
+  };
+
+  // \u53ea\u6709\u5728\u7528\u6237\u586b\u5199\u4e86\u503c\u65f6\u624d\u53d1\u9001
+  if (!isNaN(maxTurns) && maxTurns > 0) payload.maxTurns = maxTurns;
+  if (!isNaN(maxTokens) && maxTokens > 0) payload.maxTokens = maxTokens;
+  if (!isNaN(maxToolResultTokens) && maxToolResultTokens > 0) payload.maxToolResultTokens = maxToolResultTokens;
+  if (!isNaN(summarizeThreshold) && summarizeThreshold > 0) payload.summarizeThreshold = summarizeThreshold;
+  if (!isNaN(maxMessagesToSummarize) && maxMessagesToSummarize > 0) payload.maxMessagesToSummarize = maxMessagesToSummarize;
+  if (!isNaN(maxSummaryTokens) && maxSummaryTokens > 0) payload.maxSummaryTokens = maxSummaryTokens;
+
+  sendRequest('settings.update', payload);
 }
 
 function renderSessions(sessions) {

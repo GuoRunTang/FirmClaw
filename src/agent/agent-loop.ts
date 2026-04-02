@@ -31,6 +31,7 @@ import type { ApprovalGateway } from './approval-gateway.js';
 import type { RiskLevel } from '../tools/permissions.js';
 import type { SubagentManager } from './subagent-manager.js';
 import { createSubagentTool } from '../tools/subagent.js';
+import type { SkillManager } from '../skills/skill-manager.js';
 
 export class AgentLoop {
   private llm: LLMClient;
@@ -48,6 +49,8 @@ export class AgentLoop {
   private approvalGateway?: ApprovalGateway;
   // Phase 6 可选组件
   private subagentManager?: SubagentManager;
+  // v7.0: 技能管理器
+  private skillManager?: SkillManager;
 
   constructor(llm: LLMClient, tools: ToolRegistry, config: AgentConfig) {
     this.llm = llm;
@@ -75,6 +78,36 @@ export class AgentLoop {
     return this.events;
   }
 
+  /** v7.0: 设置技能管理器 */
+  setSkillManager(manager: SkillManager): void {
+    this.skillManager = manager;
+  }
+
+  /** v7.0: 动态更新工作目录（从 Web UI 设置面板调用） */
+  updateWorkDir(newWorkDir: string): void {
+    this.config.workDir = newWorkDir;
+  }
+
+  /** v7.1: 动态更新 Agent 运行时配置 */
+  updateAgentConfig(partial: { maxTurns?: number; maxTokens?: number; maxToolResultTokens?: number }): void {
+    if (partial.maxTurns !== undefined) this.config.maxTurns = partial.maxTurns;
+    if (partial.maxTokens !== undefined && this.config.trimConfig) {
+      this.config.trimConfig.maxTokens = partial.maxTokens;
+    }
+    if (partial.maxToolResultTokens !== undefined && this.config.trimConfig) {
+      this.config.trimConfig.maxToolResultTokens = partial.maxToolResultTokens;
+    }
+  }
+
+  /** v7.1: 获取当前 Agent 配置快照 */
+  getAgentConfigSnapshot(): { maxTurns: number; maxTokens?: number; maxToolResultTokens?: number } {
+    return {
+      maxTurns: this.config.maxTurns,
+      maxTokens: this.config.trimConfig?.maxTokens,
+      maxToolResultTokens: this.config.trimConfig?.maxToolResultTokens,
+    };
+  }
+
   /**
    * 运行一次完整的 Agent 循环
    *
@@ -94,13 +127,46 @@ export class AgentLoop {
     }
 
     // ═══════════════════════════════════════════════════════
+    // v7.0: Skill 自动匹配
+    // ═══════════════════════════════════════════════════════
+
+    let matchedSkillName: string | undefined;
+    let matchedSkillArgs: string | undefined;
+
+    if (this.skillManager) {
+      const matched = this.skillManager.matchSkill(userMessage);
+      if (matched) {
+        matchedSkillName = matched.meta.name;
+        matchedSkillArgs = userMessage;
+        this.events.emit('skill_activated', {
+          name: matched.meta.name,
+          source: matched.source,
+        });
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
     // 构建系统提示词
     // ═══════════════════════════════════════════════════════
 
     let systemPrompt: string;
     if (this.contextBuilder && this.sessionManager) {
       const sessionMeta = this.sessionManager.getCurrentMeta() ?? undefined;
-      systemPrompt = await this.contextBuilder.build(this.tools, sessionMeta, userMessage);
+      systemPrompt = await this.contextBuilder.build(
+        this.tools,
+        sessionMeta,
+        userMessage,
+        matchedSkillName,
+        matchedSkillArgs,
+      );
+
+      // v7.0: 追加 skill prompt
+      if (matchedSkillName && this.contextBuilder) {
+        const skillPrompt = this.contextBuilder.getSkillPrompt(matchedSkillName, matchedSkillArgs);
+        if (skillPrompt) {
+          systemPrompt += skillPrompt;
+        }
+      }
     } else {
       systemPrompt = this.config.systemPrompt;
     }

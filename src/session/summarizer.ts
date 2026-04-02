@@ -86,6 +86,19 @@ export class Summarizer {
     };
   }
 
+  /** v7.1: 获取当前配置（供 settings.get 使用） */
+  getConfig(): Required<SummarizerConfig> {
+    return { ...this.config };
+  }
+
+  /** v7.1: 动态更新配置（供 settings.update 使用） */
+  updateConfig(config: Partial<SummarizerConfig>): void {
+    if (config.summarizeThreshold !== undefined) this.config.summarizeThreshold = config.summarizeThreshold;
+    if (config.maxMessagesToSummarize !== undefined) this.config.maxMessagesToSummarize = config.maxMessagesToSummarize;
+    if (config.maxSummaryTokens !== undefined) this.config.maxSummaryTokens = config.maxSummaryTokens;
+    if (config.verbose !== undefined) this.config.verbose = config.verbose;
+  }
+
   /**
    * 判断是否需要摘要
    *

@@ -248,12 +248,22 @@ export class GatewayServer {
       baseURL: this.llm?.getBaseURL() || 'unknown',
     };
 
+    // v7.1: 获取 Agent 运行时配置（从第一个 agentLoop 获取）
+    let agentConfig: SettingsSnapshot['agent'] = undefined;
+    let summarizerConfig: SettingsSnapshot['summarizer'] = undefined;
+    for (const [, { loop }] of this.agentLoops) {
+      agentConfig = loop.getAgentConfigSnapshot();
+      break;
+    }
+
     return {
       workDir: this.agentConfig?.workDir || process.cwd(),
       permissions: permSnapshot,
       tools: toolsList,
       gateway: gatewayStatus,
       model: modelInfo,
+      agent: agentConfig,
+      summarizer: this.summarizer ? this.summarizer.getConfig() : undefined,
     };
   }
 
@@ -553,7 +563,9 @@ export class GatewayServer {
 
     // v6.2: settings.update — 更新权限配置
     this.router.register('settings.update', async (params) => {
-      const { allowedPaths, extraAllowedPaths, protectedFiles, commandBlacklist } = params as Record<string, unknown>;
+      const { allowedPaths, extraAllowedPaths, protectedFiles, commandBlacklist, workDir,
+              maxTurns, maxTokens, maxToolResultTokens,
+              summarizeThreshold, maxMessagesToSummarize, maxSummaryTokens } = params as Record<string, unknown>;
 
       // 获取当前 policy 并更新
       const policy = this.getPolicy();
@@ -564,6 +576,49 @@ export class GatewayServer {
           protectedFiles: protectedFiles as string[] | undefined,
           commandBlacklist: commandBlacklist as string[] | undefined,
         });
+      }
+
+      // v7.0: 支持 workDir 动态更新
+      if (typeof workDir === 'string' && workDir.trim()) {
+        const newWorkDir = workDir.trim();
+        if (this.agentConfig) {
+          this.agentConfig.workDir = newWorkDir;
+        }
+        for (const [, { loop }] of this.agentLoops) {
+          loop.updateWorkDir(newWorkDir);
+        }
+      }
+
+      // v7.1: Agent 运行时配置更新
+      const agentUpdate: { maxTurns?: number; maxTokens?: number; maxToolResultTokens?: number } = {};
+      if (typeof maxTurns === 'number' && maxTurns > 0) agentUpdate.maxTurns = maxTurns;
+      if (typeof maxTokens === 'number' && maxTokens > 0) agentUpdate.maxTokens = maxTokens;
+      if (typeof maxToolResultTokens === 'number' && maxToolResultTokens > 0) agentUpdate.maxToolResultTokens = maxToolResultTokens;
+      if (Object.keys(agentUpdate).length > 0) {
+        // 更新模板配置
+        if (this.agentConfig) {
+          if (agentUpdate.maxTokens !== undefined && this.agentConfig.trimConfig) {
+            this.agentConfig.trimConfig.maxTokens = agentUpdate.maxTokens;
+          }
+          if (agentUpdate.maxToolResultTokens !== undefined && this.agentConfig.trimConfig) {
+            this.agentConfig.trimConfig.maxToolResultTokens = agentUpdate.maxToolResultTokens;
+          }
+        }
+        // 更新所有现有连接的 AgentLoop
+        for (const [, { loop }] of this.agentLoops) {
+          loop.updateAgentConfig(agentUpdate);
+        }
+      }
+
+      // v7.1: 摘要配置更新
+      if (this.summarizer) {
+        const summarizerUpdate: import('../session/summarizer.js').SummarizerConfig = {};
+        if (typeof summarizeThreshold === 'number' && summarizeThreshold > 0) summarizerUpdate.summarizeThreshold = summarizeThreshold;
+        if (typeof maxMessagesToSummarize === 'number' && maxMessagesToSummarize > 0) summarizerUpdate.maxMessagesToSummarize = maxMessagesToSummarize;
+        if (typeof maxSummaryTokens === 'number' && maxSummaryTokens > 0) summarizerUpdate.maxSummaryTokens = maxSummaryTokens;
+        if (Object.keys(summarizerUpdate).length > 0) {
+          this.summarizer.updateConfig(summarizerUpdate);
+        }
       }
 
       return { success: true };
