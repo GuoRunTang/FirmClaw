@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * src/index.ts
  *
@@ -27,6 +28,9 @@ import { editTool } from './tools/edit.js';
 import { webSearchTool } from './tools/web-search.js';
 import { webFetchTool } from './tools/web-fetch.js';
 import { DefaultPermissionPolicy } from './tools/permissions.js';
+import { HookManager } from './tools/hook-manager.js';
+import { IssueTracker } from './issues/tracker.js';
+import { ReportGenerator } from './issues/report-generator.js';
 import { AgentLoop } from './agent/agent-loop.js';
 import { SessionManager } from './session/manager.js';
 import { ContextBuilder } from './session/context-builder.js';
@@ -57,7 +61,14 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const workDir = process.cwd();
+  // 确定工作目录：如果当前目录下存在 workspace/ 子目录，则优先使用它
+  // 这样在 FirmClaw 项目根目录启动时，Agent 的文件操作不会影响项目源码
+  const cwd = process.cwd();
+  const workspaceDir = path.join(cwd, 'workspace');
+  const workDir = fs.existsSync(workspaceDir) ? workspaceDir : cwd;
+  if (workDir !== cwd) {
+    fs.mkdirSync(workDir, { recursive: true });
+  }
 
   console.log(`FirmClaw v7.0.0`);
   console.log(`Model: ${model}`);
@@ -79,6 +90,16 @@ async function main(): Promise<void> {
   // 设置权限策略
   const policy = new DefaultPermissionPolicy({ allowedPaths: [workDir] });
   tools.setPolicy(policy);
+
+  // v7.3: 初始化问题追踪系统
+  const issuesDir = path.join(os.homedir(), '.firmclaw', 'issues');
+  const issueTracker = new IssueTracker({ storageDir: issuesDir });
+  const reportGenerator = new ReportGenerator(issuesDir);
+
+  // 设置 HookManager + 注册 IssueTracker 的 after hook
+  const hookManager = new HookManager();
+  hookManager.registerAfter('*', issueTracker.createAfterHook());
+  tools.setHookManager(hookManager);
 
   // Phase 3: 初始化会话系统
   const sessionDir = path.join(os.homedir(), '.firmclaw', 'sessions');
@@ -178,6 +199,7 @@ async function main(): Promise<void> {
     const latest = await sessionManager.resumeLatest();
     if (latest) {
       console.log(`Resumed session: ${latest.id} (${latest.title}, ${latest.messageCount} msgs)`);
+      issueTracker.setSession(latest.id, latest.title);
     }
   } catch {
     // 首次运行无历史会话，忽略
@@ -185,6 +207,10 @@ async function main(): Promise<void> {
 
   // ──── 4. 订阅事件流 ────
   const events = agent.getEvents();
+
+  // v7.3: 绑定 IssueTracker 到 EventStream（方案 B 通道）
+  issueTracker.bindEvents(events);
+
   const renderer = new Renderer({ width: process.stdout.columns || 80, color: true });
   const progress = new ProgressIndicator();
 
@@ -299,6 +325,9 @@ Available commands:
   /forget <id>      Delete a memory by ID
   /search <query>   Full-text search across sessions and memories
   /compact          Manually trigger context compression
+  /issues           Show issue tracking summary for current session
+  /issues --scan    Scan all sessions and regenerate reports
+  /issues --global  Show global issue summary
   /index            Show search index statistics
   /skill-list       List all available skills
   /skill <name> [args]  Activate a skill manually
@@ -318,6 +347,7 @@ Available commands:
       case '/new': {
         const meta = await sessionManager.create(workDir);
         agent.resetSession(meta.id);
+        issueTracker.setSession(meta.id, meta.title);
         console.log(`New session created: ${meta.id}`);
         break;
       }
@@ -329,6 +359,7 @@ Available commands:
             : await sessionManager.resumeLatest();
           if (meta) {
             agent.resetSession(meta.id);
+            issueTracker.setSession(meta.id, meta.title);
             console.log(`Resumed session: ${meta.id} (${meta.title}, ${meta.messageCount} msgs)`);
           } else {
             console.log('No session found.');
@@ -493,6 +524,61 @@ Available commands:
           }
         } catch (error: unknown) {
           console.error(`Compression failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        break;
+      }
+
+      case '/issues': {
+        try {
+          if (arg === '--scan') {
+            const sessionsDir = path.join(os.homedir(), '.firmclaw', 'sessions');
+            console.log('Scanning all session files for issues...');
+            const result = await issueTracker.scanSessions(sessionsDir);
+            console.log(`  Scanned: ${result.scanned} sessions, Found: ${result.issuesFound} issues`);
+            // Generate global summary
+            const globalSummary = issueTracker.getGlobalSummary();
+            const summaryPath = reportGenerator.writeGlobalSummary(globalSummary);
+            console.log(`  Global summary written to: ${summaryPath}`);
+          } else if (arg === '--global') {
+            const summary = issueTracker.getGlobalSummary();
+            if (summary.totalIssues === 0) {
+              console.log('No issues found across all sessions.');
+            } else {
+              console.log(`\nGlobal Issue Summary:`);
+              console.log(`  Total: ${summary.totalIssues} issues`);
+              console.log(`  Resolve rate: ${(summary.resolveRate * 100).toFixed(1)}%`);
+              console.log(`  Categories:`);
+              for (const cat of summary.byCategory) {
+                console.log(`    ${cat.label} (${cat.category}): ${cat.count}`);
+              }
+              const summaryPath = reportGenerator.writeGlobalSummary(summary);
+              console.log(`  Report: ${summaryPath}`);
+            }
+          } else {
+            const sessionId = agent.getCurrentSessionId();
+            if (!sessionId) {
+              console.log('No active session.');
+              break;
+            }
+            const sessionMeta = sessionManager.getCurrentMeta();
+            const sessionTitle = sessionMeta?.title ?? 'Untitled';
+            issueTracker.setSession(sessionId, sessionTitle);
+            const summary = issueTracker.getSessionSummary(sessionId);
+            const records = issueTracker.getStore().getBySession(sessionId);
+            if (records.length === 0) {
+              console.log('No issues found in this session.');
+            } else {
+              console.log(`\nSession Issues (${sessionId.slice(0, 12)}...):`);
+              console.log(`  Total: ${records.length} issues`);
+              for (const cat of summary) {
+                console.log(`    ${cat.label} (${cat.category}): ${cat.count}`);
+              }
+              const reportPath = reportGenerator.writeSessionReport(sessionId, records, { title: sessionTitle });
+              console.log(`  Report: ${reportPath}`);
+            }
+          }
+        } catch (error: unknown) {
+          console.error(`Issue tracking failed: ${error instanceof Error ? error.message : String(error)}`);
         }
         break;
       }
