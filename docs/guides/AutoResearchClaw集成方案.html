@@ -2147,18 +2147,27 @@ setTimeout(renderDiagramsIfNeeded, 500);
         </div>
         <div class="mermaid-container">
           <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>screened_papers.jsonl"] --> B["<b>📁 创建目录</b><br/>knowledge_cards/"]
-    B --> C["<b>🔍 遍历论文</b><br/>for paper in papers"]
-    C --> D["<b>🤖 LLM 提取</b><br/>batch call per paper"]
-    D --> E["<b>💾 保存知识卡</b><br/>{paper_id}.json"]
-    E --> C
-    C -.->|所有论文完成| F["<b>📝 输出目录</b><br/>knowledge_cards/*.json"]
-    F --> G["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#8B5CF6,color:#F1F5F9
-    style D fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style G fill:#22C55E,stroke:#22C55E,color:#0F172A
+          <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">screened_papers.jsonl</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📁 <b>创建目录</b><div class="fc-sublabel">knowledge_cards/</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔍 <b>遍历论文</b><div class="fc-sublabel">for paper in papers</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🤖 <b>LLM 提取</b><div class="fc-sublabel">batch call per paper</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">💾 <b>保存知识卡</b><div class="fc-sublabel">{paper_id}.json</div></div>
+            <div class="fc-arrow">↺</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-action">📝 <b>输出目录</b><div class="fc-sublabel">knowledge_cards/*.json</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>
@@ -2390,33 +2399,55 @@ graph TD
             <div style="margin-top:8px;font-size:12px;color:var(--accent2)">RL 兼容性检查：DNN 不能搭配连续动作环境（HalfCheetah / Hopper 等）→ 报错提示</div>
           </div>
         </div>
-        <div class="mermaid-container">
-          <div class="mermaid">
-graph TD
-    A["<b>📥 输入</b><br/>exp_plan.yaml"] --> B["<b>🖥️ 加载硬件</b><br/>GPU型号/VRAM检测"]
-    B --> C["<b>📦 构建包提示</b><br/>GPU感知依赖选择"]
-    C --> D["<b>🔨 构建代码提示</b><br/>exp_plan + 包 + 预算"]
-    D --> E["<b>🤖 LLM 生成代码</b><br/>生成多文件代码块"]
-    E --> F["<b>🔍 AST 验证</b><br/>validate_code"]
-    F --> G{"验证通过?"}
-    G -->|No| H["<b>🔧 构建修复提示</b>"]
-    H --> I{"修复次数 < 5?"}
-    I -->|Yes| E
-    I -->|No| J["<b>❌ 放弃</b><br/>超过最大修复次数"]
-    G -->|Yes| K["<b>💾 保存代码文件</b><br/>models.py/data.py/main.py"]
-    K --> L{"启用 Beast Mode?"}
-    L -->|Yes| M["<b>🦍 OpenCode 委托</b><br/>复杂代码外部处理"]
-    L -->|No| N["<b>📝 输出</b><br/>完整实验代码"]
-    M --> N
-    N --> O["<b>✅ 完成</b>"]
-    
-    style A fill:#1E293B,stroke:#F59E0B,color:#F1F5F9
-    style E fill:#0F172A,stroke:#8B5CF6,color:#F1F5F9
-    style F fill:#0F172A,stroke:#22C55E,color:#F1F5F9
-    style G fill:#0F172A,stroke:#EF4444,color:#F1F5F9
-    style J fill:#EF4444,stroke:#EF4444,color:#F1F5F9
-    style M fill:#A78BFA,stroke:#A78BFA,color:#0F172A
-    style O fill:#22C55E,stroke:#22C55E,color:#0F172A
+        <div class="flowchart">
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-input">📥 <b>输入</b><div class="fc-sublabel">exp_plan.yaml</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">🖥️ <b>加载硬件</b><div class="fc-sublabel">GPU型号/VRAM检测</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">📦 <b>构建包提示</b><div class="fc-sublabel">GPU感知依赖选择</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-action">🔨 <b>构建代码提示</b></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-arrow">↓</div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-process">🤖 <b>LLM 生成代码</b><div class="fc-sublabel">生成多文件代码块</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-process">🔍 <b>AST 验证</b><div class="fc-sublabel">validate_code</div></div>
+            <div class="fc-arrow">→</div>
+            <div class="fc-box fc-box-decision">❓ 验证通过?</div>
+          </div>
+          <div class="fc-branch">
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-yes">Yes →</span>
+              <div class="fc-box fc-box-action">💾 <b>保存代码文件</b><div class="fc-sublabel">models.py/data.py/main.py</div></div>
+            </div>
+            <div class="flowchart-row" style="margin-bottom:0">
+              <span class="fc-label-no">No →</span>
+              <div class="fc-box fc-box-process">🔧 <b>构建修复提示</b></div>
+              <div class="fc-arrow">→</div>
+              <div class="fc-box fc-box-decision">修复次数 < 5?</div>
+            </div>
+          </div>
+          <div class="flowchart-row">
+            <span class="fc-label-no">No →</span>
+            <div class="fc-box fc-box-error">❌ <b>放弃</b><div class="fc-sublabel">超过最大修复次数</div></div>
+            <span class="fc-label-yes">Yes →</span>
+            <div class="fc-arrow">↺</div>
+            <span class="fc-label">返回 LLM 生成</span>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-decision">启用 Beast Mode?</div>
+            <div class="fc-arrow">→</div>
+            <span class="fc-label-yes">Yes →</span>
+            <div class="fc-box fc-box-process" style="border-color:#A78BFA">🦍 <b>OpenCode 委托</b></div>
+            <span class="fc-label-no">No →</span>
+            <div class="fc-box fc-box-action">📝 <b>输出</b><div class="fc-sublabel">完整实验代码</div></div>
+          </div>
+          <div class="flowchart-row">
+            <div class="fc-box fc-box-success">✅ 完成</div>
           </div>
         </div>
       </div>

@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FirmClaw v7.0 技术手册</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   全局变量与重置
+   ═══════════════════════════════════════════════════════ */
+:root {
+  --sidebar-w: 280px;
+  --bg: #0d1117;
+  --bg-sidebar: #010409;
+  --bg-card: #161b22;
+  --bg-code: #0d1117;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  --accent: #58a6ff;
+  --accent-hover: #79c0ff;
+  --green: #3fb950;
+  --yellow: #d29922;
+  --red: #f85149;
+  --purple: #bc8cff;
+  --cyan: #39d2c0;
+  --orange: #f0883e;
+  --tag-v1: #238636;
+  --tag-v2: #1f6feb;
+  --tag-v3: #8957e5;
+  --tag-v4: #bc8cff;
+  --tag-v5: #f0883e;
+  --tag-v6: #58a6ff;
+  --tag-v7: #f778ba;
+  --radius: 8px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════════════
+   侧边栏
+   ═══════════════════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-header {
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar-header h1 .logo {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent), var(--tag-v7));
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+}
+.sidebar-header .version {
+  font-size: 11px;
+  color: var(--tag-v7);
+  background: rgba(247,120,186,0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+.sidebar-nav { flex: 1; padding: 12px 0; }
+.nav-group { margin-bottom: 4px; }
+.nav-group-title {
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px 7px 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+}
+.nav-item:hover { color: var(--text); background: rgba(88,166,255,0.06); }
+.nav-item.active { color: var(--accent); background: rgba(88,166,255,0.1); border-left-color: var(--accent); }
+.nav-item .nav-icon { width: 16px; text-align: center; flex-shrink: 0; }
+.nav-item .nav-ver {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.nav-ver.v10 { background: rgba(35,134,54,0.15); color: var(--green); }
+.nav-ver.v30 { background: rgba(137,87,229,0.15); color: var(--tag-v3); }
+.nav-ver.v40 { background: rgba(188,140,255,0.15); color: var(--purple); }
+.nav-ver.v50 { background: rgba(240,136,62,0.15); color: var(--tag-v5); }
+.nav-ver.v60 { background: rgba(88,166,255,0.15); color: var(--tag-v6); }
+.nav-ver.v70 { background: rgba(247,120,186,0.15); color: var(--tag-v7); }
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════
+   主内容区
+   ═══════════════════════════════════════════════════════ */
+.main { flex: 1; margin-left: var(--sidebar-w); min-width: 0; }
+.content { max-width: 920px; margin: 0 auto; padding: 40px 48px 80px; }
+
+/* ═══════════════════════════════════════════════════════
+   横向 Tab 导航
+   ═══════════════════════════════════════════════════════ */
+.top-tabs {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(13,17,23,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 0; padding: 0 48px;
+  max-width: 920px; margin: 0 auto;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 12px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all 0.15s;
+  white-space: nowrap; font-family: var(--font);
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ═══════════════════════════════════════════════════════
+   Section 通用样式
+   ═══════════════════════════════════════════════════════ */
+.section { display: none; animation: fadeIn 0.25s ease; }
+.section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.section h2 { font-size: 28px; font-weight: 700; margin-bottom: 8px; padding-top: 20px; }
+.section > h2::after {
+  content: ''; display: block; width: 48px; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--tag-v7));
+  border-radius: 2px; margin-top: 8px; margin-bottom: 24px;
+}
+.section h3 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.section h4 { font-size: 14px; font-weight: 600; margin: 20px 0 8px; color: var(--accent); }
+.section p { margin-bottom: 12px; color: var(--text-secondary); }
+
+/* ═══════════════════════════════════════════════════════
+   特殊组件
+   ═══════════════════════════════════════════════════════ */
+.ver-tag {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 4px; vertical-align: middle; margin-left: 6px; letter-spacing: 0.02em;
+}
+.ver-tag.phase1 { background: rgba(35,134,54,0.15); color: var(--green); }
+.ver-tag.phase2 { background: rgba(31,111,235,0.15); color: var(--accent); }
+.ver-tag.phase3 { background: rgba(137,87,229,0.15); color: var(--tag-v3); }
+.ver-tag.phase4 { background: rgba(188,140,255,0.15); color: var(--purple); }
+.ver-tag.phase5 { background: rgba(240,136,62,0.15); color: var(--tag-v5); }
+.ver-tag.phase6 { background: rgba(88,166,255,0.15); color: var(--tag-v6); }
+.ver-tag.phase7 { background: rgba(247,120,186,0.15); color: var(--tag-v7); }
+
+.callout { padding: 14px 18px; border-radius: var(--radius); margin: 16px 0; border-left: 3px solid; font-size: 13px; }
+.callout.info { background: rgba(88,166,255,0.08); border-color: var(--accent); color: var(--text-secondary); }
+.callout.warn { background: rgba(210,153,34,0.08); border-color: var(--yellow); color: var(--text-secondary); }
+.callout.danger { background: rgba(248,81,73,0.08); border-color: var(--red); color: var(--text-secondary); }
+.callout.success { background: rgba(63,185,80,0.08); border-color: var(--green); color: var(--text-secondary); }
+.callout strong { color: var(--text); }
+.callout code { background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+pre {
+  background: var(--bg-code); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px;
+  overflow-x: auto; margin: 12px 0; font-size: 12.5px; line-height: 1.6;
+}
+pre code { font-family: var(--font-mono); color: var(--text); }
+code {
+  font-family: var(--font-mono); font-size: 12.5px;
+  background: rgba(255,255,255,0.06); padding: 2px 6px;
+  border-radius: 4px; color: var(--accent);
+}
+
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+th {
+  text-align: left; padding: 10px 14px;
+  background: rgba(255,255,255,0.03); border-bottom: 2px solid var(--border);
+  font-weight: 600; color: var(--text); font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+ul, ol { margin: 8px 0 12px 20px; color: var(--text-secondary); }
+li { margin-bottom: 4px; }
+
+.file-tree {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px;
+  margin: 16px 0; font-family: var(--font-mono);
+  font-size: 13px; line-height: 1.8; overflow-x: auto;
+}
+.file-tree .comment { color: var(--text-muted); }
+.file-tree .dir { color: var(--accent); }
+.file-tree .file { color: var(--text); }
+.file-tree .new { color: var(--green); }
+
+.interface-box {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); margin: 12px 0; overflow: hidden;
+}
+.interface-header {
+  padding: 10px 16px;
+  background: rgba(88,166,255,0.06); border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 14px;
+  font-weight: 600; color: var(--accent);
+  display: flex; align-items: center; gap: 8px;
+}
+.interface-body {
+  padding: 12px 16px; font-family: var(--font-mono);
+  font-size: 12.5px; line-height: 1.8;
+}
+
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 16px; }
+.badge { font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
+.badge.dep { background: rgba(188,140,255,0.12); color: var(--purple); }
+.badge.runtime { background: rgba(63,185,80,0.12); color: var(--green); }
+.badge.dev { background: rgba(210,153,34,0.12); color: var(--yellow); }
+.badge.zero { background: rgba(57,210,192,0.12); color: var(--cyan); }
+.badge.new { background: rgba(247,120,186,0.12); color: var(--tag-v7); }
+
+.stat-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px; margin: 16px 0;
+}
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px; text-align: center;
+}
+.stat-card .stat-value { font-size: 32px; font-weight: 700; color: var(--accent); }
+.stat-card .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.flow-diagram {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+  margin: 16px 0; text-align: center; overflow-x: auto;
+  font-family: var(--font-mono); font-size: 12px; line-height: 1.6;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .top-tabs { padding: 0 16px; }
+  .content { padding: 24px 16px 60px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     侧边栏
+     ═══════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1><span class="logo">FC</span> FirmClaw <span class="version">v7.0</span></h1>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-group-title">概述</div>
+      <a class="nav-item active" data-section="overview" onclick="showSection('overview')">
+        <span class="nav-icon">&#x1F4D6;</span> 项目简介
+      </a>
+      <a class="nav-item" data-section="architecture" onclick="showSection('architecture')">
+        <span class="nav-icon">&#x1F3D7;</span> 系统架构
+      </a>
+      <a class="nav-item" data-section="quickstart" onclick="showSection('quickstart')">
+        <span class="nav-icon">&#x1F680;</span> 快速开始
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 1-2 核心</div>
+      <a class="nav-item" data-section="agent-loop" onclick="showSection('agent-loop')">
+        <span class="nav-icon">&#x1F9E0;</span> Agent Loop
+        <span class="nav-ver v10">v1.0</span>
+      </a>
+      <a class="nav-item" data-section="tools" onclick="showSection('tools')">
+        <span class="nav-icon">&#x1F527;</span> 工具系统
+        <span class="nav-ver v10">v1.1-v1.6</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 3 会话管理</div>
+      <a class="nav-item" data-section="session" onclick="showSection('session')">
+        <span class="nav-icon">&#x1F4C4;</span> SessionManager
+        <span class="nav-ver v30">v2.1</span>
+      </a>
+      <a class="nav-item" data-section="context-builder" onclick="showSection('context-builder')">
+        <span class="nav-icon">&#x1F3AF;</span> ContextBuilder
+        <span class="nav-ver v30">v2.2</span>
+      </a>
+      <a class="nav-item" data-section="summarizer" onclick="showSection('summarizer')">
+        <span class="nav-icon">&#x1F4DD;</span> Summarizer
+        <span class="nav-ver v40">v3.1</span>
+      </a>
+      <a class="nav-item" data-section="memory" onclick="showSection('memory')">
+        <span class="nav-icon">&#x1F9E0;</span> MemoryManager
+        <span class="nav-ver v40">v3.2</span>
+      </a>
+      <a class="nav-item" data-section="search" onclick="showSection('search')">
+        <span class="nav-icon">&#x1F50D;</span> SearchEngine
+        <span class="nav-ver v40">v3.3</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 5 安全与自主</div>
+      <a class="nav-item" data-section="approval" onclick="showSection('approval')">
+        <span class="nav-icon">&#x1F6E1;</span> ApprovalGateway
+        <span class="nav-ver v50">v4.1</span>
+      </a>
+      <a class="nav-item" data-section="hooks" onclick="showSection('hooks')">
+        <span class="nav-icon">&#x1F517;</span> HookManager
+        <span class="nav-ver v50">v4.5</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 6 远程交互</div>
+      <a class="nav-item" data-section="gateway" onclick="showSection('gateway')">
+        <span class="nav-icon">&#x1F510;</span> WebSocket Gateway
+        <span class="nav-ver v60">v5.1</span>
+      </a>
+      <a class="nav-item" data-section="subagent" onclick="showSection('subagent')">
+        <span class="nav-icon">&#x1F916;</span> 子智能体
+        <span class="nav-ver v60">v5.3</span>
+      </a>
+      <a class="nav-item" data-section="webui" onclick="showSection('webui')">
+        <span class="nav-icon">&#x1F310;</span> Web UI
+        <span class="nav-ver v60">v5.4</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Phase 7 扩展生态</div>
+      <a class="nav-item" data-section="skills" onclick="showSection('skills')">
+        <span class="nav-icon">&#x1F3AF;</span> Skill 技能系统
+        <span class="nav-ver v70">v7.0</span>
+      </a>
+      <a class="nav-item" data-section="mcp" onclick="showSection('mcp')">
+        <span class="nav-icon">&#x1F517;</span> MCP 协议扩展
+        <span class="nav-ver v70">v7.0</span>
+      </a>
+      <a class="nav-item" data-section="web-search" onclick="showSection('web-search')">
+        <span class="nav-icon">&#x1F50D;</span> 联网搜索
+        <span class="nav-ver v70">v7.0</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">v7.3 问题追踪</div>
+      <a class="nav-item" data-section="issue-tracker" onclick="showSection('issue-tracker')">
+        <span class="nav-icon">&#x1F4CA;</span> 问题追踪系统
+        <span class="nav-ver v70">v7.3</span>
+      </a>
+      <a class="nav-item" data-section="classifier" onclick="showSection('classifier')">
+        <span class="nav-icon">&#x1F3AF;</span> 问题分类器
+        <span class="nav-ver v70">v7.3</span>
+      </a>
+      <a class="nav-item" data-section="report-gen" onclick="showSection('report-gen')">
+        <span class="nav-icon">&#x1F4C4;</span> 报告生成器
+        <span class="nav-ver v70">v7.3</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">参考</div>
+      <a class="nav-item" data-section="file-structure" onclick="showSection('file-structure')">
+        <span class="nav-icon">&#x1F4C1;</span> 文件结构
+      </a>
+      <a class="nav-item" data-section="cli" onclick="showSection('cli')">
+        <span class="nav-icon">&#x2328;</span> CLI 命令
+      </a>
+      <a class="nav-item" data-section="version-history" onclick="showSection('version-history')">
+        <span class="nav-icon">&#x1F4CB;</span> 版本历史
+      </a>
+      <a class="nav-item" data-section="capabilities" onclick="showSection('capabilities')">
+        <span class="nav-icon">&#x1F4AF;</span> 能力与边界
+      </a>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="margin-bottom:8px">
+      <a href="FirmClaw技术手册-v6.0.html" style="color:var(--accent);text-decoration:none;font-size:11px;">v6.0 手册</a>
+    </div>
+    TypeScript + Node.js &middot; ReAct Architecture
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════
+     主内容区
+     ═══════════════════════════════════════════════════════ -->
+<div class="main">
+  <div class="top-tabs">
+    <button class="tab-btn active" data-section="overview" onclick="showSection('overview')">概述</button>
+    <button class="tab-btn" data-section="architecture" onclick="showSection('architecture')">架构</button>
+    <button class="tab-btn" data-section="quickstart" onclick="showSection('quickstart')">快速开始</button>
+    <button class="tab-btn" data-section="skills" onclick="showSection('skills')">Skill</button>
+    <button class="tab-btn" data-section="mcp" onclick="showSection('mcp')">MCP</button>
+    <button class="tab-btn" data-section="issue-tracker" onclick="showSection('issue-tracker')">问题追踪</button>
+    <button class="tab-btn" data-section="report-gen" onclick="showSection('report-gen')">报告</button>
+    <button class="tab-btn" data-section="gateway" onclick="showSection('gateway')">Gateway</button>
+    <button class="tab-btn" data-section="cli" onclick="showSection('cli')">CLI</button>
+    <button class="tab-btn" data-section="file-structure" onclick="showSection('file-structure')">文件结构</button>
+    <button class="tab-btn" data-section="version-history" onclick="showSection('version-history')">版本</button>
+    <button class="tab-btn" data-section="capabilities" onclick="showSection('capabilities')">能力</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 项目简介
+         ═══════════════════════════════════════════════════ -->
+    <div class="section active" id="sec-overview">
+      <h2>项目简介</h2>
+      <p>FirmClaw 是一个从零搭建的 <strong>本地优先 AI 智能体框架</strong>，核心采用 ReAct（Reasoning + Acting）架构。灵感来源于 Claude Code / OpenClaw，目标是实现一个可理解、可扩展、本地运行的生产级智能体系统。v7.0 在 v6.0 基础上新增了 <strong>Skill 技能系统</strong>、<strong>MCP 协议扩展</strong>和<strong>联网搜索</strong>三大能力，v7.3 新增了<strong>会话问题追踪系统</strong>。</p>
+
+      <h3>v7.0 核心亮点</h3>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value">7</div>
+          <div class="stat-label">开发阶段已完成</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">6</div>
+          <div class="stat-label">内置工具</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">100</div>
+          <div class="stat-label">问题追踪测试用例</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">6</div>
+          <div class="stat-label">外部依赖</div>
+        </div>
+      </div>
+
+      <h3>v7.0 新增能力</h3>
+      <table>
+        <thead><tr><th>能力</th><th>模块</th><th>版本</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Skill 技能系统（领域知识注入）</strong></td><td><strong>SkillManager</strong></td><td><span class="ver-tag phase7">v7.0</span></td></tr>
+          <tr><td><strong>MCP 协议扩展（外部工具接入）</strong></td><td><strong>MCPClientManager</strong></td><td><span class="ver-tag phase7">v7.0</span></td></tr>
+          <tr><td><strong>联网搜索（Bing / DuckDuckGo）</strong></td><td><strong>web_search 工具</strong></td><td><span class="ver-tag phase7">v7.0</span></td></tr>
+          <tr><td><strong>网页正文抓取</strong></td><td><strong>web_fetch 工具</strong></td><td><span class="ver-tag phase7">v7.0</span></td></tr>
+          <tr><td><strong>会话问题追踪系统</strong></td><td><strong>IssueTracker + Classifier + Store</strong></td><td><span class="ver-tag phase7">v7.3</span></td></tr>
+          <tr><td><strong>Markdown 报告生成</strong></td><td><strong>ReportGenerator</strong></td><td><span class="ver-tag phase7">v7.3</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>完整能力矩阵</h3>
+      <table>
+        <thead><tr><th>能力</th><th>模块</th><th>版本</th></tr></thead>
+        <tbody>
+          <tr><td>理解自然语言指令并自主规划执行步骤</td><td>AgentLoop + LLMClient</td><td><span class="ver-tag phase1">v1.0</span></td></tr>
+          <tr><td>执行任意终端命令并获取输出</td><td>bash 工具</td><td><span class="ver-tag phase1">v1.0</span></td></tr>
+          <tr><td>读取 / 创建 / 编辑文件</td><td>read / write / edit 工具</td><td><span class="ver-tag phase2">v1.2-v1.4</span></td></tr>
+          <tr><td>三层安全防护（路径白名单+命令黑名单+敏感文件）</td><td>PermissionPolicy</td><td><span class="ver-tag phase2">v1.6</span></td></tr>
+          <tr><td>多轮对话（会话持久化 + 自动恢复）</td><td>SessionManager</td><td><span class="ver-tag phase3">v2.1</span></td></tr>
+          <tr><td>动态系统提示词（SOUL.md / MEMORY.md）</td><td>ContextBuilder</td><td><span class="ver-tag phase3">v2.2</span></td></tr>
+          <tr><td>LLM 摘要压缩（80K token 阈值自动触发）</td><td>Summarizer</td><td><span class="ver-tag phase4">v3.1</span></td></tr>
+          <tr><td>结构化记忆管理（偏好/决策/待办/知识）</td><td>MemoryManager</td><td><span class="ver-tag phase4">v3.2</span></td></tr>
+          <tr><td>全文搜索引擎（纯 JS BM25）</td><td>SearchEngine</td><td><span class="ver-tag phase4">v3.3</span></td></tr>
+          <tr><td>人工审批 + 审计日志 + 心跳</td><td>ApprovalGateway + AuditLogger</td><td><span class="ver-tag phase5">v4.1-v4.4</span></td></tr>
+          <tr><td>工具执行钩子（before/after hook）</td><td>HookManager</td><td><span class="ver-tag phase5">v4.5</span></td></tr>
+          <tr><td>WebSocket 远程交互（JSON-RPC 2.0）</td><td>GatewayServer</td><td><span class="ver-tag phase6">v5.1</span></td></tr>
+          <tr><td>CLI 富文本渲染 + 进度指示器</td><td>Renderer + ProgressIndicator</td><td><span class="ver-tag phase6">v5.2</span></td></tr>
+          <tr><td>子智能体委派（并行任务执行）</td><td>SubagentManager</td><td><span class="ver-tag phase6">v5.3</span></td></tr>
+          <tr><td>Web UI（浏览器聊天界面）</td><td>Web UI（嵌入式 HTML）</td><td><span class="ver-tag phase6">v5.4</span></td></tr>
+          <tr><td><strong>Skill 技能系统（领域知识注入）</strong></td><td><strong>SkillManager</strong></td><td><span class="ver-tag phase7">v7.0</span></td></tr>
+          <tr><td><strong>MCP 协议扩展（外部工具服务器接入）</strong></td><td><strong>MCPClientManager</strong></td><td><span class="ver-tag phase7">v7.0</span></td></tr>
+          <tr><td><strong>联网搜索 + 网页抓取</strong></td><td><strong>web_search + web_fetch</strong></td><td><span class="ver-tag phase7">v7.0</span></td></tr>
+          <tr><td><strong>会话问题追踪（11 分类，33+ 规则）</strong></td><td><strong>IssueTracker</strong></td><td><span class="ver-tag phase7">v7.3</span></td></tr>
+          <tr><td><strong>Markdown 报告生成（会话级 + 全局汇总）</strong></td><td><strong>ReportGenerator</strong></td><td><span class="ver-tag phase7">v7.3</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>依赖一览</h3>
+      <div class="badge-row">
+        <span class="badge dep">openai ^6.32</span>
+        <span class="badge dep">ajv ^8.18</span>
+        <span class="badge dep">dotenv ^17.3</span>
+        <span class="badge dep">ws ^8.20</span>
+        <span class="badge dep">pptxgenjs ^4.0</span>
+        <span class="badge dev">typescript ^6.0</span>
+        <span class="badge dev">tsx ^4.21</span>
+        <span class="badge runtime">Node.js >= 18</span>
+      </div>
+
+      <h3>性能边界</h3>
+      <table>
+        <thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>摘要触发阈值</td><td>80,000 tokens</td><td>历史消息超过此值时自动触发 LLM 摘要</td></tr>
+          <tr><td>上下文窗口上限</td><td>128,000 tokens</td><td>TokenCounter 裁剪阈值</td></tr>
+          <tr><td>Agent 最大循环轮次</td><td>20 轮（默认）</td><td>防止无限循环</td></tr>
+          <tr><td>bash 输出截断</td><td>100KB</td><td>超长输出自动截断</td></tr>
+          <tr><td>WebSocket 最大连接数</td><td>10（默认）</td><td>可配置 maxConnections</td></tr>
+          <tr><td>子智能体最大并发</td><td>3（默认）</td><td>可配置 maxSubagents</td></tr>
+          <tr><td>子智能体默认超时</td><td>2 分钟</td><td>可配置 timeoutMs</td></tr>
+          <tr><td><strong>问题分类规则数</strong></td><td><strong>33+ 条</strong></td><td><strong>覆盖 11 个一级分类</strong></td></tr>
+          <tr><td><strong>问题追踪存储</strong></td><td><strong>JSONL append-only</strong></td><td><strong>~/.firmclaw/issues/</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 系统架构
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-architecture">
+      <h2>系统架构</h2>
+      <p>FirmClaw v7.0 在 v6.0 基础上新增了 <strong>Skill 技能系统</strong>、<strong>MCP 协议扩展</strong>、<strong>联网搜索工具</strong>和 <strong>会话问题追踪系统</strong>四大模块。核心仍然是 ReAct 智能体循环。</p>
+
+      <h3>v7.0 架构总览</h3>
+      <div class="flow-diagram">
+<pre>用户输入
+  │
+  ├──── CLI 模式 ────────────────────┐
+  │     └→ Renderer + ProgressIndicator │
+  │                                     │
+  └──── WebSocket 模式 ─────────────┐  │
+        └→ GatewayServer            │  │
+           ├→ AuthGuard              │  │
+           ├→ ConnectionManager      │  │
+           ├→ MessageRouter          │  │
+           └→ AgentLoop ←────────────┘  │
+                                       │
+┌──────────────────────────────────────┘
+│
+▼
+┌─────────────────────────────────────────────────┐
+│              AgentLoop (ReAct 循环)               │
+│                                                  │
+│  run(userMessage) {                             │
+│    ① ContextBuilder.build()                      │
+│       ├→ SkillManager.matchAndInject()  ←v7.0   │
+│       ├→ MCPClientManager.getToolDefs() ←v7.0   │
+│       ├→ SearchEngine.search()                   │
+│       └→ MemoryManager                           │
+│    ② Summarizer.shouldSummarize()?               │
+│    ③ TokenCounter.trim()                         │
+│    ④ LLM.chat(messages) ← ReAct 循环             │
+│    ⑤ 工具执行循环:                                │
+│       ├─ AJV 参数校验                             │
+│       ├─ runBeforeHooks()                         │
+│       ├─ PermissionPolicy.check()                 │
+│       ├─ ApprovalGateway.request()                 │
+│       ├─ tool.execute()                            │
+│       │  ├→ bash / read / write / edit             │
+│       │  ├→ web_search / web_fetch     ←v7.0     │
+│       │  └→ mcp__* 工具 (MCP 接入)    ←v7.0     │
+│       ├─ runAfterHooks()                          │
+│       │  └→ IssueTracker.record()    ←v7.3       │
+│       ├─ PromptGuard.scan()                        │
+│       ├─ AuditLogger.log()                         │
+│       └─ SessionManager.append()                   │
+│    ⑥ EventStream → 广播 + 问题追踪 ←v7.3        │
+│  }                                                 │
+└─────────────────────────────────────────────────┘
+         │
+         ▼
+  ┌──────────────────────┐    ┌──────────────────────┐
+  │   IssueTracker       │    │   ReportGenerator    │
+  │   (v7.3)             │    │   (v7.3)             │
+  │   ├→ Classifier      │───→│   ├→ 会话级报告       │
+  │   ├→ Store (JSONL)   │    │   └→ 全局汇总报告     │
+  │   └→ 双通道接入       │    │                      │
+  └──────────────────────┘    └──────────────────────┘</pre>
+      </div>
+
+      <h3>工具执行管道（v7.0 完整版）</h3>
+      <div class="flow-diagram">
+<pre>请求参数
+  │
+  ①  AJV 参数校验                        ← v1.1
+  ②  runBeforeHooks()                    ← v4.5
+  ③  PermissionPolicy.check()            ← v1.6
+  ④  ApprovalGateway.request()           ← v4.1
+  ⑤  tool.execute()                      ← v1.0
+     ├─ 内置工具: bash/read/write/edit/web_search/web_fetch
+     └─ MCP 工具: mcp__&lt;server&gt;__&lt;tool&gt;     ← v7.0
+  ⑥  runAfterHooks()                     ← v4.5
+     └─ IssueTracker.createAfterHook()    ← v7.3
+  ⑦  PromptGuard.scan()                  ← v4.2
+  ⑧  AuditLogger.log()                   ← v4.3
+  │
+  ▼
+返回结果</pre>
+      </div>
+
+      <h3>问题追踪双通道接入（v7.3 新增）</h3>
+      <div class="flow-diagram">
+<pre>AgentLoop
+  │
+  ├──── 通道 A: After Hook ─────────────────────────────┐
+  │  hookManager.registerAfter('*', issueTracker         │
+  │    .createAfterHook())                              │
+  │  → 捕获所有工具执行的 isError 结果                    │
+  │                                                     │
+  ├──── 通道 B: EventStream ───────────────────────────┐ │
+  │  events.on('error')           → API 调用失败        │ │
+  │  events.on('context_trimmed') → 上下文裁剪          │ │
+  │  events.on('approval_denied') → 审批拒绝            │ │
+  │  events.on('agent_status')    → 智能体状态          │ │
+  │                                                     │
+  └─────────────────────────────────────────────────────┘
+                          │
+                          ▼
+               ┌─────────────────────┐
+               │  IssueClassifier     │
+               │  (33+ 正则规则)      │
+               │  → 11 个一级分类      │
+               └──────────┬──────────┘
+                          │
+                          ▼
+               ┌─────────────────────┐
+               │  IssueStore          │
+               │  (内存缓存 + JSONL)  │
+               └──────────┬──────────┘
+                          │
+                          ▼
+               ┌─────────────────────┐
+               │  ReportGenerator     │
+               │  → session-{id}.md   │
+               │  → summary.md        │
+               └─────────────────────┘</pre>
+      </div>
+
+      <div class="callout info">
+        <strong>渐进增强设计</strong>：所有模块均为可选组件。IssueTracker 在 index.ts 启动时自动初始化并绑定到 HookManager 和 EventStream，不影响 AgentLoop 核心逻辑。最小可用系统仅需 LLMClient + AgentLoop + 至少一个工具。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 快速开始
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-quickstart">
+      <h2>快速开始</h2>
+
+      <h3>环境要求</h3>
+      <div class="badge-row">
+        <span class="badge runtime">Node.js >= 18</span>
+        <span class="badge runtime">npm >= 9</span>
+        <span class="badge dep">LLM API Key</span>
+      </div>
+
+      <h3>安装</h3>
+      <pre><code>git clone &lt;repo&gt; &amp;&amp; cd FirmClaw
+npm install
+cp .env.example .env   # 配置 LLM_API_KEY</code></pre>
+
+      <h3>运行</h3>
+      <pre><code># 开发模式
+npm run dev
+
+# 生产构建
+npm run build
+node dist/index.js
+
+# 全局安装
+npm link
+firmclaw</code></pre>
+
+      <h3>配置 LLM（任选其一）</h3>
+      <table>
+        <thead><tr><th>提供商</th><th>BASE_URL</th><th>模型示例</th></tr></thead>
+        <tbody>
+          <tr><td>OpenAI</td><td><code>https://api.openai.com/v1</code></td><td>gpt-4o, gpt-4o-mini</td></tr>
+          <tr><td>Claude</td><td><code>https://api.anthropic.com/v1</code></td><td>claude-3.5-sonnet</td></tr>
+          <tr><td>DeepSeek</td><td><code>https://api.deepseek.com/v1</code></td><td>deepseek-chat</td></tr>
+          <tr><td>Ollama (本地)</td><td><code>http://localhost:11434/v1</code></td><td>llama3, qwen2</td></tr>
+        </tbody>
+      </table>
+
+      <h3>离线部署</h3>
+      <pre><code># 在有网络的机器上打包
+pack-offline.bat            # 生成 offline-bundle.zip
+
+# 拷贝到内网机器后
+unzip offline-bundle.zip
+copy .env.example .env      # 配置 LLM API（指向内网端点）
+npm install
+node dist/index.js</code></pre>
+
+      <h3>运行测试</h3>
+      <pre><code># 全量测试（v7.3 问题追踪）
+npx tsx src/tests/test-classifier.ts       # 37 项
+npx tsx src/tests/test-store.ts            # 20 项
+npx tsx src/tests/test-tracker.ts          # 27 项
+npx tsx src/tests/test-report-generator.ts # 16 项
+
+# 历史测试
+npm run test:all</code></pre>
+
+      <div class="callout info">
+        <strong>提示</strong>：v7.0 新增了 Skill 和 MCP 功能。Skill 文件放在 <code>.claude/skills/</code> 或 <code>.firmclaw/skills/</code> 目录，MCP 配置放在 <code>.firmclaw/mcp-servers.yaml</code>。首次启动时自动加载。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: Skill 技能系统
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-skills">
+      <h2>Skill 技能系统 <span class="ver-tag phase7">v7.0</span></h2>
+      <p>源码：<code>src/skills/</code> — 兼容 Claude Code 的 SKILL.md 格式，支持领域知识注入、自动匹配和手动激活。</p>
+
+      <h3>SkillManager 核心接口</h3>
+      <div class="interface-box">
+        <div class="interface-header">SkillManager — src/skills/skill-manager.ts</div>
+        <div class="interface-body">
+<pre><code>class SkillManager {
+  /** 从多个目录加载 SKILL.md 文件 */
+  loadFromDirs(dirs: SkillDir[]): Promise&lt;number&gt;;
+
+  /** 根据用户输入关键词自动匹配并激活技能 */
+  autoMatch(userInput: string): SkillActivationResult[];
+
+  /** 手动激活指定技能 */
+  activateSkill(name: string, args?: string): SkillActivationResult;
+
+  /** 获取当前激活的技能注入内容 */
+  getActiveSkillPrompt(): string;
+
+  /** 列出所有可由用户手动调用的技能 */
+  listUserInvocable(): Array&lt;{ meta: SkillMeta; source: string }&gt;;
+}</code></pre>
+        </div>
+      </div>
+
+      <h3>SKILL.md 文件格式</h3>
+      <pre><code>&lt;!-- .claude/skills/my-skill/SKILL.md --&gt;
+---
+name: python-testing
+description: Python testing best practices with pytest
+user-invocable: true
+argument-hint: "&lt;test-file-path&gt;"
+mcp-servers:
+  - github
+---
+
+## Python Testing Best Practices
+1. Use `tests/` directory for all test files
+2. Name test files `test_&lt;module&gt;.py`
+3. Use pytest fixtures for common setup
+...</code></pre>
+
+      <h3>技能加载路径（按优先级）</h3>
+      <table>
+        <thead><tr><th>路径</th><th>类型</th><th>优先级</th></tr></thead>
+        <tbody>
+          <tr><td><code>{workDir}/.claude/skills/</code></td><td>项目级</td><td>最高</td></tr>
+          <tr><td><code>{workDir}/.firmclaw/skills/</code></td><td>项目级</td><td>高</td></tr>
+          <tr><td><code>~/.firmclaw/skills/</code></td><td>用户级</td><td>低</td></tr>
+        </tbody>
+      </table>
+
+      <h3>技能激活方式</h3>
+      <table>
+        <thead><tr><th>方式</th><th>触发</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>自动匹配</td><td>用户输入包含技能关键词</td><td>SkillManager.autoMatch() 在每次 run() 前调用</td></tr>
+          <tr><td>手动激活</td><td><code>/skill &lt;name&gt;</code></td><td>通过 REPL 斜杠命令触发</td></tr>
+          <tr><td>查看列表</td><td><code>/skill-list</code></td><td>列出所有 user-invocable 技能</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout info">
+        <strong>MCP 联动</strong>：技能可在 front-matter 中声明 <code>mcp-servers</code> 列表。手动激活时，如果依赖的 MCP Server 未连接，系统会自动尝试连接并注册其工具。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: MCP 协议扩展
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-mcp">
+      <h2>MCP 协议扩展 <span class="ver-tag phase7">v7.0</span></h2>
+      <p>源码：<code>src/mcp/</code> — 通过 Model Context Protocol 连接外部工具服务器，无缝扩展 FirmClaw 的工具能力。MCP 工具自动注册到内置 ToolRegistry，<strong>继承全部 5 层安全防护</strong>。</p>
+
+      <h3>MCPClientManager 核心接口</h3>
+      <div class="interface-box">
+        <div class="interface-header">MCPClientManager — src/mcp/mcp-client-manager.ts</div>
+        <div class="interface-body">
+<pre><code>class MCPClientManager {
+  /** 从 YAML 配置文件加载 MCP Server 定义 */
+  loadConfig(configPath: string): Promise&lt;void&gt;;
+
+  /** 自动连接所有 MCP Server 并注册工具 */
+  autoConnect(tools: ToolRegistry): Promise&lt;void&gt;;
+
+  /** 连接指定 MCP Server */
+  connect(serverName: string): Promise&lt;{ count: number; toolNames: string[] }&gt;;
+
+  /** 断开指定 MCP Server */
+  disconnect(serverName: string): Promise&lt;void&gt;;
+
+  /** 将 MCP Server 的工具同步到 ToolRegistry */
+  syncToolsToRegistry(serverName: string, tools: ToolRegistry): void;
+
+  /** 获取所有 Server 的连接状态 */
+  getStatus(): Array&lt;MCPStatus&gt;;
+
+  /** 判断指定 Server 是否已连接 */
+  isConnected(serverName: string): boolean;
+}</code></pre>
+        </div>
+      </div>
+
+      <h3>配置文件格式</h3>
+      <pre><code># .firmclaw/mcp-servers.yaml
+servers:
+  github:
+    command: npx
+    args: ["-y", "@anthropic-ai/mcp-server-github"]
+    env:
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+
+  filesystem:
+    command: npx
+    args: ["-y", "@anthropic-ai/mcp-server-filesystem"]
+    args: ["/path/to/allowed/dir"]
+
+  brave-search:
+    command: npx
+    args: ["-y", "@anthropic-ai/mcp-server-brave-search"]
+    env:
+      BRAVE_API_KEY: ${BRAVE_API_KEY}</code></pre>
+
+      <h3>传输协议支持</h3>
+      <table>
+        <thead><tr><th>协议</th><th>说明</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td><strong>stdio</strong></td><td>通过 stdin/stdout 通信（推荐，最稳定）</td><td>已支持</td></tr>
+          <tr><td>SSE</td><td>通过 HTTP Server-Sent Events 通信</td><td>已支持</td></tr>
+        </tbody>
+      </table>
+
+      <h3>工具命名规则</h3>
+      <p>MCP 工具自动以 <code>mcp__&lt;server&gt;__&lt;tool&gt;</code> 格式注册到 ToolRegistry，避免与内置工具冲突。</p>
+      <pre><code># 例如：github MCP Server 的 create_issue 工具
+# 注册名称：mcp__github__create_issue
+# 在 Agent 对话中可直接调用此工具</code></pre>
+
+      <h3>REPL 命令</h3>
+      <table>
+        <thead><tr><th>命令</th><th>功能</th></tr></thead>
+        <tbody>
+          <tr><td><code>/mcp-list</code></td><td>查看所有 MCP Server 连接状态</td></tr>
+          <tr><td><code>/mcp-connect &lt;name&gt;</code></td><td>手动连接指定 Server</td></tr>
+          <tr><td><code>/mcp-disconnect &lt;name&gt;</code></td><td>断开指定 Server</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 联网搜索
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-web-search">
+      <h2>联网搜索 <span class="ver-tag phase7">v7.0</span></h2>
+      <p>源码：<code>src/tools/web-search.ts</code>, <code>src/tools/web-fetch.ts</code>, <code>src/web/</code> — 两个新内置工具让 Agent 具备联网能力。</p>
+
+      <h3>web_search 工具</h3>
+      <table>
+        <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>query</td><td>string</td><td>是</td><td>搜索关键词</td></tr>
+          <tr><td>engine</td><td>string</td><td>否</td><td>搜索引擎：bing（默认）/ duckduckgo</td></tr>
+          <tr><td>maxResults</td><td>number</td><td>否</td><td>最大返回结果数（默认 5）</td></tr>
+        </tbody>
+      </table>
+      <div class="callout info">
+        <strong>SSRF 防护</strong>：搜索结果经过安全过滤，URL 白名单校验。结果缓存避免重复请求。
+      </div>
+
+      <h3>web_fetch 工具</h3>
+      <table>
+        <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>url</td><td>string</td><td>是</td><td>要抓取的网页 URL</td></tr>
+          <tr><td>fetchInfo</td><td>string</td><td>否</td><td>需要提取的信息描述</td></tr>
+        </tbody>
+      </table>
+      <div class="callout info">
+        <strong>安全特性</strong>：超时保护（默认 10s）、内容截断（最大 50KB）、HTML→Markdown 转换、SSRF 防护。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 问题追踪系统
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-issue-tracker">
+      <h2>会话问题追踪系统 <span class="ver-tag phase7">v7.3</span></h2>
+      <p>源码：<code>src/issues/</code> — 自动检测、分类、存储和报告 Agent 运行过程中的所有问题事件。针对离线内网环境设计，支持实时追踪和离线扫描两种模式。</p>
+
+      <h3>设计目标</h3>
+      <table>
+        <thead><tr><th>目标</th><th>实现方式</th></tr></thead>
+        <tbody>
+          <tr><td>自动检测</td><td>Hook + EventStream 双通道捕获所有错误/异常事件</td></tr>
+          <tr><td>分类存储</td><td>11 个一级分类、30+ 二级细分、JSONL append-only 持久化</td></tr>
+          <tr><td>时间统计</td><td>每条记录精确时间戳（ISO 8601）</td></tr>
+          <tr><td>次数统计</td><td>按分类/会话聚合统计</td></tr>
+          <tr><td>可追溯</td><td>关联 sessionId，可回溯到 JSONL 会话文件</td></tr>
+          <tr><td>非侵入</td><td>通过 Hook + EventStream 接入，零修改核心逻辑</td></tr>
+        </tbody>
+      </table>
+
+      <h3>模块清单</h3>
+      <table>
+        <thead><tr><th>文件</th><th>职责</th><th>行数</th></tr></thead>
+        <tbody>
+          <tr><td><code>types.ts</code></td><td>类型定义（11 分类、IssueRecord、IssueSummary 等）</td><td>~139</td></tr>
+          <tr><td><code>classifier.ts</code></td><td>问题分类器（33+ 正则规则，优先级排序）</td><td>~260</td></tr>
+          <tr><td><code>store.ts</code></td><td>问题存储（内存缓存 + JSONL 持久化）</td><td>~170</td></tr>
+          <tr><td><code>tracker.ts</code></td><td>核心追踪器（双通道接入 + 聚合统计 + 离线扫描）</td><td>~330</td></tr>
+          <tr><td><code>report-generator.ts</code></td><td>Markdown 报告生成器（会话级 + 全局汇总）</td><td>~310</td></tr>
+          <tr><td><code>index.ts</code></td><td>模块导出入口</td><td>~35</td></tr>
+        </tbody>
+      </table>
+
+      <h3>IssueTracker 核心接口</h3>
+      <div class="interface-box">
+        <div class="interface-header">IssueTracker — src/issues/tracker.ts</div>
+        <div class="interface-body">
+<pre><code>class IssueTracker {
+  constructor(config?: IssueTrackerConfig);
+
+  /** 创建 After Hook 回调（用于 HookManager.registerAfter） */
+  createAfterHook(): AfterHookFn;
+
+  /** 绑定到 EventStream（监听 error/context_trimmed/approval_denied/agent_status） */
+  bindEvents(events: EventStream): void;
+
+  /** 设置当前会话上下文 */
+  setSession(sessionId: string, title?: string): void;
+
+  /** 从自由文本分类并记录问题 */
+  recordFromText(text: string): IssueRecord | null;
+
+  /** 获取指定会话的分类统计 */
+  getSessionSummary(sessionId: string): CategoryStats[];
+
+  /** 获取全局汇总（跨所有会话） */
+  getGlobalSummary(): IssueSummary;
+
+  /** 离线扫描 JSONL 会话文件 */
+  async scanSessions(sessionsDir: string): Promise&lt;{ scanned: number; issuesFound: number }&gt;;
+
+  /** 获取底层 Store 引用 */
+  getStore(): IssueStore;
+}</code></pre>
+        </div>
+      </div>
+
+      <h3>双通道接入方式</h3>
+      <table>
+        <thead><tr><th>通道</th><th>接入点</th><th>捕获内容</th></tr></thead>
+        <tbody>
+          <tr><td><strong>通道 A：After Hook</strong></td><td><code>HookManager.registerAfter('*', ...)</code></td><td>所有工具的 isError 结果（bash 错误、文件操作失败等）</td></tr>
+          <tr><td><strong>通道 B：EventStream</strong></td><td><code>events.on('error' | 'context_trimmed' | ...)</code></td><td>API 错误、上下文裁剪、审批拒绝、智能体状态异常</td></tr>
+        </tbody>
+      </table>
+
+      <h3>存储位置</h3>
+      <div class="file-tree">
+<pre>~/.firmclaw/
+├── sessions/              # 现有：会话 JSONL 文件
+│   └── {uuid}.jsonl
+├── issues/                # 新增：问题追踪数据
+│   ├── session-{id}.jsonl  # 每个会话的问题记录
+│   ├── session-{id}.md    # 会话级报告
+│   └── summary.md         # 全局汇总报告</pre>
+      </div>
+
+      <h3>REPL 命令</h3>
+      <table>
+        <thead><tr><th>命令</th><th>功能</th></tr></thead>
+        <tbody>
+          <tr><td><code>/issues</code></td><td>显示当前会话的问题追踪摘要</td></tr>
+          <tr><td><code>/issues --scan</code></td><td>扫描所有会话 JSONL 文件并重新生成报告</td></tr>
+          <tr><td><code>/issues --global</code></td><td>显示全局问题汇总（跨所有会话）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 问题分类器
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-classifier">
+      <h2>问题分类器 <span class="ver-tag phase7">v7.3</span></h2>
+      <p>源码：<code>src/issues/classifier.ts</code> — 基于正则模式匹配的问题自动分类引擎，覆盖 11 个一级分类、30+ 二级细分、33+ 条分类规则。</p>
+
+      <h3>IssueClassifier 核心接口</h3>
+      <div class="interface-box">
+        <div class="interface-header">IssueClassifier — src/issues/classifier.ts</div>
+        <div class="interface-body">
+<pre><code>class IssueClassifier {
+  constructor();
+
+  /** 对文本执行分类（返回第一个匹配结果或 null） */
+  classify(text: string): ClassificationResult | null;
+
+  /** 对文本执行全量匹配（返回所有匹配结果） */
+  classifyAll(text: string): ClassificationResult[];
+
+  /** 运行时添加自定义分类规则（插入到默认规则之前） */
+  addRule(rule: ClassificationRule): void;
+}</code></pre>
+        </div>
+      </div>
+
+      <h3>11 个一级分类</h3>
+      <table>
+        <thead><tr><th>分类代码</th><th>中文名</th><th>说明</th><th>典型触发模式</th></tr></thead>
+        <tbody>
+          <tr><td><code>ENV</code></td><td>环境问题</td><td>Node.js 运行时错误、文件系统异常</td><td>ENOENT、version mismatch、EACCES</td></tr>
+          <tr><td><code>DEP</code></td><td>依赖问题</td><td>Python/npm 依赖缺失、系统工具缺失</td><td>ModuleNotFoundError、command not found</td></tr>
+          <tr><td><code>ENCODING</code></td><td>编码问题</td><td>中文路径乱码、文件编码错误</td><td>UnicodeDecodeError、garbled</td></tr>
+          <tr><td><code>API</code></td><td>LLM API 问题</td><td>API 调用失败、token 超限、重试失败</td><td>LLM API error、retry failed</td></tr>
+          <tr><td><code>TOOL</code></td><td>工具执行问题</td><td>工具崩溃、超时、非零退出码</td><td>crashed、timed out、exit code</td></tr>
+          <tr><td><code>PERM</code></td><td>权限问题</td><td>路径拒绝、命令拦截、文件保护</td><td>Permission denied、Access denied、blacklist</td></tr>
+          <tr><td><code>APPROVAL</code></td><td>审批问题</td><td>人工审批被拒绝/超时</td><td>approval denied、approval timed out</td></tr>
+          <tr><td><code>PARAM</code></td><td>参数问题</td><td>JSON 解析失败、参数校验失败</td><td>Invalid JSON arguments、Parameter validation</td></tr>
+          <tr><td><code>AGENT</code></td><td>智能体交互问题</td><td>死循环、子智能体失败</td><td>max turns reached、subagent failed</td></tr>
+          <tr><td><code>CONTEXT</code></td><td>上下文问题</td><td>Token 裁剪、摘要压缩触发</td><td>context trimmed、summary generated</td></tr>
+          <tr><td><code>HOOK</code></td><td>钩子问题</td><td>Before Hook 拒绝执行</td><td>Execution denied by hook</td></tr>
+        </tbody>
+      </table>
+
+      <h3>规则优先级设计</h3>
+      <p>规则按优先级从高到低排列，先匹配先生效。关键优先级决策：</p>
+      <ul>
+        <li>AGENT 规则在 TOOL 之前 — 避免 "subagent failed" 中的 "failed" 被 TOOL 的超时规则误匹配</li>
+        <li>API 规则在最前 — LLM API 错误是最关键的问题，需要优先识别</li>
+        <li>PERM 规则包含通用 "Permission denied" — 需在更具体的黑名单/保护文件规则之后</li>
+      </ul>
+
+      <h3>自定义规则扩展</h3>
+      <pre><code>const classifier = new IssueClassifier();
+
+// 运行时添加自定义规则（插入到默认规则之前，优先匹配）
+classifier.addRule({
+  pattern: /CustomError: specific pattern/i,
+  category: 'TOOL',
+  subCategory: 'custom_error',
+  severity: 'error',
+});
+
+const result = classifier.classify('CustomError: specific pattern occurred');
+// → { category: 'TOOL', subCategory: 'custom_error', severity: 'error' }</code></pre>
+
+      <div class="callout info">
+        <strong>测试覆盖</strong>：分类器有 37 个单元测试，覆盖所有 11 个分类和边界情况。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 报告生成器
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-report-gen">
+      <h2>Markdown 报告生成器 <span class="ver-tag phase7">v7.3</span></h2>
+      <p>源码：<code>src/issues/report-generator.ts</code> — 生成会话级和全局汇总的 Markdown 报告，支持写入磁盘和纯内容输出。</p>
+
+      <h3>ReportGenerator 核心接口</h3>
+      <div class="interface-box">
+        <div class="interface-header">ReportGenerator — src/issues/report-generator.ts</div>
+        <div class="interface-body">
+<pre><code>class ReportGenerator {
+  constructor(outputDir: string);
+
+  /** 生成会话级报告内容 */
+  generateSessionReport(sessionId: string, records: IssueRecord[], opts?: {
+    title?: string;
+  }): string;
+
+  /** 生成全局汇总报告内容 */
+  generateGlobalSummary(summary: IssueSummary): string;
+
+  /** 生成会话级报告并写入磁盘 */
+  writeSessionReport(sessionId: string, records: IssueRecord[], opts?: {
+    title?: string;
+  }): string;  // 返回文件路径
+
+  /** 生成全局汇总报告并写入磁盘 */
+  writeGlobalSummary(summary: IssueSummary): string;  // 返回文件路径
+}</code></pre>
+        </div>
+      </div>
+
+      <h3>报告内容结构</h3>
+
+      <h4>会话级报告（session-{id}.md）</h4>
+      <pre><code># 会话问题报告
+
+> 会话: {title}
+> 会话 ID: {sessionId}
+> 生成时间: {timestamp}
+
+## 概览
+| 指标 | 值 |
+|------|-----|
+| 总问题数 | N |
+| 已解决 | M |
+| 未解决 | N-M |
+| 解决率 | X% |
+
+## 按分类统计
+| 分类 | 数量 | 占比 |
+|------|------|------|
+| 工具执行问题 (TOOL) | ... | ... |
+
+## 问题详情
+### TOOL-001 | 命令超时 | `bash`
+- **时间**: ...
+- **严重程度**: warning
+- **描述**: ...
+- **状态**: ✅ 已解决 / ❌ 未解决
+
+## 建议
+1. **[TOOL] 工具执行崩溃 (N 次)**: ...</code></pre>
+
+      <h4>全局汇总报告（summary.md）</h4>
+      <pre><code># FirmClaw 问题追踪汇总
+
+> 总会话数: N
+> 总问题数: M
+
+## 严重程度分布
+## 分类排名（Top N）
+## 问题最多的会话 (Top 5)
+## 升级建议</code></pre>
+
+      <div class="callout info">
+        <strong>Markdown 安全</strong>：所有用户输入的描述文本在写入报告前会进行 Markdown 转义，防止注入。
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: WebSocket Gateway
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-gateway">
+      <h2>WebSocket Gateway <span class="ver-tag phase6">v5.1</span></h2>
+      <p>源码：<code>src/gateway/</code> — 基于 <strong>ws</strong> 库实现的 JSON-RPC 2.0 远程交互网关。支持多客户端并发、Token 认证、会话管理和实时事件推送。</p>
+
+      <h3>核心能力</h3>
+      <table>
+        <thead><tr><th>特性</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>JSON-RPC 2.0</td><td>标准协议，双向实时通信</td></tr>
+          <tr><td>Token 认证</td><td>启动时自动生成 <code>fc_&lt;hex&gt;</code> Token</td></tr>
+          <tr><td>多客户端并发</td><td>默认最多 10 个连接</td></tr>
+          <tr><td>Web UI</td><td>内置聊天界面，支持 Markdown 渲染</td></tr>
+          <tr><td>事件推送</td><td>thinking_delta、tool_start/end、error 等</td></tr>
+        </tbody>
+      </table>
+
+      <h3>REPL 命令</h3>
+      <pre><code>/serve [port]     # 启动（默认端口 3000）
+/serve stop       # 停止
+/serve status     # 查看状态</code></pre>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: Agent Loop / Tools / Session 等已有模块
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-agent-loop">
+      <h2>Agent Loop <span class="ver-tag phase1">v1.0</span></h2>
+      <p>源码：<code>src/agent/agent-loop.ts</code> — ReAct 循环核心：LLM 思考 → 工具调用 → 观察结果 → 继续推理，直到生成最终回答。</p>
+      <h3>核心配置</h3>
+      <table>
+        <thead><tr><th>参数</th><th>默认值</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>maxTurns</td><td>20</td><td>最大循环轮次</td></tr>
+          <tr><td>trimConfig.maxTokens</td><td>128,000</td><td>上下文窗口上限</td></tr>
+          <tr><td>trimConfig.maxToolResultTokens</td><td>500</td><td>工具结果截断阈值</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section" id="sec-tools">
+      <h2>工具系统 <span class="ver-tag phase1">v1.0-v1.6</span></h2>
+      <p>源码：<code>src/tools/</code> — 6 个内置工具 + MCP 扩展工具，全部经过 8 层安全管道。</p>
+      <h3>6 个内置工具</h3>
+      <table>
+        <thead><tr><th>工具</th><th>功能</th><th>安全策略</th></tr></thead>
+        <tbody>
+          <tr><td><code>bash</code></td><td>执行终端命令</td><td>只读命令自动放行，删除需审批</td></tr>
+          <tr><td><code>read_file</code></td><td>读取文件（支持分段）</td><td>低风险，自动放行</td></tr>
+          <tr><td><code>write_file</code></td><td>创建/覆写文件</td><td>中风险，按策略决定</td></tr>
+          <tr><td><code>edit_file</code></td><td>精确编辑文件（唯一性校验）</td><td>中风险，按策略决定</td></tr>
+          <tr><td><code>web_search</code> <span class="ver-tag phase7">NEW</span></td><td>联网搜索（Bing/DuckDuckGo）</td><td>SSRF 防护 + 结果缓存</td></tr>
+          <tr><td><code>web_fetch</code> <span class="ver-tag phase7">NEW</span></td><td>抓取网页正文</td><td>SSRF 防护 + 超时保护</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section" id="sec-session">
+      <h2>SessionManager <span class="ver-tag phase3">v2.1</span></h2>
+      <p>源码：<code>src/session/manager.ts</code> — JSONL append-only 持久化，支持多轮对话、会话恢复、分支。</p>
+    </div>
+
+    <div class="section" id="sec-context-builder">
+      <h2>ContextBuilder <span class="ver-tag phase3">v2.2</span></h2>
+      <p>源码：<code>src/session/context-builder.ts</code> — 动态组装系统提示词，注入工具定义、SOUL.md、MEMORY.md、Skill 内容等。</p>
+    </div>
+
+    <div class="section" id="sec-summarizer">
+      <h2>Summarizer <span class="ver-tag phase4">v3.1</span></h2>
+      <p>源码：<code>src/session/summarizer.ts</code> — 80,000 token 阈值自动触发 LLM 摘要压缩，压缩率 93%+。</p>
+    </div>
+
+    <div class="section" id="sec-memory">
+      <h2>MemoryManager <span class="ver-tag phase4">v3.2</span></h2>
+      <p>源码：<code>src/session/memory-manager.ts</code> — 结构化 Markdown 记忆管理，4 种标签（偏好/决策/待办/知识），自动分类。</p>
+    </div>
+
+    <div class="section" id="sec-search">
+      <h2>SearchEngine <span class="ver-tag phase4">v3.3</span></h2>
+      <p>源码：<code>src/session/search-engine.ts</code> — 纯 JS BM25 全文搜索引擎，支持会话消息 + 记忆的跨域检索。</p>
+    </div>
+
+    <div class="section" id="sec-approval">
+      <h2>ApprovalGateway <span class="ver-tag phase5">v4.1</span></h2>
+      <p>源码：<code>src/agent/approval-gateway.ts</code> — Human-in-the-Loop 人工审批，风险等级判定（CRITICAL/HIGH/MEDIUM/LOW），默认 5 分钟超时。</p>
+    </div>
+
+    <div class="section" id="sec-hooks">
+      <h2>HookManager <span class="ver-tag phase5">v4.5</span></h2>
+      <p>源码：<code>src/tools/hook-manager.ts</code> — 工具执行前后的钩子拦截机制。v7.3 中用于注册 IssueTracker 的全局 after hook。</p>
+      <div class="interface-box">
+        <div class="interface-header">HookManager 关键方法</div>
+        <div class="interface-body">
+<pre><code>class HookManager {
+  /** 注册指定工具的 Before Hook */
+  registerBefore(toolName: string, hook: BeforeHookFn): void;
+
+  /** 注册指定工具的 After Hook（'*' 匹配所有工具） */
+  registerAfter(toolName: string, hook: AfterHookFn): void;
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-subagent">
+      <h2>子智能体 <span class="ver-tag phase6">v5.3</span></h2>
+      <p>源码：<code>src/agent/subagent-manager.ts</code> — 主智能体可将任务拆分给子智能体并行执行。默认最多 3 个并发、5 轮循环、2 分钟超时。</p>
+    </div>
+
+    <div class="section" id="sec-webui">
+      <h2>Web UI <span class="ver-tag phase6">v5.4</span></h2>
+      <p>源码：<code>src/gateway/</code> — 内置的浏览器聊天界面，通过 <code>/serve</code> 启动后访问 <code>http://localhost:{port}?token={token}</code>。支持 Markdown 渲染、实时流式输出。</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 文件结构
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-file-structure">
+      <h2>文件结构</h2>
+      <div class="file-tree">
+<pre>src/
+├── agent/                  <span class="comment"># ReAct 循环 + 安全 + 子智能体</span>
+├── audit/                  <span class="comment"># 审计日志</span>
+├── cli/                    <span class="comment"># CLI 富文本渲染 + 进度指示器</span>
+├── gateway/                <span class="comment"># WebSocket 网关 + Web UI</span>
+├── <span class="dir">issues/</span>                <span class="new"># v7.3 会话问题追踪系统</span>
+│   ├── types.ts            <span class="new"># 类型定义（11 分类）</span>
+│   ├── classifier.ts       <span class="new"># 问题分类器（33+ 规则）</span>
+│   ├── store.ts            <span class="new"># JSONL 持久化存储</span>
+│   ├── tracker.ts          <span class="new"># 核心追踪器</span>
+│   ├── report-generator.ts <span class="new"># Markdown 报告生成</span>
+│   └── index.ts            <span class="new"># 模块导出</span>
+├── llm/                    <span class="comment"># LLM 客户端（OpenAI 兼容）</span>
+├── mcp/                    <span class="dir"># v7.0 MCP 客户端管理</span>
+├── session/                <span class="comment"># 会话管理 + 记忆 + 搜索 + 摘要</span>
+├── skills/                 <span class="dir"># v7.0 Skill 技能系统</span>
+├── tests/                  <span class="comment"># 32+ 测试文件</span>
+├── tools/                  <span class="comment"># 工具系统（bash/read/write/edit/web-search/web-fetch + 权限 + Hook）</span>
+├── utils/                  <span class="comment"># 基础设施（事件流/token 计数/模板）</span>
+├── web/                    <span class="dir"># v7.0 搜索引擎（Bing/DuckDuckGo）</span>
+└── index.ts                <span class="comment"># 程序入口（787 行）</span></pre>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: CLI 命令
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-cli">
+      <h2>CLI 命令</h2>
+      <p>FirmClaw 通过交互式 REPL 提供斜杠命令。启动后输入 <code>/help</code> 查看完整列表。</p>
+
+      <h3>全部斜杠命令</h3>
+      <table>
+        <thead><tr><th>命令</th><th>版本</th><th>功能</th></tr></thead>
+        <tbody>
+          <tr><td><code>/help</code></td><td>v1.0</td><td>显示所有可用命令</td></tr>
+          <tr><td><code>/new</code></td><td>v2.1</td><td>创建新会话</td></tr>
+          <tr><td><code>/resume [id]</code></td><td>v2.1</td><td>恢复会话（最新或按 ID）</td></tr>
+          <tr><td><code>/sessions</code></td><td>v2.1</td><td>列出所有会话</td></tr>
+          <tr><td><code>/session</code></td><td>v2.1</td><td>显示当前会话信息</td></tr>
+          <tr><td><code>/soul</code></td><td>v2.2</td><td>显示 SOUL.md 内容</td></tr>
+          <tr><td><code>/memory [tag]</code></td><td>v3.2</td><td>查看记忆（preference/decision/todo/knowledge）</td></tr>
+          <tr><td><code>/remember &lt;text&gt;</code></td><td>v3.2</td><td>保存一条记忆（自动分类）</td></tr>
+          <tr><td><code>/forget &lt;id&gt;</code></td><td>v3.2</td><td>删除一条记忆</td></tr>
+          <tr><td><code>/search &lt;query&gt;</code></td><td>v3.3</td><td>全文搜索（跨会话 + 记忆）</td></tr>
+          <tr><td><code>/compact</code></td><td>v3.1</td><td>手动触发上下文压缩</td></tr>
+          <tr><td><code>/issues</code></td><td><span class="ver-tag phase7">v7.3</span></td><td>当前会话问题追踪摘要</td></tr>
+          <tr><td><code>/issues --scan</code></td><td><span class="ver-tag phase7">v7.3</span></td><td>扫描所有会话并重新生成报告</td></tr>
+          <tr><td><code>/issues --global</code></td><td><span class="ver-tag phase7">v7.3</span></td><td>显示全局问题汇总</td></tr>
+          <tr><td><code>/index</code></td><td>v3.3</td><td>显示搜索索引统计</td></tr>
+          <tr><td><code>/skill-list</code></td><td><span class="ver-tag phase7">v7.0</span></td><td>列出可用技能</td></tr>
+          <tr><td><code>/skill &lt;name&gt; [args]</code></td><td><span class="ver-tag phase7">v7.0</span></td><td>手动激活技能</td></tr>
+          <tr><td><code>/mcp-list</code></td><td><span class="ver-tag phase7">v7.0</span></td><td>查看 MCP Server 连接状态</td></tr>
+          <tr><td><code>/mcp-connect &lt;name&gt;</code></td><td><span class="ver-tag phase7">v7.0</span></td><td>连接 MCP Server</td></tr>
+          <tr><td><code>/mcp-disconnect &lt;name&gt;</code></td><td><span class="ver-tag phase7">v7.0</span></td><td>断开 MCP Server</td></tr>
+          <tr><td><code>/serve [port]</code></td><td>v5.1</td><td>启动 WebSocket + Web UI</td></tr>
+          <tr><td><code>/serve stop</code></td><td>v5.1</td><td>停止 WebSocket 服务</td></tr>
+          <tr><td><code>/serve status</code></td><td>v5.1</td><td>显示服务状态</td></tr>
+          <tr><td><code>/exit</code></td><td>v1.0</td><td>退出 REPL</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 版本历史
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-version-history">
+      <h2>版本历史</h2>
+      <table>
+        <thead><tr><th>版本</th><th>里程碑</th><th>主要特性</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>v7.3</strong></td>
+            <td>问题追踪</td>
+            <td>会话问题追踪系统（IssueTracker + Classifier + Store + ReportGenerator）<br>33+ 分类规则 / 双通道接入 / JSONL 持久化 / Markdown 报告 / 离线扫描</td>
+          </tr>
+          <tr>
+            <td><strong>v7.0</strong></td>
+            <td>扩展生态</td>
+            <td>Skill 技能系统 + MCP 客户端 + 联网搜索（web_search + web_fetch）</td>
+          </tr>
+          <tr>
+            <td><strong>v6.0</strong></td>
+            <td>平台化</td>
+            <td>WebSocket 网关 + CLI 渲染器 + 子智能体 + Web UI</td>
+          </tr>
+          <tr>
+            <td><strong>v5.0</strong></td>
+            <td>生产就绪</td>
+            <td>人工审批 + 审计日志 + 心跳 + 会话分支 + Hook</td>
+          </tr>
+          <tr>
+            <td><strong>v4.0</strong></td>
+            <td>智能记忆</td>
+            <td>LLM 摘要压缩 + 记忆管理 + BM25 全文搜索</td>
+          </tr>
+          <tr>
+            <td><strong>v3.0</strong></td>
+            <td>多轮对话</td>
+            <td>会话管理 + 动态系统提示词 + 上下文窗口</td>
+          </tr>
+          <tr>
+            <td><strong>v2.0</strong></td>
+            <td>工具完善</td>
+            <td>read/write/edit + 权限策略 + JSON Schema 校验</td>
+          </tr>
+          <tr>
+            <td><strong>v1.0</strong></td>
+            <td>最小可用</td>
+            <td>ReAct 循环 + bash 工具 + CLI</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         Section: 能力与边界
+         ═══════════════════════════════════════════════════ -->
+    <div class="section" id="sec-capabilities">
+      <h2>能力与边界</h2>
+
+      <h3>FirmClaw 能做什么</h3>
+      <ul>
+        <li>理解自然语言指令并自主规划执行步骤</li>
+        <li>执行终端命令、读写文件、联网搜索</li>
+        <li>通过 Skill 系统注入领域专业知识</li>
+        <li>通过 MCP 协议接入外部工具服务器</li>
+        <li>自动追踪和分类运行过程中的所有问题</li>
+        <li>生成问题分析报告和改进建议</li>
+        <li>多轮对话 + 长期记忆 + 全文搜索</li>
+        <li>通过 WebSocket 网关远程交互</li>
+        <li>完全本地运行，数据不出本机</li>
+      </ul>
+
+      <h3>FirmClaw 不能做什么</h3>
+      <ul>
+        <li>不能运行 GUI 程序或操作图形界面</li>
+        <li>不能直接访问数据库（需通过 bash 或 MCP 工具间接操作）</li>
+        <li>不支持向量数据库 / RAG（当前使用 BM25 纯文本搜索）</li>
+        <li>不内置代码执行沙箱（依赖 Node.js 子进程）</li>
+        <li>子智能体不支持嵌套（子智能体不能再创建子智能体）</li>
+      </ul>
+
+      <h3>5 层安全防护</h3>
+      <div class="flow-diagram">
+<pre>① JSON Schema 参数校验（ajv）
+② Before/After Hook 拦截
+③ 路径白名单 + 命令黑名单
+④ 人工审批网关（Human-in-the-Loop）
+⑤ Prompt Injection 防护（自动标记净化）</pre>
+      </div>
+    </div>
+
+  </div><!-- .content -->
+</div><!-- .main -->
+
+<script>
+function showSection(id) {
+  // Hide all sections
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  // Show target
+  const target = document.getElementById('sec-' + id);
+  if (target) target.classList.add('active');
+
+  // Update sidebar nav
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.section === id);
+  });
+
+  // Update top tabs
+  document.querySelectorAll('.tab-btn').forEach(t => {
+    t.classList.toggle('active', t.dataset.section === id);
+  });
+
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>
